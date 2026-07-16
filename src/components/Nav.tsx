@@ -42,6 +42,7 @@ export default function Nav() {
           href="/"
           className="relative z-50 flex items-center font-mono text-sm font-bold tracking-[0.3em] text-cream"
           dir="ltr"
+          aria-label="AMIRACTIVE"
         >
           AM
           <CandleI />
