@@ -1,17 +1,16 @@
 @import "tailwindcss";
 
 @theme {
-  /* پالت امیراکتیو */
-  --color-ink: #0a0a0c;        /* پس‌زمینه‌ی اصلی */
-  --color-surface: #131318;    /* سطح کارت‌ها */
-  --color-raised: #1b1b22;     /* سطح بالاتر */
-  --color-line: #26262e;       /* بوردرها */
-  --color-cream: #f4f1e8;      /* متن اصلی */
-  --color-muted: #8f8c85;      /* متن کم‌رنگ */
-  --color-gold: #e8c46a;       /* طلایی امضا */
-  --color-gold-deep: #b9892f;  /* طلایی عمیق */
-  --color-gain: #3ecf8e;       /* سبز بازار */
-  --color-loss: #e5484d;       /* قرمز بازار */
+  --color-ink: #0a0a0c;
+  --color-surface: #131318;
+  --color-raised: #1b1b22;
+  --color-line: #26262e;
+  --color-cream: #f4f1e8;
+  --color-muted: #8f8c85;
+  --color-gold: #e8c46a;
+  --color-gold-deep: #b9892f;
+  --color-gain: #3ecf8e;
+  --color-loss: #e5484d;
 }
 
 @theme inline {
@@ -28,4 +27,66 @@ body {
 
 ::selection {
   background: rgba(232, 196, 106, 0.25);
+}
+
+/* motion */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes draw {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.rise { animation: rise 0.8s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.marquee { animation: marquee 40s linear infinite; }
+.ticker:hover .marquee { animation-play-state: paused; }
+.draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw 1.6s cubic-bezier(0.16, 1, 0.3, 1) 0.5s both;
+}
+.blink { animation: blink 1.6s ease-in-out infinite; }
+
+/* ambient gold glow behind the hero */
+.hero-glow {
+  background:
+    radial-gradient(600px 300px at 70% 20%, rgba(232, 196, 106, 0.07), transparent 70%),
+    radial-gradient(800px 400px at 20% 80%, rgba(232, 196, 106, 0.04), transparent 70%);
+}
+
+/* soft edge fade for the ticker */
+.fade-x {
+  mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise, .marquee, .draw, .blink { animation: none; }
+  .draw { stroke-dashoffset: 0; }
+}
+
+/* floating candle field */
+@keyframes floaty {
+  0%, 100% { transform: translateY(10px) rotate(-1.5deg); }
+  50% { transform: translateY(-14px) rotate(1.5deg); }
+}
+.float {
+  animation: floaty 24s ease-in-out infinite;
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .float { animation: none; }
+}
+
+html {
+  scroll-behavior: smooth;
 }
