@@ -100,7 +100,7 @@ export default function TradeCycle() {
       ref={wrapRef}
       className="relative overflow-hidden rounded-2xl border border-line bg-surface/60 backdrop-blur"
     >
-      <svg viewBox="0 0 600 240" className="w-full" dir="ltr" aria-hidden="true">
+      <svg viewBox="0 0 600 240" className="w-full" aria-hidden="true">
         <line x1="0" y1="60" x2="600" y2="60" stroke="var(--color-line)" strokeWidth="1" opacity="0.6" />
         <line x1="0" y1="120" x2="600" y2="120" stroke="var(--color-line)" strokeWidth="1" opacity="0.6" />
         <line x1="0" y1="180" x2="600" y2="180" stroke="var(--color-line)" strokeWidth="1" opacity="0.6" />
