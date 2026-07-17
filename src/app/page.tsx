@@ -4,6 +4,8 @@ import Hero from "@/components/Hero";
 import Ticker from "@/components/Ticker";
 import Results from "@/components/Results";
 import Bot from "@/components/Bot";
+import Faq from "@/components/Faq";
+import Footer from "@/components/Footer";
 
 export default function Home() {
   return (
@@ -15,7 +17,9 @@ export default function Home() {
         <Ticker />
         <Results />
         <Bot />
+        <Faq />
       </main>
+      <Footer />
     </>
   );
 }
