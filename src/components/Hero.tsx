@@ -2,6 +2,14 @@
 
 import { useEffect, useState } from "react";
 
+function TgIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden="true">
+      <path d="M21.9 4.6l-3.1 14.7c-.2 1-.8 1.2-1.7.8l-4.7-3.5-2.3 2.2c-.3.3-.5.5-1 .5l.4-4.8L18.2 6.7c.4-.3-.1-.5-.6-.2L6.9 13.3l-4.6-1.4c-1-.3-1-1 .2-1.5L20.6 3.1c.8-.3 1.6.2 1.3 1.5z" />
+    </svg>
+  );
+}
+
 function useCountUp(target: number, duration = 1400) {
   const [val, setVal] = useState(0);
   useEffect(() => {
@@ -83,8 +91,9 @@ export default function Hero() {
               href="https://t.me/CashflowFactorys"
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-xl bg-gold px-7 py-3.5 font-display font-extrabold text-ink transition hover:bg-gold-deep"
+              className="flex items-center gap-2.5 rounded-xl bg-gold px-7 py-3.5 font-display font-extrabold text-ink transition hover:bg-gold-deep"
             >
+              <TgIcon />
               ورود به کانال تلگرام
             </a>
             <a

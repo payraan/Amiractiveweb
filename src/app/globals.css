@@ -120,3 +120,43 @@ html {
 @media (prefers-reduced-motion: reduce) {
   .sweep, .ping-ring, .float-up, .appear { animation: none; }
 }
+
+/* interactive hover */
+a,
+button {
+  transition:
+    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    color 0.25s,
+    background-color 0.25s,
+    border-color 0.25s,
+    opacity 0.4s;
+}
+a:hover,
+button:not(.no-zoom):hover {
+  transform: scale(1.05);
+}
+
+.card-hover {
+  transition:
+    transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.3s;
+}
+.card-hover:hover {
+  transform: scale(1.02);
+  border-color: rgba(232, 196, 106, 0.55);
+}
+
+.frame-hover {
+  transition: border-color 0.3s;
+}
+.frame-hover:hover {
+  border-color: rgba(232, 196, 106, 0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  a:hover,
+  button:hover,
+  .card-hover:hover {
+    transform: none;
+  }
+}

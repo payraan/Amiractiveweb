@@ -25,6 +25,14 @@ function CandleI() {
   );
 }
 
+function TgIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden="true">
+      <path d="M21.9 4.6l-3.1 14.7c-.2 1-.8 1.2-1.7.8l-4.7-3.5-2.3 2.2c-.3.3-.5.5-1 .5l.4-4.8L18.2 6.7c.4-.3-.1-.5-.6-.2L6.9 13.3l-4.6-1.4c-1-.3-1-1 .2-1.5L20.6 3.1c.8-.3 1.6.2 1.3 1.5z" />
+    </svg>
+  );
+}
+
 export default function Nav() {
   const [open, setOpen] = useState(false);
 
@@ -62,8 +70,9 @@ export default function Nav() {
             href={TELEGRAM}
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden rounded-lg border border-gold/40 px-4 py-2 text-sm text-gold transition hover:bg-gold hover:text-ink md:block"
+            className="hidden items-center gap-2 rounded-lg border border-gold/40 px-4 py-2 text-sm text-gold transition hover:bg-gold hover:text-ink md:flex"
           >
+            <TgIcon />
             تلگرام
           </a>
 
@@ -115,11 +124,12 @@ export default function Nav() {
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => setOpen(false)}
-            className={`rounded-xl bg-gold py-4 text-center font-display font-extrabold text-ink transition-all duration-500 ${
+            className={`flex items-center justify-center gap-2 rounded-xl bg-gold py-4 font-display font-extrabold text-ink transition-all duration-500 ${
               open ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
             }`}
             style={{ transitionDelay: open ? "360ms" : "0ms" }}
           >
+            <TgIcon />
             ورود به کانال تلگرام
           </a>
         </div>

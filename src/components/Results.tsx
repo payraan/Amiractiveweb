@@ -139,10 +139,8 @@ export default function Results() {
           شفافیت می‌آید، نه از فیلتر.
         </p>
 
-        <div
-          className={rv("mt-10 rounded-2xl border border-line bg-surface/60 p-6 backdrop-blur md:p-8")}
-          style={{ transitionDelay: "240ms" }}
-        >
+        <div className={rv("mt-10")} style={{ transitionDelay: "240ms" }}>
+          <div className="frame-hover rounded-2xl border border-line bg-surface/60 p-6 backdrop-blur md:p-8">
           <svg viewBox="0 0 600 170" className="w-full" aria-hidden="true">
             <defs>
               <linearGradient id="eqg" x1="0" y1="0" x2="0" y2="1">
@@ -182,12 +180,11 @@ export default function Results() {
             داده‌های نمایشی برای پیش‌نمایش — پیش از انتشار با آمار واقعی حساب
             جایگزین می‌شوند.
           </p>
+          </div>
         </div>
 
-        <div
-          className={rv("mt-8 rounded-2xl border border-line bg-surface/40 p-6 md:p-8")}
-          style={{ transitionDelay: "320ms" }}
-        >
+        <div className={rv("mt-8")} style={{ transitionDelay: "320ms" }}>
+          <div className="frame-hover rounded-2xl border border-line bg-surface/40 p-6 md:p-8">
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
             <span className="text-sm font-bold">بازده ماه‌به‌ماه (٪)</span>
             <span className="flex items-center gap-4 text-[11px] text-muted">
@@ -241,6 +238,7 @@ export default function Results() {
                 </div>
               );
             })}
+          </div>
           </div>
         </div>
 

@@ -75,14 +75,15 @@ export default function Faq() {
             return (
               <div
                 key={i}
-                className={rv("rounded-2xl border border-line bg-surface/40")}
+                className={rv()}
                 style={{ transitionDelay: `${140 + i * 50}ms` }}
               >
+                <div className="frame-hover rounded-2xl border border-line bg-surface/40">
                 <button
                   type="button"
                   aria-expanded={isOpen}
                   onClick={() => setOpen(isOpen ? -1 : i)}
-                  className="flex w-full items-center justify-between gap-4 px-6 py-5"
+                  className="no-zoom flex w-full items-center justify-between gap-4 px-6 py-5"
                 >
                   <span
                     className={`text-start text-sm font-bold transition-colors md:text-base ${
@@ -111,6 +112,7 @@ export default function Faq() {
                   <div className="overflow-hidden">
                     <p className="px-6 pb-6 text-sm leading-8 text-muted">{f.a}</p>
                   </div>
+                </div>
                 </div>
               </div>
             );

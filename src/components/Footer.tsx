@@ -109,8 +109,11 @@ export default function Footer() {
             href={LINKS.telegramChannel}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-4 block rounded-xl bg-gold py-3 text-center font-display text-sm font-extrabold text-ink transition hover:bg-gold-deep"
+            className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-gold py-3 font-display text-sm font-extrabold text-ink transition hover:bg-gold-deep"
           >
+            <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden="true">
+              <path d="M21.9 4.6l-3.1 14.7c-.2 1-.8 1.2-1.7.8l-4.7-3.5-2.3 2.2c-.3.3-.5.5-1 .5l.4-4.8L18.2 6.7c.4-.3-.1-.5-.6-.2L6.9 13.3l-4.6-1.4c-1-.3-1-1 .2-1.5L20.6 3.1c.8-.3 1.6.2 1.3 1.5z" />
+            </svg>
             عضویت در کانال تلگرام
           </a>
         </div>

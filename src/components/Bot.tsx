@@ -94,6 +94,14 @@ function useInView(threshold = 0.15) {
   return { ref, inView };
 }
 
+function TgIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden="true">
+      <path d="M21.9 4.6l-3.1 14.7c-.2 1-.8 1.2-1.7.8l-4.7-3.5-2.3 2.2c-.3.3-.5.5-1 .5l.4-4.8L18.2 6.7c.4-.3-.1-.5-.6-.2L6.9 13.3l-4.6-1.4c-1-.3-1-1 .2-1.5L20.6 3.1c.8-.3 1.6.2 1.3 1.5z" />
+    </svg>
+  );
+}
+
 function Check() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 shrink-0 text-gold">
@@ -143,12 +151,14 @@ export default function Bot() {
           {FEATURES.map((f, i) => (
             <div
               key={f.title}
-              className={rv("rounded-2xl border border-line bg-surface/50 p-5")}
+              className={rv()}
               style={{ transitionDelay: `${320 + i * 60}ms` }}
             >
-              <span className="text-gold">{f.icon}</span>
-              <h3 className="mt-4 text-sm font-bold">{f.title}</h3>
-              <p className="mt-2 text-xs leading-6 text-muted">{f.desc}</p>
+              <div className="card-hover h-full rounded-2xl border border-line bg-surface/50 p-5">
+                <span className="text-gold">{f.icon}</span>
+                <h3 className="mt-4 text-sm font-bold">{f.title}</h3>
+                <p className="mt-2 text-xs leading-6 text-muted">{f.desc}</p>
+              </div>
             </div>
           ))}
         </div>
@@ -157,15 +167,16 @@ export default function Bot() {
           {PLANS.map((p, i) => (
             <div
               key={p.id}
-              className={rv(
-                `relative rounded-2xl border p-7 ${
+              className={rv()}
+              style={{ transitionDelay: `${700 + i * 80}ms` }}
+            >
+              <div
+                className={`card-hover relative h-full rounded-2xl border p-7 ${
                   p.highlight
                     ? "border-gold/50 bg-surface/70 backdrop-blur"
                     : "border-line bg-surface/40"
-                }`
-              )}
-              style={{ transitionDelay: `${700 + i * 80}ms` }}
-            >
+                }`}
+              >
               {p.badge && (
                 <span className="absolute -top-3 right-6 rounded-full bg-gold px-3 py-1 text-[11px] font-bold text-ink">
                   {p.badge}
@@ -206,14 +217,16 @@ export default function Bot() {
                 href={LINKS.telegramSupport}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`mt-7 block rounded-xl py-3.5 text-center font-display font-extrabold transition ${
+                className={`mt-7 flex items-center justify-center gap-2 rounded-xl py-3.5 font-display font-extrabold transition ${
                   p.highlight
                     ? "bg-gold text-ink hover:bg-gold-deep"
                     : "border border-line text-cream hover:border-gold hover:text-gold"
                 }`}
               >
+                <TgIcon />
                 {p.cta}
               </a>
+              </div>
             </div>
           ))}
         </div>
