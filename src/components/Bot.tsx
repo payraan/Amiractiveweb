@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-
-const TELEGRAM_SUPPORT = "https://t.me/CashflowFactorys"; // TODO: real support/admin ID
+import { LINKS, PLANS } from "@/config/site";
+import TradeCycle from "@/components/TradeCycle";
 
 const FEATURES = [
   {
@@ -10,7 +10,9 @@ const FEATURES = [
     desc: "معاملات کوتاه با هدف مشخص روی تایم‌فریم پایین.",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-5 w-5">
-        <path d="M3 12h4l3-7 4 14 3-7h4" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M8 5v3M8 16v3M16 3v4M16 15v6" strokeLinecap="round" />
+        <rect x="6" y="8" width="4" height="8" rx="1" />
+        <rect x="14" y="7" width="4" height="8" rx="1" />
       </svg>
     ),
   },
@@ -20,8 +22,8 @@ const FEATURES = [
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-5 w-5">
         <circle cx="12" cy="12" r="9" />
-        <circle cx="12" cy="12" r="4" />
-        <circle cx="12" cy="12" r="0.5" fill="currentColor" />
+        <circle cx="12" cy="12" r="4.5" />
+        <circle cx="12" cy="12" r="0.8" fill="currentColor" />
       </svg>
     ),
   },
@@ -30,8 +32,7 @@ const FEATURES = [
     desc: "تمام ساعات بازار را می‌پاید؛ فرصتی را از سر خستگی از دست نمی‌دهد.",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-5 w-5">
-        <circle cx="12" cy="12" r="9" />
-        <path d="M12 7v5l3 2" strokeLinecap="round" />
+        <path d="M13 2L4.5 13H11l-1 9L19 11h-6.5L13 2z" strokeLinejoin="round" />
       </svg>
     ),
   },
@@ -40,10 +41,10 @@ const FEATURES = [
     desc: "حجم، حد ضرر، حد سود و بازه‌ی معامله قابل تنظیم است.",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-5 w-5">
-        <path d="M4 7h10M18 7h2M4 12h4M12 12h8M4 17h13M20 17h0" strokeLinecap="round" />
+        <path d="M4 7h10M18 7h2M4 12h4M12 12h8M4 17h12M20 17h0" strokeLinecap="round" />
         <circle cx="16" cy="7" r="2" />
         <circle cx="10" cy="12" r="2" />
-        <circle cx="19" cy="17" r="2" />
+        <circle cx="18" cy="17" r="2" />
       </svg>
     ),
   },
@@ -52,8 +53,8 @@ const FEATURES = [
     desc: "اتصال به حساب متاتریدر ۵ و تنظیمات اولیه — تمام.",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-5 w-5">
-        <path d="M12 3v10M8 9l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" strokeLinecap="round" />
+        <path d="M12 3v10m0 0l-3.5-3.5M12 13l3.5-3.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M5 17v2a2 2 0 002 2h10a2 2 0 002-2v-2" strokeLinecap="round" />
       </svg>
     ),
   },
@@ -62,68 +63,9 @@ const FEATURES = [
     desc: "عملکرد ربات به‌صورت زنده و مستقل در Myfxbook ثبت می‌شود.",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-5 w-5">
-        <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z" strokeLinejoin="round" />
-        <circle cx="12" cy="12" r="2.5" />
+        <path d="M3 12h4l3-7 4 14 3-7h4" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     ),
-  },
-];
-
-type Plan = {
-  name: string;
-  price: string;
-  period: string;
-  oldPrice?: string;
-  badge?: string;
-  note: string;
-  items: string[];
-  cta: string;
-  highlighted?: boolean;
-};
-
-// برای کمپین یا جشنواره: کافی است روی هر پلن oldPrice و badge را ست کنید
-// مثال: oldPrice: "$100", price: "$80", badge: "تخفیف جشنواره"
-const PLANS: Plan[] = [
-  {
-    name: "تست رایگان",
-    price: "$0",
-    period: "/ یک هفته",
-    note: "روی حساب دمو — بدون ریسک، عملکرد را خودتان بسنجید.",
-    items: [
-      "دسترسی کامل به ربات",
-      "یک هفته روی حساب دمو",
-      "راهنمای نصب قدم‌به‌قدم",
-      "پشتیبانی در تلگرام",
-    ],
-    cta: "دریافت نسخه‌ی تست",
-  },
-  {
-    name: "با بروکر معرفی ما",
-    price: "$100",
-    period: "/ ماه",
-    badge: "پیشنهاد ما",
-    note: "چرا ارزان‌تر؟ چون بخشی از هزینه را همکاری ما با بروکر پوشش می‌دهد.",
-    items: [
-      "لایسنس کامل ربات",
-      "راهنمای نصب قدم‌به‌قدم روی MT5",
-      "پشتیبانی مستقیم در تلگرام",
-      "ثبت‌نام بروکر با راهنمایی ما",
-    ],
-    cta: "خرید و فعال‌سازی",
-    highlighted: true,
-  },
-  {
-    name: "با بروکر دلخواه شما",
-    price: "$150",
-    period: "/ ماه",
-    note: "روی هر بروکری که خودتان انتخاب کرده‌اید فعال می‌شود.",
-    items: [
-      "لایسنس کامل ربات",
-      "راهنمای نصب قدم‌به‌قدم روی MT5",
-      "پشتیبانی مستقیم در تلگرام",
-      "بدون نیاز به تغییر بروکر",
-    ],
-    cta: "خرید و فعال‌سازی",
   },
 ];
 
@@ -193,12 +135,16 @@ export default function Bot() {
           زنده دیدید.
         </p>
 
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className={rv("mt-10")} style={{ transitionDelay: "240ms" }}>
+          <TradeCycle />
+        </div>
+
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((f, i) => (
             <div
               key={f.title}
               className={rv("rounded-2xl border border-line bg-surface/50 p-5")}
-              style={{ transitionDelay: `${240 + i * 60}ms` }}
+              style={{ transitionDelay: `${320 + i * 60}ms` }}
             >
               <span className="text-gold">{f.icon}</span>
               <h3 className="mt-4 text-sm font-bold">{f.title}</h3>
@@ -208,62 +154,65 @@ export default function Bot() {
         </div>
 
         <div className="mt-14 grid gap-6 md:grid-cols-3">
-          {PLANS.map((plan, i) => (
+          {PLANS.map((p, i) => (
             <div
-              key={plan.name}
+              key={p.id}
               className={rv(
-                `relative rounded-2xl p-6 ${
-                  plan.highlighted
-                    ? "border border-gold/50 bg-surface/70 backdrop-blur"
-                    : "border border-line bg-surface/40"
+                `relative rounded-2xl border p-7 ${
+                  p.highlight
+                    ? "border-gold/50 bg-surface/70 backdrop-blur"
+                    : "border-line bg-surface/40"
                 }`
               )}
-              style={{ transitionDelay: `${620 + i * 80}ms` }}
+              style={{ transitionDelay: `${700 + i * 80}ms` }}
             >
-              {plan.badge && (
+              {p.badge && (
                 <span className="absolute -top-3 right-6 rounded-full bg-gold px-3 py-1 text-[11px] font-bold text-ink">
-                  {plan.badge}
+                  {p.badge}
                 </span>
               )}
-              <h3 className="text-sm font-bold text-muted">{plan.name}</h3>
+
+              <h3 className="text-sm font-bold text-muted">{p.title}</h3>
+
               <div className="mt-3 flex items-baseline gap-2">
-                {plan.oldPrice && (
+                {p.originalPrice && (
                   <span className="font-mono text-lg text-muted line-through" dir="ltr">
-                    {plan.oldPrice}
+                    {p.originalPrice}
                   </span>
                 )}
                 <span
-                  className={`font-mono text-4xl font-bold ${
-                    plan.highlighted ? "text-gold" : ""
-                  }`}
+                  className={`font-mono text-4xl font-bold ${p.highlight ? "text-gold" : ""}`}
                   dir="ltr"
                 >
-                  {plan.price}
+                  {p.price}
                 </span>
-                <span className="text-sm text-muted">{plan.period}</span>
+                <span className="text-sm text-muted">{p.period}</span>
               </div>
-              <p className="mt-2 min-h-10 text-[11px] leading-5 text-muted">
-                {plan.note}
-              </p>
-              <ul className="mt-5 flex flex-col gap-3">
-                {plan.items.map((p) => (
-                  <li key={p} className="flex items-center gap-2.5 text-sm">
+
+              {p.note && (
+                <p className="mt-2 text-[11px] leading-5 text-muted">{p.note}</p>
+              )}
+
+              <ul className="mt-6 flex flex-col gap-3">
+                {p.features.map((f) => (
+                  <li key={f} className="flex items-center gap-2.5 text-sm">
                     <Check />
-                    {p}
+                    {f}
                   </li>
                 ))}
               </ul>
+
               <a
-                href={TELEGRAM_SUPPORT}
+                href={LINKS.telegramSupport}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`mt-6 block rounded-xl py-3.5 text-center transition ${
-                  plan.highlighted
-                    ? "bg-gold font-display font-extrabold text-ink hover:bg-gold-deep"
-                    : "border border-line font-bold text-cream hover:border-gold hover:text-gold"
+                className={`mt-7 block rounded-xl py-3.5 text-center font-display font-extrabold transition ${
+                  p.highlight
+                    ? "bg-gold text-ink hover:bg-gold-deep"
+                    : "border border-line text-cream hover:border-gold hover:text-gold"
                 }`}
               >
-                {plan.cta}
+                {p.cta}
               </a>
             </div>
           ))}
@@ -271,7 +220,7 @@ export default function Bot() {
 
         <div
           className={rv("mt-10 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-xs text-muted")}
-          style={{ transitionDelay: "900ms" }}
+          style={{ transitionDelay: "980ms" }}
         >
           <span>پرداخت با تتر (USDT)</span>
           <span className="text-gold">·</span>
