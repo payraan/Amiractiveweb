@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   createChart,
   ColorType,
+  CrosshairMode,
   CandlestickSeries,
   type IChartApi,
   type ISeriesApi,
@@ -45,7 +46,11 @@ export default function LiveChart({
       },
       rightPriceScale: { borderColor: "#26262e" },
       timeScale: { borderColor: "#26262e", timeVisible: true, secondsVisible: false },
-      crosshair: { horzLine: { color: "#e8c46a" }, vertLine: { color: "#e8c46a" } },
+      crosshair: {
+        mode: CrosshairMode.Normal,
+        horzLine: { color: "#e8c46a", labelBackgroundColor: "#b9892f" },
+        vertLine: { color: "#e8c46a", labelBackgroundColor: "#b9892f" },
+      },
       height: 260,
       autoSize: true,
     });
