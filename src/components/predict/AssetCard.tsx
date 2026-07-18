@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Asset, MarketData, MarketPoint } from "@/lib/market";
+import { errorText, type Player } from "@/components/predict/usePlayer";
 
 function buildPath(series: MarketPoint[], w = 320, h = 96) {
   if (series.length < 2) return null;
@@ -24,7 +25,6 @@ function useCountdown() {
   useEffect(() => {
     const tick = () => {
       const now = new Date();
-      // deadline: 21:00 Tehran time = 17:30 UTC, every day
       const t = new Date(
         Date.UTC(
           now.getUTCFullYear(),
@@ -36,7 +36,7 @@ function useCountdown() {
         )
       );
       if (t.getTime() <= now.getTime()) t.setUTCDate(t.getUTCDate() + 1);
-      let s = Math.floor((t.getTime() - now.getTime()) / 1000);
+      const s = Math.floor((t.getTime() - now.getTime()) / 1000);
       const h = String(Math.floor(s / 3600)).padStart(2, "0");
       const m = String(Math.floor((s % 3600) / 60)).padStart(2, "0");
       const ss = String(s % 60).padStart(2, "0");
@@ -60,16 +60,24 @@ export default function AssetCard({
   title,
   symbol,
   initial,
+  player,
+  alreadyPredicted,
+  onPredicted,
 }: {
   title: string;
   symbol: string;
   initial: MarketData;
+  player: Player | null;
+  alreadyPredicted: boolean;
+  onPredicted: (asset: Asset) => void;
 }) {
   const [data, setData] = useState<MarketData>(initial);
   const asset = initial.asset;
   const countdown = useCountdown();
-  const [username, setUsername] = useState("");
   const [guess, setGuess] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -81,7 +89,7 @@ export default function AssetCard({
         const next = asset === "BTC" ? j?.btc : j?.xau;
         if (next && typeof next.updatedAt === "number") setData(next);
       } catch {
-        // keep last data
+        /* keep last */
       }
     };
     timer.current = setInterval(refresh, 60_000);
@@ -90,9 +98,33 @@ export default function AssetCard({
     };
   }, [asset]);
 
+  async function submit() {
+    setErr(null);
+    setBusy(true);
+    try {
+      const res = await fetch("/api/predict/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ asset, guess: Number(guess) }),
+      });
+      const j = await res.json();
+      if (!j.ok) {
+        setErr(errorText(j.error));
+        return;
+      }
+      setDone(true);
+      onPredicted(asset);
+    } catch {
+      setErr("ارتباط با سرور برقرار نشد.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const chart = buildPath(data.series);
   const up = (data.changePct ?? 0) >= 0;
   const gradId = `predict-grad-${asset}`;
+  const locked = done || alreadyPredicted;
 
   return (
     <div className="frame-hover rounded-2xl border border-line bg-surface/60 p-6 backdrop-blur md:p-7">
@@ -107,13 +139,8 @@ export default function AssetCard({
           <span className="font-mono text-2xl font-bold text-cream md:text-3xl" dir="ltr">
             ${fmt(data.price, asset)}
           </span>
-          <span
-            className={`font-mono text-xs ${up ? "text-gain" : "text-loss"}`}
-            dir="ltr"
-          >
-            {data.changePct == null
-              ? ""
-              : `${up ? "+" : ""}${data.changePct.toFixed(2)}%`}
+          <span className={`font-mono text-xs ${up ? "text-gain" : "text-loss"}`} dir="ltr">
+            {data.changePct == null ? "" : `${up ? "+" : ""}${data.changePct.toFixed(2)}%`}
           </span>
         </div>
       </div>
@@ -157,35 +184,37 @@ export default function AssetCard({
         </span>
       </div>
 
-      <div className="mt-5 flex flex-col gap-3">
-        <input
-          type="text"
-          dir="ltr"
-          placeholder="@username تلگرام"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          className="w-full rounded-xl border border-line bg-raised/60 px-4 py-3 font-mono text-sm text-cream placeholder:text-muted focus:border-gold focus:outline-none"
-        />
-        <input
-          type="text"
-          inputMode="decimal"
-          dir="ltr"
-          placeholder={`پیش‌بینی قیمت فردا (USD)`}
-          value={guess}
-          onChange={(e) => setGuess(e.target.value)}
-          className="w-full rounded-xl border border-line bg-raised/60 px-4 py-3 font-mono text-sm text-cream placeholder:text-muted focus:border-gold focus:outline-none"
-        />
-        <button
-          type="button"
-          disabled
-          className="no-zoom cursor-not-allowed rounded-xl bg-gold/40 py-3.5 font-display font-extrabold text-ink"
-          title="به‌زودی"
-        >
-          ثبت پیش‌بینی
-        </button>
-        <p className="text-center text-[11px] text-muted">
-          ثبت پیش‌بینی به‌زودی فعال می‌شود — لیدربورد و جوایز در راه است.
-        </p>
+      <div className="mt-5">
+        {locked ? (
+          <div className="rounded-xl border border-gain/40 bg-gain/10 px-4 py-4 text-center text-sm text-gain">
+            پیش‌بینی شما برای امروز ثبت شد ✓
+          </div>
+        ) : !player ? (
+          <div className="rounded-xl border border-line bg-raised/40 px-4 py-4 text-center text-xs leading-6 text-muted">
+            برای ثبت پیش‌بینی، از پایین صفحه وارد شوید یا ثبت‌نام کنید.
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <input
+              type="text"
+              inputMode="decimal"
+              dir="ltr"
+              placeholder="پیش‌بینی قیمت فردا (USD)"
+              value={guess}
+              onChange={(e) => setGuess(e.target.value)}
+              className="w-full rounded-xl border border-line bg-raised/60 px-4 py-3 font-mono text-sm text-cream placeholder:text-muted focus:border-gold focus:outline-none"
+            />
+            {err && <p className="text-xs leading-6 text-loss">{err}</p>}
+            <button
+              type="button"
+              onClick={submit}
+              disabled={busy || !guess}
+              className="no-zoom rounded-xl bg-gold py-3.5 font-display font-extrabold text-ink transition hover:bg-gold-deep disabled:opacity-50"
+            >
+              {busy ? "در حال ثبت…" : "ثبت پیش‌بینی"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

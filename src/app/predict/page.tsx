@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import CandleField from "@/components/CandleField";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
-import AssetCard from "@/components/predict/AssetCard";
 import PredictCycle from "@/components/predict/PredictCycle";
+import PredictBoard from "@/components/predict/PredictBoard";
 import { getAllMarket } from "@/lib/market";
 
 export const metadata: Metadata = {
@@ -47,9 +47,8 @@ export default async function PredictPage() {
           <PredictCycle />
         </div>
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-2">
-          <AssetCard title="بیت‌کوین" symbol="BTC / USD" initial={btc} />
-          <AssetCard title="طلا (انس جهانی)" symbol="XAU / USD" initial={xau} />
+        <div className="mt-8">
+          <PredictBoard btc={btc} xau={xau} />
         </div>
 
         <div className="mt-10 rounded-2xl border border-line bg-surface/40 p-6">
