@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { MarketData, MarketPoint } from "@/lib/market";
+import type { MarketData } from "@/lib/market";
 import {
   TIMEFRAMES,
   nextClose,
@@ -10,22 +10,7 @@ import {
   type TimeframeId,
 } from "@/lib/game";
 import { errorText, type Player, type PredictedKey } from "@/components/predict/usePlayer";
-
-function buildPath(series: MarketPoint[], w = 320, h = 96) {
-  if (series.length < 2) return null;
-  const ps = series.map((s) => s.p);
-  const min = Math.min(...ps);
-  const max = Math.max(...ps);
-  const span = max - min || 1;
-  const pts = series.map((s, i) => {
-    const x = (i / (series.length - 1)) * w;
-    const y = h - ((s.p - min) / span) * (h - 10) - 5;
-    return `${x.toFixed(1)} ${y.toFixed(1)}`;
-  });
-  const line = `M ${pts[0]} L ${pts.slice(1).join(" L ")}`;
-  const area = `${line} L ${w} ${h} L 0 ${h} Z`;
-  return { line, area, min, max };
-}
+import LiveChart from "@/components/predict/LiveChart";
 
 function useCountdown(target: Date | null) {
   const [left, setLeft] = useState("--:--:--");
@@ -127,9 +112,7 @@ export default function AssetCard({
     }
   }
 
-  const chart = buildPath(data.series);
   const up = (data.changePct ?? 0) >= 0;
-  const gradId = `predict-grad-${asset}`;
 
   return (
     <div className="frame-hover rounded-2xl border border-line bg-surface/60 p-6 backdrop-blur md:p-7">
@@ -151,28 +134,7 @@ export default function AssetCard({
       </div>
 
       <div className="mt-5">
-        {chart ? (
-          <svg viewBox="0 0 320 96" className="w-full" aria-hidden="true">
-            <defs>
-              <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" stopColor="var(--color-gold)" stopOpacity="0.2" />
-                <stop offset="1" stopColor="var(--color-gold)" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            <path d={chart.area} fill={`url(#${gradId})`} />
-            <path d={chart.line} fill="none" stroke="var(--color-gold)" strokeWidth="1.8" pathLength={1} className="draw" />
-          </svg>
-        ) : (
-          <div className="flex h-24 items-center justify-center rounded-xl border border-line text-xs text-muted">
-            در حال دریافت داده‌ی نمودار…
-          </div>
-        )}
-        {chart && (
-          <div className="mt-1 flex justify-between font-mono text-[10px] text-muted" dir="ltr">
-            <span>L ${fmt(chart.min, asset)}</span>
-            <span>H ${fmt(chart.max, asset)}</span>
-          </div>
-        )}
+        <LiveChart asset={asset} interval={tfId} />
       </div>
 
       {!marketOpen ? (
