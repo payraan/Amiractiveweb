@@ -36,7 +36,18 @@ export function usePlayer() {
     refresh();
   }, [refresh]);
 
-  return { player, predicted, freeRemaining, loading, refresh, setPlayer };
+  const logout = useCallback(async () => {
+    try {
+      await fetch("/api/predict/logout", { method: "POST" });
+    } catch {
+      /* ignore */
+    }
+    setPlayer(null);
+    setPredicted([]);
+    setFreeRemaining({});
+  }, []);
+
+  return { player, predicted, freeRemaining, loading, refresh, logout, setPlayer };
 }
 
 const ERRORS: Record<string, string> = {

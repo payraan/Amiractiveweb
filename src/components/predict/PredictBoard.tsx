@@ -12,7 +12,7 @@ export default function PredictBoard({
   btc: MarketData;
   xau: MarketData;
 }) {
-  const { player, predicted, freeRemaining, loading, refresh, setPlayer } = usePlayer();
+  const { player, predicted, freeRemaining, loading, refresh, logout } = usePlayer();
 
   return (
     <>
@@ -64,6 +64,23 @@ export default function PredictBoard({
               امتیاز از دقت پیش‌بینی می‌آید و خرید و فروش نمی‌شود. کردیت فقط
               تایم‌فریم‌های کوتاه‌تر و پیش‌بینی بیشتر را باز می‌کند.
             </p>
+            <div className="mt-5 flex items-center justify-between border-t border-line pt-4">
+              <a
+                href="https://t.me/Amiractive_support"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-muted transition hover:text-gold"
+              >
+                پشتیبانی و خرید کردیت
+              </a>
+              <button
+                type="button"
+                onClick={logout}
+                className="no-zoom text-xs text-muted transition hover:text-loss"
+              >
+                خروج از حساب
+              </button>
+            </div>
           </div>
         ) : (
           <AuthPanel onAuthed={() => refresh()} />

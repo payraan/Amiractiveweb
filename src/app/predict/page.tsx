@@ -14,11 +14,24 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-const RULES = [
-  { label: "خطای زیر ۰.۱٪", value: "۱۰۰ امتیاز" },
-  { label: "خطای زیر ۰.۵٪", value: "۵۰ امتیاز" },
-  { label: "خطای زیر ۱٪", value: "۲۵ امتیاز" },
-  { label: "شرکت در راند", value: "۵ امتیاز" },
+const SCORE_ROWS = [
+  { label: "خطای زیر ۰.۱٪", value: "+۱۰۰", tone: "text-gain" },
+  { label: "خطای زیر ۰.۵٪", value: "+۵۰", tone: "text-gain" },
+  { label: "خطای زیر ۱٪", value: "+۲۵", tone: "text-gain" },
+  { label: "خطای زیر ۲٪", value: "+۵", tone: "text-gain" },
+  { label: "خطای بالای ۲٪", value: "−۱۰", tone: "text-loss" },
+  { label: "خطای بالای ۵٪", value: "−۲۵", tone: "text-loss" },
+];
+
+const RULES_TEXT = [
+  "هر روز برای بیت‌کوین و طلا راند پیش‌بینی برگزار می‌شود. کافی است حدس خود از قیمت آینده را وارد کنید.",
+  "سه تایم‌فریم دارید: ۲۴ ساعته (رایگان، تا ۲ بار در روز)، و ۱۲ و ۴ ساعته که با کردیت باز می‌شوند.",
+  "پس از بسته‌شدن راند، قیمت واقعی همان لحظه ثبت می‌شود و بر اساس دقت شما امتیاز می‌گیرید یا از دست می‌دهید.",
+  "تایم‌فریم‌های کوتاه‌تر ضریب امتیاز بالاتری دارند: ریسک بیشتر، پاداش و جریمه‌ی بیشتر.",
+  "امتیاز فقط از دقت شما می‌آید و با پول خرید و فروش نمی‌شود؛ همین امتیاز، جایگاه شما در لیدربورد را می‌سازد.",
+  "کردیت با تتر خریداری می‌شود و تنها قابلیت‌ها را باز می‌کند (تایم‌فریم کوتاه‌تر و پیش‌بینی بیشتر) — نه رتبه و نه جایزه.",
+  "نفرات برتر لیدربورد ماهانه، اشتراک ربات و حساب‌های معاملاتی جایزه می‌گیرند. رقابت بر پایه‌ی مهارت است، نه شانس.",
+  "بازار طلا در تعطیلات آخر هفته بسته است؛ در این روزها فقط راندهای بیت‌کوین فعال‌اند.",
 ];
 
 export default async function PredictPage() {
@@ -53,24 +66,49 @@ export default async function PredictPage() {
 
         <div className="mt-10 rounded-2xl border border-line bg-surface/40 p-6">
           <h2 className="text-sm font-bold">امتیازدهی بر اساس دقت</h2>
-          <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-            {RULES.map((r) => (
+          <p className="mt-2 text-[11px] leading-6 text-muted">
+            هرچه پیش‌بینی به قیمت واقعی نزدیک‌تر باشد، امتیاز بیشتر؛ خطای زیاد
+            امتیاز منفی دارد. اعداد زیر برای تایم‌فریم ۲۴ ساعته است و در
+            تایم‌فریم‌های کوتاه‌تر با ضریب بیشتر اعمال می‌شود.
+          </p>
+          <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3">
+            {SCORE_ROWS.map((r) => (
               <div
                 key={r.label}
                 className="rounded-xl border border-line bg-raised/50 px-4 py-3 text-center"
               >
                 <div className="text-[11px] text-muted">{r.label}</div>
-                <div className="mt-1 font-display text-sm font-extrabold text-gold">
+                <div className={`mt-1 font-mono text-lg font-extrabold ${r.tone}`} dir="ltr">
                   {r.value}
                 </div>
               </div>
             ))}
           </div>
-          <p className="mt-4 text-[11px] leading-6 text-muted">
-            روزهای متوالی، امتیاز استریک اضافه می‌آورد. لیدربورد هفتگی هر هفته
-            صفر می‌شود تا رقابت و جایزه‌ها همیشه تازه بمانند — بازی کاملاً
-            رایگان است.
-          </p>
+        </div>
+
+        <div className="mt-8 rounded-2xl border border-line bg-surface/40 p-6">
+          <h2 className="text-sm font-bold">قوانین بازی به زبان ساده</h2>
+          <ol className="mt-4 flex flex-col gap-3">
+            {RULES_TEXT.map((t, i) => (
+              <li key={i} className="flex gap-3 text-xs leading-7 text-muted">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-gold/40 font-mono text-[10px] text-gold">
+                  {i + 1}
+                </span>
+                <span>{t}</span>
+              </li>
+            ))}
+          </ol>
+          <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line pt-4 text-[11px] text-muted">
+            <span>سوالی دارید؟</span>
+            <a
+              href="https://t.me/Amiractive_support"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gold transition hover:text-gold-deep"
+            >
+              پشتیبانی در تلگرام
+            </a>
+          </div>
         </div>
       </main>
       <Footer />
