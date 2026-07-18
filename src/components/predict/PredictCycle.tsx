@@ -12,16 +12,20 @@ const PHASES = [
 
 const DUR = [2400, 1600, 2200, 2000, 2400];
 
+// guesses live in the future zone; the winner is the one closest to the
+// actual settle level (y = 86). x is fixed; only y differs.
+const GUESS_X = 500;
+const SETTLE_Y = 86;
 const GUESSES = [
-  { y: 60, winner: false },
-  { y: 84, winner: true },
-  { y: 112, winner: false },
-  { y: 138, winner: false },
+  { y: 44, winner: false },
+  { y: 86, winner: true },
+  { y: 128, winner: false },
+  { y: 166, winner: false },
 ];
 
 const HIST =
-  "M0 150 C 30 142, 55 146, 80 132 S 130 118, 160 124 S 210 100, 240 106 S 300 88, 330 96 L 360 95";
-const FUTURE = "M360 95 C 395 92, 420 96, 450 90 L 480 88";
+  "M0 150 C 30 142, 55 146, 80 132 S 130 118, 160 124 S 210 100, 240 106 S 300 90, 340 98 L 380 96";
+const FUTURE = "M380 96 C 420 94, 450 90, 475 88 L 500 86";
 
 export default function PredictCycle() {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -62,27 +66,27 @@ export default function PredictCycle() {
       ref={wrapRef}
       className="relative overflow-hidden rounded-2xl border border-line bg-surface/60 backdrop-blur"
     >
-      <svg viewBox="0 0 600 220" className="w-full" aria-hidden="true">
-        <line x1="0" y1="55" x2="600" y2="55" stroke="var(--color-line)" strokeWidth="1" opacity="0.6" />
-        <line x1="0" y1="110" x2="600" y2="110" stroke="var(--color-line)" strokeWidth="1" opacity="0.6" />
-        <line x1="0" y1="165" x2="600" y2="165" stroke="var(--color-line)" strokeWidth="1" opacity="0.6" />
+      <svg viewBox="0 0 600 210" className="w-full" aria-hidden="true">
+        <line x1="0" y1="52" x2="600" y2="52" stroke="var(--color-line)" strokeWidth="1" opacity="0.5" />
+        <line x1="0" y1="105" x2="600" y2="105" stroke="var(--color-line)" strokeWidth="1" opacity="0.5" />
+        <line x1="0" y1="158" x2="600" y2="158" stroke="var(--color-line)" strokeWidth="1" opacity="0.5" />
 
-        <rect x="360" y="20" width="240" height="175" fill="var(--color-gold)" opacity="0.025" />
+        <rect x="380" y="18" width="220" height="170" fill="var(--color-gold)" opacity="0.025" />
         <line
-          x1="360"
-          y1="20"
-          x2="360"
-          y2="195"
+          x1="380"
+          y1="18"
+          x2="380"
+          y2="188"
           stroke="var(--color-gold)"
           strokeWidth="1"
           strokeDasharray="4 4"
           opacity="0.45"
         />
 
-        <text x="352" y="212" fontSize="10" fill="var(--color-muted)" textAnchor="end">
+        <text x="372" y="204" fontSize="10" fill="var(--color-muted)" textAnchor="end">
           امروز
         </text>
-        <text x="480" y="212" fontSize="10" fill="var(--color-muted)" textAnchor="middle">
+        <text x="500" y="204" fontSize="10" fill="var(--color-muted)" textAnchor="middle">
           فردا
         </text>
 
@@ -97,11 +101,12 @@ export default function PredictCycle() {
           />
         )}
 
-        {phase >= 1 && phase < 3 && (
+        {/* question mark shows ONLY before guesses appear, centered in the empty future zone */}
+        {phase === 1 && (
           <text
-            x="480"
-            y="78"
-            fontSize="34"
+            x="500"
+            y="112"
+            fontSize="40"
             fontWeight="bold"
             fill="var(--color-gold)"
             textAnchor="middle"
@@ -111,33 +116,20 @@ export default function PredictCycle() {
           </text>
         )}
 
-        {GUESSES.map((g, i) => (
-          <g
-            key={g.y}
-            style={{
-              opacity: phase >= 2 ? (phase === 4 && !g.winner ? 0.25 : 1) : 0,
-              transform: phase >= 2 ? "translateY(0)" : "translateY(6px)",
-              transition: "all 0.45s cubic-bezier(0.16, 1, 0.3, 1)",
-              transitionDelay: phase === 2 ? `${i * 260}ms` : "0ms",
-            }}
-          >
-            <line
-              x1="472"
-              y1={g.y}
-              x2="492"
-              y2={g.y}
-              stroke={phase === 4 && g.winner ? "var(--color-gain)" : "var(--color-muted)"}
-              strokeWidth="1.2"
-              opacity="0.7"
-            />
-            <circle
-              cx="482"
-              cy={g.y}
-              r="4"
-              fill={phase === 4 && g.winner ? "var(--color-gain)" : "var(--color-cream)"}
-            />
-          </g>
-        ))}
+        {phase >= 2 && phase < 4 &&
+          GUESSES.map((g, i) => (
+            <g
+              key={g.y}
+              style={{
+                opacity: 1,
+                transform: phase >= 2 ? "translateY(0)" : "translateY(6px)",
+                transition: "all 0.45s cubic-bezier(0.16, 1, 0.3, 1)",
+                transitionDelay: phase === 2 ? `${i * 260}ms` : "0ms",
+              }}
+            >
+              <circle cx={GUESS_X} cy={g.y} r="4" fill="var(--color-cream)" opacity="0.85" />
+            </g>
+          ))}
 
         {phase >= 3 && (
           <g>
@@ -149,11 +141,10 @@ export default function PredictCycle() {
               strokeDasharray="6 5"
               className="appear"
             />
-            <circle cx="480" cy="88" r="4.5" fill="var(--color-gold)" />
             {phase === 3 && (
               <circle
-                cx="480"
-                cy="88"
+                cx={GUESS_X}
+                cy={SETTLE_Y}
                 r="10"
                 fill="none"
                 stroke="var(--color-gold)"
@@ -165,30 +156,41 @@ export default function PredictCycle() {
           </g>
         )}
 
-        {phase === 4 && (
-          <g>
+        {phase === 4 &&
+          GUESSES.map((g) => (
             <circle
-              cx="482"
-              cy="84"
-              r="10"
-              fill="none"
-              stroke="var(--color-gain)"
-              strokeWidth="1.5"
-              className="ping-ring"
-              style={{ transformBox: "fill-box", transformOrigin: "center" }}
+              key={g.y}
+              cx={GUESS_X}
+              cy={g.y}
+              r={g.winner ? 5 : 4}
+              fill={g.winner ? "var(--color-gain)" : "var(--color-cream)"}
+              opacity={g.winner ? 1 : 0.25}
             />
-            <text
-              x="510"
-              y="70"
-              fontSize="13"
-              fontWeight="bold"
-              fill="var(--color-gain)"
-              fontFamily="monospace"
-              className="float-up"
-            >
-              +100
-            </text>
-          </g>
+          ))}
+
+        {/* actual settle dot always sits exactly at the end of the future line */}
+        {phase >= 3 && (
+          <circle
+            cx={GUESS_X}
+            cy={SETTLE_Y}
+            r="4.5"
+            fill={phase === 4 ? "var(--color-gain)" : "var(--color-gold)"}
+          />
+        )}
+
+        {phase === 4 && (
+          <text
+            x="524"
+            y="72"
+            fontSize="13"
+            fontWeight="bold"
+            fill="var(--color-gain)"
+            fontFamily="monospace"
+            textAnchor="start"
+            className="float-up"
+          >
+            +100
+          </text>
         )}
       </svg>
 

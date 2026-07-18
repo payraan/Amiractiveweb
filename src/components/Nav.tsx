@@ -5,11 +5,12 @@ import Link from "next/link";
 
 const TELEGRAM = "https://t.me/CashflowFactorys";
 
-const links = [
+const links: { href: string; label: string; badge?: string }[] = [
   { href: "/#results", label: "نتایج زنده" },
   { href: "/#bot", label: "ربات معامله‌گر" },
   { href: "/#broker", label: "بروکر" },
   { href: "/#academy", label: "آکادمی" },
+  { href: "/predict", label: "پیش‌بینی", badge: "جدید" },
 ];
 
 function CandleI() {
@@ -57,10 +58,19 @@ export default function Nav() {
           RACTIVE
         </Link>
 
-        <div className="hidden items-center gap-8 text-sm text-muted md:flex">
+        <div className="hidden items-center gap-6 text-sm text-muted lg:flex">
           {links.map((l) => (
-            <Link key={l.href} href={l.href} className="transition hover:text-cream">
+            <Link
+              key={l.href}
+              href={l.href}
+              className="flex items-center gap-1.5 whitespace-nowrap transition hover:text-cream"
+            >
               {l.label}
+              {l.badge && (
+                <span className="rounded-full bg-gold px-1.5 py-[1px] text-[9px] font-bold text-ink">
+                  {l.badge}
+                </span>
+              )}
             </Link>
           ))}
         </div>
@@ -70,7 +80,7 @@ export default function Nav() {
             href={TELEGRAM}
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden items-center gap-2 rounded-lg border border-gold/40 px-4 py-2 text-sm text-gold transition hover:bg-gold hover:text-ink md:flex"
+            className="hidden items-center gap-2 rounded-lg border border-gold/40 px-4 py-2 text-sm text-gold transition hover:bg-gold hover:text-ink lg:flex"
           >
             <TgIcon />
             تلگرام
@@ -81,7 +91,7 @@ export default function Nav() {
             aria-label="منو"
             aria-expanded={open}
             onClick={() => setOpen(!open)}
-            className="relative z-50 flex h-10 w-10 items-center justify-center rounded-lg border border-line bg-ink/60 backdrop-blur md:hidden"
+            className="relative z-50 flex h-10 w-10 items-center justify-center rounded-lg border border-line bg-ink/60 backdrop-blur lg:hidden"
           >
             <span
               className={`absolute h-[1.5px] w-5 bg-cream transition-all duration-300 ${
@@ -98,7 +108,7 @@ export default function Nav() {
       </nav>
 
       <div
-        className={`fixed inset-0 z-40 bg-ink/95 backdrop-blur-md transition-opacity duration-300 md:hidden ${
+        className={`fixed inset-0 z-40 bg-ink/95 backdrop-blur-md transition-opacity duration-300 lg:hidden ${
           open ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
       >
@@ -115,6 +125,11 @@ export default function Nav() {
                 style={{ transitionDelay: open ? `${120 + i * 60}ms` : "0ms" }}
               >
                 {l.label}
+                {l.badge && (
+                  <span className="ms-2 rounded-full bg-gold px-2 py-0.5 align-middle font-sans text-[10px] font-bold text-ink">
+                    {l.badge}
+                  </span>
+                )}
               </Link>
             ))}
           </div>
