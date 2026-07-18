@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { hashPassword, verifyPassword, normalizeUsername } from "@/lib/auth";
 import { signSession, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/session";
+import { WELCOME_CREDITS } from "@/lib/game";
 
 export const dynamic = "force-dynamic";
 
@@ -53,13 +54,13 @@ export async function POST(req: Request) {
     }
     const password_hash = await hashPassword(password);
     const { rows } = await pool.query(
-      `INSERT INTO players (tg_username, display_name, password_hash)
-       VALUES ($1, $2, $3) RETURNING id, display_name`,
-      [username, displayName, password_hash]
+      `INSERT INTO players (tg_username, display_name, password_hash, credits)
+       VALUES ($1, $2, $3, $4) RETURNING id, display_name, credits`,
+      [username, displayName, password_hash, WELCOME_CREDITS]
     );
     const res = NextResponse.json({
       ok: true,
-      player: { id: rows[0].id, displayName: rows[0].display_name },
+      player: { id: rows[0].id, displayName: rows[0].display_name, credits: rows[0].credits },
     });
     setCookie(res, signSession(rows[0].id));
     return res;
@@ -67,7 +68,7 @@ export async function POST(req: Request) {
 
   if (mode === "login") {
     const { rows } = await pool.query(
-      "SELECT id, display_name, password_hash FROM players WHERE tg_username=$1",
+      "SELECT id, display_name, password_hash, credits FROM players WHERE tg_username=$1",
       [username]
     );
     if (!rows.length) {
@@ -79,7 +80,7 @@ export async function POST(req: Request) {
     }
     const res = NextResponse.json({
       ok: true,
-      player: { id: rows[0].id, displayName: rows[0].display_name },
+      player: { id: rows[0].id, displayName: rows[0].display_name, credits: rows[0].credits },
     });
     setCookie(res, signSession(rows[0].id));
     return res;

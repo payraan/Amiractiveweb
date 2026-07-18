@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import type { MarketData, Asset } from "@/lib/market";
-import { usePlayer, type Player } from "@/components/predict/usePlayer";
+import type { MarketData } from "@/lib/market";
+import { usePlayer } from "@/components/predict/usePlayer";
 import AssetCard from "@/components/predict/AssetCard";
 import AuthPanel from "@/components/predict/AuthPanel";
 
@@ -13,12 +12,7 @@ export default function PredictBoard({
   btc: MarketData;
   xau: MarketData;
 }) {
-  const { player, predicted, loading, refresh, setPredicted } = usePlayer();
-  const [localPlayer, setLocalPlayer] = useState<Player | null>(null);
-  const active = player ?? localPlayer;
-
-  const markPredicted = (asset: Asset) =>
-    setPredicted((prev) => (prev.includes(asset) ? prev : [...prev, asset]));
+  const { player, predicted, freeRemaining, loading, refresh, setPlayer } = usePlayer();
 
   return (
     <>
@@ -27,45 +21,52 @@ export default function PredictBoard({
           title="بیت‌کوین"
           symbol="BTC / USD"
           initial={btc}
-          player={active}
-          alreadyPredicted={predicted.includes("BTC")}
-          onPredicted={markPredicted}
+          player={player}
+          predicted={predicted}
+          freeRemaining={freeRemaining}
+          onPredicted={refresh}
         />
         <AssetCard
           title="طلا (انس جهانی)"
           symbol="XAU / USD"
           initial={xau}
-          player={active}
-          alreadyPredicted={predicted.includes("XAU")}
-          onPredicted={markPredicted}
+          player={player}
+          predicted={predicted}
+          freeRemaining={freeRemaining}
+          onPredicted={refresh}
         />
       </div>
 
       <div className="mt-8 max-w-md">
-        {loading ? null : active ? (
+        {loading ? null : player ? (
           <div className="rounded-2xl border border-line bg-surface/60 p-6 backdrop-blur">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs text-muted">حساب شما</div>
-                <div className="font-display text-lg font-extrabold">
-                  {active.displayName}
-                </div>
+                <div className="font-display text-lg font-extrabold">{player.displayName}</div>
               </div>
-              <div className="text-end">
-                <div className="text-xs text-muted">امتیاز کل</div>
-                <div className="font-mono text-2xl font-bold text-gold" dir="ltr">
-                  {active.totalPoints}
+              <div className="flex gap-6 text-end">
+                <div>
+                  <div className="text-xs text-muted">کردیت</div>
+                  <div className="font-mono text-2xl font-bold text-cream" dir="ltr">
+                    {player.credits}◆
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted">امتیاز</div>
+                  <div className="font-mono text-2xl font-bold text-gold" dir="ltr">
+                    {player.totalPoints}
+                  </div>
                 </div>
               </div>
             </div>
+            <p className="mt-4 text-[11px] leading-6 text-muted">
+              امتیاز از دقت پیش‌بینی می‌آید و خرید و فروش نمی‌شود. کردیت فقط
+              تایم‌فریم‌های کوتاه‌تر و پیش‌بینی بیشتر را باز می‌کند.
+            </p>
           </div>
         ) : (
-          <AuthPanel
-            onAuthed={(p) => {
-              setLocalPlayer(p);
-              refresh();
-            }}
-          />
+          <AuthPanel onAuthed={() => refresh()} />
         )}
       </div>
     </>

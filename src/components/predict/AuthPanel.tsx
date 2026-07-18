@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { errorText, type Player } from "@/components/predict/usePlayer";
+import { errorText } from "@/components/predict/usePlayer";
 
 export default function AuthPanel({
   onAuthed,
 }: {
-  onAuthed: (p: Player) => void;
+  onAuthed: () => void;
 }) {
   const [mode, setMode] = useState<"register" | "login">("register");
   const [username, setUsername] = useState("");
@@ -29,12 +29,7 @@ export default function AuthPanel({
         setErr(errorText(j.error));
         return;
       }
-      onAuthed({
-        id: j.player.id,
-        displayName: j.player.displayName,
-        totalPoints: 0,
-        streak: 0,
-      });
+      onAuthed();
     } catch {
       setErr("ارتباط با سرور برقرار نشد.");
     } finally {

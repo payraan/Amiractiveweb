@@ -7,11 +7,15 @@ export type Player = {
   displayName: string;
   totalPoints: number;
   streak: number;
+  credits: number;
 };
+
+export type PredictedKey = { asset: string; timeframe: string };
 
 export function usePlayer() {
   const [player, setPlayer] = useState<Player | null>(null);
-  const [predicted, setPredicted] = useState<string[]>([]);
+  const [predicted, setPredicted] = useState<PredictedKey[]>([]);
+  const [freeRemaining, setFreeRemaining] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
@@ -20,6 +24,7 @@ export function usePlayer() {
       const j = await res.json();
       setPlayer(j.player ?? null);
       setPredicted(j.predicted ?? []);
+      setFreeRemaining(j.freeRemaining ?? {});
     } catch {
       setPlayer(null);
     } finally {
@@ -31,7 +36,7 @@ export function usePlayer() {
     refresh();
   }, [refresh]);
 
-  return { player, predicted, loading, refresh, setPredicted };
+  return { player, predicted, freeRemaining, loading, refresh, setPlayer };
 }
 
 const ERRORS: Record<string, string> = {
@@ -40,10 +45,13 @@ const ERRORS: Record<string, string> = {
   username_taken: "این نام کاربری قبلاً ثبت شده است.",
   not_found: "کاربری با این مشخصات پیدا نشد.",
   bad_credentials: "نام کاربری یا رمز عبور اشتباه است.",
-  already_predicted: "شما امروز برای این دارایی پیش‌بینی ثبت کرده‌اید.",
-  round_closed: "مهلت پیش‌بینی امروز به پایان رسیده است.",
+  already_predicted: "شما برای این راند پیش‌بینی ثبت کرده‌اید.",
+  round_closed: "مهلت این راند به پایان رسیده است.",
+  market_closed: "بازار طلا در تعطیلات آخر هفته بسته است.",
+  no_round: "راند فعالی برای این دارایی وجود ندارد.",
   not_authed: "برای ثبت پیش‌بینی ابتدا وارد شوید.",
   bad_guess: "لطفاً یک عدد معتبر وارد کنید.",
+  insufficient_credits: "کردیت کافی ندارید. برای تایم‌فریم‌های کوتاه‌تر کردیت لازم است.",
 };
 
 export function errorText(code: string | undefined): string {

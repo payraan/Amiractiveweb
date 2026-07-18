@@ -12,7 +12,6 @@ const pool =
   new Pool({
     connectionString: conn,
     max: 5,
-    // Railway internal URLs don't need SSL; external ones do.
     ssl:
       conn && !conn.includes("railway.internal")
         ? { rejectUnauthorized: false }
@@ -21,6 +20,7 @@ const pool =
 
 if (process.env.NODE_ENV !== "production") global.__pgPool = pool;
 
+// Base tables + idempotent migrations. Safe to run on every cold start.
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS players (
   id SERIAL PRIMARY KEY,
@@ -52,13 +52,23 @@ CREATE TABLE IF NOT EXISTS predictions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (round_id, player_id)
 );
+
+-- migrations (idempotent) --
+ALTER TABLE players ADD COLUMN IF NOT EXISTS credits INTEGER NOT NULL DEFAULT 0;
+
+ALTER TABLE rounds ADD COLUMN IF NOT EXISTS timeframe TEXT NOT NULL DEFAULT '24h';
+ALTER TABLE rounds DROP CONSTRAINT IF EXISTS rounds_asset_round_date_key;
+CREATE UNIQUE INDEX IF NOT EXISTS uniq_round ON rounds(asset, timeframe, close_at);
+
+ALTER TABLE predictions ADD COLUMN IF NOT EXISTS timeframe TEXT NOT NULL DEFAULT '24h';
+ALTER TABLE predictions ADD COLUMN IF NOT EXISTS charged INTEGER NOT NULL DEFAULT 0;
+
 CREATE INDEX IF NOT EXISTS idx_predictions_round ON predictions(round_id);
 CREATE INDEX IF NOT EXISTS idx_predictions_player ON predictions(player_id);
 `;
 
 let ready: Promise<void> | null = null;
 
-/** Returns the pool, ensuring the schema exists (runs once per process). */
 export function db(): Promise<Pool> {
   if (!ready) {
     ready = pool.query(SCHEMA).then(() => undefined);
