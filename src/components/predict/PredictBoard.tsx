@@ -12,7 +12,8 @@ export default function PredictBoard({
   btc: MarketData;
   xau: MarketData;
 }) {
-  const { player, predicted, freeRemaining, loading, refresh, logout } = usePlayer();
+  const { player, predicted, freeRemaining, results, loading, refresh, logout } =
+    usePlayer();
 
   return (
     <>
@@ -43,7 +44,9 @@ export default function PredictBoard({
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs text-muted">حساب شما</div>
-                <div className="font-display text-lg font-extrabold">{player.displayName}</div>
+                <div className="font-display text-lg font-extrabold">
+                  {player.displayName}
+                </div>
               </div>
               <div className="flex gap-6 text-end">
                 <div>
@@ -86,6 +89,41 @@ export default function PredictBoard({
           <AuthPanel onAuthed={() => refresh()} />
         )}
       </div>
+
+      {player && results.length > 0 && (
+        <div className="mt-8 max-w-2xl">
+          <h3 className="mb-3 text-sm font-bold">نتایج اخیر شما</h3>
+          <div className="overflow-hidden rounded-2xl border border-line">
+            {results.map((r, i) => {
+              const win = (r.points ?? 0) >= 0;
+              const label = r.asset === "BTC" ? "بیت‌کوین" : "طلا";
+              return (
+                <div
+                  key={i}
+                  className={`flex items-center justify-between gap-3 px-4 py-3 text-xs ${
+                    i % 2 ? "bg-surface/30" : "bg-surface/50"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="font-bold">{label}</span>
+                    <span className="text-muted">{r.timeframe}</span>
+                  </span>
+                  <span className="font-mono text-muted" dir="ltr">
+                    {r.errorPct == null ? "—" : `خطا ${r.errorPct.toFixed(2)}٪`}
+                  </span>
+                  <span
+                    className={`font-mono font-bold ${win ? "text-gain" : "text-loss"}`}
+                    dir="ltr"
+                  >
+                    {(r.points ?? 0) >= 0 ? "+" : ""}
+                    {r.points ?? 0}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </>
   );
 }

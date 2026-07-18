@@ -12,10 +12,20 @@ export type Player = {
 
 export type PredictedKey = { asset: string; timeframe: string };
 
+export type GameResult = {
+  asset: string;
+  timeframe: string;
+  guess: number;
+  settlePrice: number | null;
+  errorPct: number | null;
+  points: number | null;
+};
+
 export function usePlayer() {
   const [player, setPlayer] = useState<Player | null>(null);
   const [predicted, setPredicted] = useState<PredictedKey[]>([]);
   const [freeRemaining, setFreeRemaining] = useState<Record<string, number>>({});
+  const [results, setResults] = useState<GameResult[]>([]);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
@@ -25,6 +35,7 @@ export function usePlayer() {
       setPlayer(j.player ?? null);
       setPredicted(j.predicted ?? []);
       setFreeRemaining(j.freeRemaining ?? {});
+      setResults(j.results ?? []);
     } catch {
       setPlayer(null);
     } finally {
@@ -47,7 +58,7 @@ export function usePlayer() {
     setFreeRemaining({});
   }, []);
 
-  return { player, predicted, freeRemaining, loading, refresh, logout, setPlayer };
+  return { player, predicted, freeRemaining, results, loading, refresh, logout, setPlayer };
 }
 
 const ERRORS: Record<string, string> = {

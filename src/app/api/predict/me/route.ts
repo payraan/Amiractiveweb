@@ -45,6 +45,17 @@ export async function GET() {
     freeRemaining[t.id] = Math.max(0, t.freeFirst - (usedMap[t.id] ?? 0));
   }
 
+  // recent settled results for this player (last 8)
+  const results = await pool.query(
+    `SELECT r.asset, p.timeframe, p.guess, r.settle_price, p.error_pct, p.points, r.settle_at
+       FROM predictions p
+       JOIN rounds r ON r.id = p.round_id
+      WHERE p.player_id = $1 AND r.status = 'settled'
+      ORDER BY r.settle_at DESC
+      LIMIT 8`,
+    [playerId]
+  );
+
   return NextResponse.json({
     ok: true,
     player: {
@@ -56,5 +67,13 @@ export async function GET() {
     },
     predicted: preds.rows.map((r) => ({ asset: r.asset, timeframe: r.timeframe })),
     freeRemaining,
+    results: results.rows.map((r) => ({
+      asset: r.asset,
+      timeframe: r.timeframe,
+      guess: Number(r.guess),
+      settlePrice: r.settle_price == null ? null : Number(r.settle_price),
+      errorPct: r.error_pct == null ? null : Number(r.error_pct),
+      points: r.points,
+    })),
   });
 }

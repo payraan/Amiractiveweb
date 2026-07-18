@@ -5,6 +5,7 @@ import Footer from "@/components/Footer";
 import PredictCycle from "@/components/predict/PredictCycle";
 import PredictBoard from "@/components/predict/PredictBoard";
 import { getAllMarket } from "@/lib/market";
+import { settleDueRounds } from "@/lib/settle";
 
 export const metadata: Metadata = {
   title: "پیش‌بینی قیمت بیت‌کوین و طلا | امیراکتیو",
@@ -35,6 +36,8 @@ const RULES_TEXT = [
 ];
 
 export default async function PredictPage() {
+  // lazy settlement: settle any due rounds on page load (no external cron needed)
+  settleDueRounds().catch(() => {});
   const { btc, xau } = await getAllMarket();
 
   return (
