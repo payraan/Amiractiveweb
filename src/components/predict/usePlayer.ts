@@ -63,6 +63,7 @@ const ERRORS: Record<string, string> = {
   not_authed: "برای ثبت پیش‌بینی ابتدا وارد شوید.",
   bad_guess: "لطفاً یک عدد معتبر وارد کنید.",
   insufficient_credits: "کردیت کافی ندارید. برای تایم‌فریم‌های کوتاه‌تر کردیت لازم است.",
+  daily_limit: "سقف مجاز این تایم‌فریم برای امروز پر شده است.",
 };
 
 export function errorText(code: string | undefined): string {

@@ -55,6 +55,22 @@ export async function POST(req: Request) {
     }
     const credits: number = pl.rows[0].credits;
 
+    // enforce per-timeframe daily cap (e.g. 1h = once per day)
+    if (t.dailyMax != null) {
+      const cnt = await client.query(
+        `SELECT count(*)::int AS n
+           FROM predictions
+          WHERE player_id=$1 AND timeframe=$2
+            AND (created_at AT TIME ZONE 'Asia/Tehran')::date
+              = (now() AT TIME ZONE 'Asia/Tehran')::date`,
+        [playerId, t.id]
+      );
+      if (cnt.rows[0].n >= t.dailyMax) {
+        await client.query("ROLLBACK");
+        return NextResponse.json({ ok: false, error: "daily_limit" }, { status: 409 });
+      }
+    }
+
     // how many free predictions of this timeframe used today (Tehran day)?
     let cost = t.cost;
     if (t.freeFirst > 0) {

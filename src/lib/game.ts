@@ -2,7 +2,7 @@
 // همه‌ی اعداد قابل‌تنظیم اینجاست. برای تغییر هزینه/امتیاز/جایزه فقط همین فایل.
 // این فایل هیچ وابستگی سمت‌سروری ندارد و هم در کلاینت و هم سرور import می‌شود.
 
-export type TimeframeId = "24h" | "12h" | "4h";
+export type TimeframeId = "24h" | "12h" | "4h" | "1h";
 export type Asset = "BTC" | "XAU";
 
 export type Timeframe = {
@@ -11,14 +11,16 @@ export type Timeframe = {
   hours: number;
   cost: number; // کردیت لازم برای هر پیش‌بینی
   freeFirst: number; // تعداد پیش‌بینی رایگان روزانه در این تایم‌فریم
-  multiplier: number; // ضریب امتیاز (ریسک بیشتر = پاداش/جریمه بیشتر)
+  multiplier: number; // ضریب امتیاز (فعلاً برای همه ۱ = یکسان)
+  dailyMax?: number; // سقف دفعات مجاز در روز (اگر تعریف شود)
 };
 
 // ترتیب نمایش: روزانه (رایگان) اول، بعد کوتاه‌ترها (کردیتی)
 export const TIMEFRAMES: Timeframe[] = [
   { id: "24h", label: "۲۴ ساعته", hours: 24, cost: 1, freeFirst: 2, multiplier: 1 },
-  { id: "12h", label: "۱۲ ساعته", hours: 12, cost: 2, freeFirst: 0, multiplier: 1.2 },
-  { id: "4h", label: "۴ ساعته", hours: 4, cost: 3, freeFirst: 0, multiplier: 1.5 },
+  { id: "12h", label: "۱۲ ساعته", hours: 12, cost: 2, freeFirst: 0, multiplier: 1 },
+  { id: "4h", label: "۴ ساعته", hours: 4, cost: 3, freeFirst: 0, multiplier: 1 },
+  { id: "1h", label: "۱ ساعته", hours: 1, cost: 4, freeFirst: 0, multiplier: 1, dailyMax: 1 },
 ];
 
 export function tf(id: string): Timeframe | undefined {
