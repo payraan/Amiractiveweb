@@ -6,10 +6,10 @@ import Link from "next/link";
 const TELEGRAM = "https://t.me/CashflowFactorys";
 
 const links = [
-  { href: "#results", label: "نتایج زنده" },
-  { href: "#bot", label: "ربات معامله‌گر" },
-  { href: "#broker", label: "بروکر" },
-  { href: "#academy", label: "آکادمی" },
+  { href: "/#results", label: "نتایج زنده" },
+  { href: "/#bot", label: "ربات معامله‌گر" },
+  { href: "/#broker", label: "بروکر" },
+  { href: "/#academy", label: "آکادمی" },
 ];
 
 function CandleI() {

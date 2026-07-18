@@ -1,133 +1,154 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import type { ReactNode } from "react";
-import { LINKS, SOCIALS } from "@/config/site";
 
-const ICONS: Record<string, ReactNode> = {
-  telegram: (
-    <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
-      <path d="M21.9 4.6l-3.1 14.7c-.2 1-.8 1.2-1.7.8l-4.7-3.5-2.3 2.2c-.3.3-.5.5-1 .5l.4-4.8L18.2 6.7c.4-.3-.1-.5-.6-.2L6.9 13.3l-4.6-1.4c-1-.3-1-1 .2-1.5L20.6 3.1c.8-.3 1.6.2 1.3 1.5z" />
-    </svg>
-  ),
-  instagram: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
-      <rect x="3" y="3" width="18" height="18" rx="5" />
-      <circle cx="12" cy="12" r="4" />
-      <circle cx="17.2" cy="6.8" r="0.9" fill="currentColor" stroke="none" />
-    </svg>
-  ),
-  x: (
-    <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
-      <path d="M17.5 3h3.1l-6.8 7.8L21.8 21h-6.3l-4.9-6.4L5 21H1.9l7.3-8.3L2.2 3h6.4l4.4 5.9L17.5 3zm-1.1 16.1h1.7L7.7 4.8H5.9l10.5 14.3z" />
-    </svg>
-  ),
-  youtube: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
-      <rect x="2.5" y="5.5" width="19" height="13" rx="4" />
-      <path d="M10 9.2l5 2.8-5 2.8V9.2z" fill="currentColor" stroke="none" />
-    </svg>
-  ),
-};
+const TELEGRAM = "https://t.me/CashflowFactorys";
 
-const QUICK_LINKS = [
-  { href: "#results", label: "نتایج زنده" },
-  { href: "#bot", label: "ربات معامله‌گر" },
-  { href: "#broker", label: "بروکر" },
-  { href: "#academy", label: "آکادمی" },
+const links: { href: string; label: string; badge?: string }[] = [
+  { href: "/#results", label: "نتایج زنده" },
+  { href: "/#bot", label: "ربات معامله‌گر" },
+  { href: "/#broker", label: "بروکر" },
+  { href: "/#academy", label: "آکادمی" },
+  { href: "/predict", label: "پیش‌بینی", badge: "جدید" },
 ];
 
-export default function Footer() {
+function CandleI() {
   return (
-    <footer className="border-t border-line bg-surface/30">
-      <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 md:grid-cols-4">
-        <div>
-          <span
-            className="font-mono text-sm font-bold tracking-[0.3em] text-cream"
-            dir="ltr"
-          >
-            AM<span className="text-gold">I</span>RACTIVE
-          </span>
-          <p className="mt-4 text-xs leading-6 text-muted">
-            امیراکتیو از ۲۰۱۷ در بازارهای مالی فعال است؛ با یک اصل ساده:
-            به‌جای وعده، اثبات زنده.
-          </p>
-          <div className="mt-5 flex items-center gap-3">
-            {SOCIALS.map((s) => (
-              <a
-                key={s.id}
-                href={s.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={s.label}
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-line text-muted transition hover:border-gold hover:text-gold"
-              >
-                {ICONS[s.id]}
-              </a>
-            ))}
-          </div>
+    <svg
+      viewBox="0 0 8 22"
+      className="mx-[2px] inline-block h-[0.95em] w-auto fill-gold"
+      aria-hidden="true"
+    >
+      <rect x="3.25" y="0" width="1.5" height="22" rx="0.75" />
+      <rect x="1" y="6" width="6" height="10" rx="1" />
+    </svg>
+  );
+}
+
+function TgIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden="true">
+      <path d="M21.9 4.6l-3.1 14.7c-.2 1-.8 1.2-1.7.8l-4.7-3.5-2.3 2.2c-.3.3-.5.5-1 .5l.4-4.8L18.2 6.7c.4-.3-.1-.5-.6-.2L6.9 13.3l-4.6-1.4c-1-.3-1-1 .2-1.5L20.6 3.1c.8-.3 1.6.2 1.3 1.5z" />
+    </svg>
+  );
+}
+
+export default function Nav() {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    document.body.style.overflow = open ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
+  return (
+    <header className="absolute inset-x-0 top-0 z-40">
+      <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
+        <Link
+          href="/"
+          className="relative z-50 flex items-center font-mono text-sm font-bold tracking-[0.3em] text-cream"
+          dir="ltr"
+          aria-label="AMIRACTIVE"
+        >
+          AM
+          <CandleI />
+          RACTIVE
+        </Link>
+
+        <div className="hidden items-center gap-8 text-sm text-muted md:flex">
+          {links.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className="flex items-center gap-1.5 transition hover:text-cream"
+            >
+              {l.label}
+              {l.badge && (
+                <span className="rounded-full bg-gold px-1.5 py-[1px] text-[9px] font-bold text-ink">
+                  {l.badge}
+                </span>
+              )}
+            </Link>
+          ))}
         </div>
 
-        <div>
-          <h3 className="text-sm font-bold">دسترسی سریع</h3>
-          <ul className="mt-4 flex flex-col gap-3 text-sm text-muted">
-            {QUICK_LINKS.map((l) => (
-              <li key={l.href}>
-                <Link href={l.href} className="transition hover:text-cream">
-                  {l.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div>
-          <h3 className="text-sm font-bold">قوانین</h3>
-          <ul className="mt-4 flex flex-col gap-3 text-sm text-muted">
-            <li>
-              <Link href="#" className="transition hover:text-cream">
-                قوانین و مقررات
-              </Link>
-            </li>
-            <li>
-              <Link href="#" className="transition hover:text-cream">
-                افشای ریسک
-              </Link>
-            </li>
-            <li>
-              <Link href="#faq" className="transition hover:text-cream">
-                پرسش‌های متداول
-              </Link>
-            </li>
-          </ul>
-        </div>
-
-        <div>
-          <h3 className="text-sm font-bold">در ارتباط باشید</h3>
-          <p className="mt-4 text-xs leading-6 text-muted">
-            تحلیل‌ها و نتایج، اول از همه در کانال تلگرام منتشر می‌شود.
-          </p>
+        <div className="flex items-center gap-3">
           <a
-            href={LINKS.telegramChannel}
+            href={TELEGRAM}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-gold py-3 font-display text-sm font-extrabold text-ink transition hover:bg-gold-deep"
+            className="hidden items-center gap-2 rounded-lg border border-gold/40 px-4 py-2 text-sm text-gold transition hover:bg-gold hover:text-ink md:flex"
           >
-            <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden="true">
-              <path d="M21.9 4.6l-3.1 14.7c-.2 1-.8 1.2-1.7.8l-4.7-3.5-2.3 2.2c-.3.3-.5.5-1 .5l.4-4.8L18.2 6.7c.4-.3-.1-.5-.6-.2L6.9 13.3l-4.6-1.4c-1-.3-1-1 .2-1.5L20.6 3.1c.8-.3 1.6.2 1.3 1.5z" />
-            </svg>
-            عضویت در کانال تلگرام
+            <TgIcon />
+            تلگرام
+          </a>
+
+          <button
+            type="button"
+            aria-label="منو"
+            aria-expanded={open}
+            onClick={() => setOpen(!open)}
+            className="relative z-50 flex h-10 w-10 items-center justify-center rounded-lg border border-line bg-ink/60 backdrop-blur md:hidden"
+          >
+            <span
+              className={`absolute h-[1.5px] w-5 bg-cream transition-all duration-300 ${
+                open ? "rotate-45" : "-translate-y-[5px]"
+              }`}
+            />
+            <span
+              className={`absolute h-[1.5px] w-5 bg-cream transition-all duration-300 ${
+                open ? "-rotate-45" : "translate-y-[5px]"
+              }`}
+            />
+          </button>
+        </div>
+      </nav>
+
+      <div
+        className={`fixed inset-0 z-40 bg-ink/95 backdrop-blur-md transition-opacity duration-300 md:hidden ${
+          open ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+      >
+        <div className="flex h-full flex-col justify-between px-6 pb-10 pt-28">
+          <div className="flex flex-col gap-1">
+            {links.map((l, i) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                onClick={() => setOpen(false)}
+                className={`border-b border-line py-4 font-display text-2xl font-extrabold text-cream transition-all duration-500 ${
+                  open ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
+                }`}
+                style={{ transitionDelay: open ? `${120 + i * 60}ms` : "0ms" }}
+              >
+                {l.label}
+                {l.badge && (
+                  <span className="ms-2 rounded-full bg-gold px-2 py-0.5 align-middle font-sans text-[10px] font-bold text-ink">
+                    {l.badge}
+                  </span>
+                )}
+              </Link>
+            ))}
+          </div>
+
+          <a
+            href={TELEGRAM}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setOpen(false)}
+            className={`flex items-center justify-center gap-2 rounded-xl bg-gold py-4 font-display font-extrabold text-ink transition-all duration-500 ${
+              open ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
+            }`}
+            style={{ transitionDelay: open ? "360ms" : "0ms" }}
+          >
+            <TgIcon />
+            ورود به کانال تلگرام
           </a>
         </div>
       </div>
-
-      <div className="border-t border-line">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-6 py-6 text-center text-[11px] text-muted md:flex-row md:text-start">
-          <span>© ۲۰۲۶ امیراکتیو — تمام حقوق محفوظ است.</span>
-          <span>
-            معامله در بازارهای مالی با ریسک همراه است؛ عملکرد گذشته
-            تضمین‌کننده‌ی نتایج آینده نیست.
-          </span>
-        </div>
-      </div>
-    </footer>
+    </header>
   );
 }
