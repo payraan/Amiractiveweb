@@ -2,7 +2,56 @@
 
 import { useEffect, useRef, useState } from "react";
 
-const MYFXBOOK_URL = "https://www.myfxbook.com"; // TODO: real portfolio link
+const MYFXBOOK_URL = "https://www.myfxbook.com/portfolio/monex/12121235";
+
+type Equity = { date: string; growth: number; balance: number };
+type Stats = {
+  gain: number;
+  monthly: number;
+  drawdown: number;
+  balance: number;
+  profitFactor: number;
+} | null;
+type Live = {
+  ok: boolean;
+  stats: Stats;
+  equity: Equity[];
+  monthly: { label: string; value: number }[];
+};
+
+function useLive() {
+  const [live, setLive] = useState<Live | null>(null);
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/predict/results", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j) => {
+        if (alive && j && j.ok) setLive(j);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return live;
+}
+
+// build an equity SVG path (line + area) from growth points, viewBox 600x170
+function equityPath(points: Equity[]) {
+  if (points.length < 2) return null;
+  const gs = points.map((p) => p.growth);
+  const min = Math.min(...gs);
+  const max = Math.max(...gs);
+  const span = max - min || 1;
+  const coords = points.map((p, i) => {
+    const x = (i / (points.length - 1)) * 600;
+    const y = 160 - ((p.growth - min) / span) * 150 - 5;
+    return `${x.toFixed(1)} ${y.toFixed(1)}`;
+  });
+  const line = `M ${coords[0]} L ${coords.slice(1).join(" L ")}`;
+  const area = `${line} L 600 170 L 0 170 Z`;
+  return { line, area };
+}
 
 const MONTHLY = [
   { m: "مرداد", v: 4.2 },
@@ -108,6 +157,13 @@ function Stat({
 
 export default function Results() {
   const { ref, inView } = useInView();
+  const live = useLive();
+  const eq = live ? equityPath(live.equity) : null;
+  const stats = live?.stats ?? null;
+  const monthly =
+    live && live.monthly.length
+      ? live.monthly.map((m) => ({ m: m.label, v: m.value }))
+      : MONTHLY;
   const rv = (extra = "") =>
     `transition-all duration-700 ease-out ${
       inView ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
@@ -152,13 +208,13 @@ export default function Results() {
             <line x1="0" y1="85" x2="600" y2="85" stroke="var(--color-line)" strokeWidth="1" />
             <line x1="0" y1="128" x2="600" y2="128" stroke="var(--color-line)" strokeWidth="1" />
             <path
-              d="M0 150 C 30 142, 55 138, 85 128 S 130 108, 150 118 S 200 96, 235 86 S 290 62, 320 72 S 370 52, 410 44 S 470 28, 500 36 S 560 22, 600 16 L 600 170 L 0 170 Z"
+              d={eq ? eq.area : "M0 150 C 30 142, 55 138, 85 128 S 130 108, 150 118 S 200 96, 235 86 S 290 62, 320 72 S 370 52, 410 44 S 470 28, 500 36 S 560 22, 600 16 L 600 170 L 0 170 Z"}
               fill="url(#eqg)"
               className="transition-opacity duration-1000"
               style={{ opacity: inView ? 1 : 0, transitionDelay: "900ms" }}
             />
             <path
-              d="M0 150 C 30 142, 55 138, 85 128 S 130 108, 150 118 S 200 96, 235 86 S 290 62, 320 72 S 370 52, 410 44 S 470 28, 500 36 S 560 22, 600 16"
+              d={eq ? eq.line : "M0 150 C 30 142, 55 138, 85 128 S 130 108, 150 118 S 200 96, 235 86 S 290 62, 320 72 S 370 52, 410 44 S 470 28, 500 36 S 560 22, 600 16"}
               fill="none"
               stroke="var(--color-gold)"
               strokeWidth="2.5"
@@ -167,18 +223,18 @@ export default function Results() {
             />
           </svg>
 
-          <div className="mt-8 grid grid-cols-2 gap-6 border-t border-line pt-6 md:grid-cols-3 lg:grid-cols-6">
-            <Stat label="بازده کل" target={187.4} run={inView} prefix="+" tone="text-gain" delay={350} />
-            <Stat label="میانگین ماهانه" target={12.4} run={inView} prefix="+" tone="text-gain" delay={420} />
-            <Stat label="نرخ برد" target={84.2} run={inView} delay={490} />
-            <Stat label="حداکثر افت" target={6.8} run={inView} tone="text-loss" delay={560} />
-            <Stat label="تعداد معاملات" target={1284} run={inView} suffix="" decimals={0} delay={630} />
-            <Stat label="روزهای فعالیت" target={312} run={inView} suffix="" decimals={0} delay={700} />
+          <div className="mt-8 grid grid-cols-2 gap-6 border-t border-line pt-6 md:grid-cols-3 lg:grid-cols-5">
+            <Stat label="بازده کل" target={stats ? stats.gain : 187.4} run={inView} prefix="+" tone="text-gain" delay={350} />
+            <Stat label="میانگین ماهانه" target={stats ? stats.monthly : 12.4} run={inView} prefix="+" tone="text-gain" delay={420} />
+            <Stat label="پرافیت فکتور" target={stats ? stats.profitFactor : 1.82} run={inView} suffix="" delay={490} />
+            <Stat label="حداکثر افت" target={stats ? stats.drawdown : 6.8} run={inView} tone="text-loss" delay={560} />
+            <Stat label="موجودی" target={stats ? stats.balance : 10000} run={inView} prefix="$" suffix="" decimals={0} delay={630} />
           </div>
 
           <p className="mt-6 text-[10px] leading-5 text-muted">
-            داده‌های نمایشی برای پیش‌نمایش — پیش از انتشار با آمار واقعی حساب
-            جایگزین می‌شوند.
+            {live
+              ? "آمار زنده و مستقیم از حساب واقعی MONEX در Myfxbook."
+              : "در حال دریافت آمار زنده از Myfxbook…"}
           </p>
           </div>
         </div>
@@ -200,7 +256,7 @@ export default function Results() {
           </div>
 
           <div className="flex items-stretch gap-1.5 sm:gap-2.5">
-            {MONTHLY.map((b, i) => {
+            {monthly.map((b, i) => {
               const pos = b.v >= 0;
               const h = Math.round(Math.abs(b.v) * 7);
               return (

@@ -2,6 +2,23 @@
 
 import { useEffect, useState } from "react";
 
+function useLiveStats() {
+  const [s, setS] = useState<{ monthly: number; drawdown: number; profitFactor: number } | null>(null);
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/predict/results", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j) => {
+        if (alive && j && j.ok && j.stats) setS(j.stats);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return s;
+}
+
 function TgIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden="true">
@@ -61,6 +78,7 @@ function Stat({
 }
 
 export default function Hero() {
+  const live = useLiveStats();
   return (
     <section className="hero-glow relative overflow-hidden">
       <div className="mx-auto grid min-h-[92vh] max-w-6xl items-center gap-14 px-6 pb-16 pt-32 lg:grid-cols-2">
@@ -145,15 +163,15 @@ export default function Hero() {
             </svg>
 
             <div className="grid grid-cols-3 gap-4 border-t border-line pt-5">
-              <Stat label="نرخ برد" target={84.2} delay={400} />
+              <Stat label="پرافیت فکتور" target={live ? live.profitFactor : 1.82} suffix="" delay={400} />
               <Stat
                 label="بازده ماهانه"
-                target={12.4}
+                target={live ? live.monthly : 12.4}
                 prefix="+"
                 tone="text-gain"
                 delay={480}
               />
-              <Stat label="حداکثر افت" target={6.8} tone="text-loss" delay={560} />
+              <Stat label="حداکثر افت" target={live ? live.drawdown : 6.8} tone="text-loss" delay={560} />
             </div>
 
             <p className="mt-4 text-[10px] leading-5 text-muted">
