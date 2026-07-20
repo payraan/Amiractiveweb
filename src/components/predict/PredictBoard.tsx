@@ -1,9 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import type { MarketData } from "@/lib/market";
 import { usePlayer } from "@/components/predict/usePlayer";
 import AssetCard from "@/components/predict/AssetCard";
 import AuthPanel from "@/components/predict/AuthPanel";
+import ShareCard from "@/components/predict/ShareCard";
+import type { GameResult } from "@/components/predict/usePlayer";
 
 export default function PredictBoard({
   btc,
@@ -14,6 +17,7 @@ export default function PredictBoard({
 }) {
   const { player, predicted, freeRemaining, results, loading, refresh, logout } =
     usePlayer();
+  const [shareCard, setShareCard] = useState<GameResult | null>(null);
 
   return (
     <>
@@ -109,18 +113,35 @@ export default function PredictBoard({
                   <span className="font-mono text-muted" dir="ltr">
                     {r.errorPct == null ? "—" : `خطا ${r.errorPct.toFixed(2)}٪`}
                   </span>
-                  <span
-                    className={`font-mono font-bold ${win ? "text-gain" : "text-loss"}`}
-                    dir="ltr"
-                  >
-                    {(r.points ?? 0) >= 0 ? "+" : ""}
-                    {r.points ?? 0}
+                  <span className="flex items-center gap-3">
+                    <span
+                      className={`font-mono font-bold ${win ? "text-gain" : "text-loss"}`}
+                      dir="ltr"
+                    >
+                      {(r.points ?? 0) >= 0 ? "+" : ""}
+                      {r.points ?? 0}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShareCard(r)}
+                      className="no-zoom rounded-lg border border-gold/40 px-3 py-1 text-[10px] text-gold transition hover:bg-gold hover:text-ink"
+                    >
+                      کارت
+                    </button>
                   </span>
                 </div>
               );
             })}
           </div>
         </div>
+      )}
+
+      {shareCard && player && (
+        <ShareCard
+          name={player.displayName}
+          result={shareCard}
+          onClose={() => setShareCard(null)}
+        />
       )}
     </>
   );
