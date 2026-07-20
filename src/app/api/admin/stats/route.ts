@@ -37,8 +37,9 @@ export async function GET() {
       `SELECT
          COALESCE(SUM(amount) FILTER (WHERE amount > 0), 0)::int AS credits_sold,
          COALESCE(SUM(amount), 0)::int AS credits_net,
-         count(*) FILTER (WHERE amount > 0)::int AS topup_count`
-    ).then((r) => r).catch(() => ({ rows: [{ credits_sold: 0, credits_net: 0, topup_count: 0 }] })),
+         count(*) FILTER (WHERE amount > 0)::int AS topup_count
+       FROM credit_topups`
+    ),
   ]);
 
   return NextResponse.json({
