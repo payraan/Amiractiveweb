@@ -55,7 +55,7 @@ export async function GET(req: Request) {
 
     // 2) accounts
     const accRes = await fetch(
-      `${BASE}/get-my-accounts.json?session=${encodeURIComponent(session)}`,
+      `${BASE}/get-my-accounts.json?session=${session}`,
       { headers: { "User-Agent": "Mozilla/5.0" }, cache: "no-store" }
     );
     const acc = await accRes.json();
@@ -92,7 +92,7 @@ export async function GET(req: Request) {
       const id = accounts[0].id;
       const end = new Date().toISOString().slice(0, 10);
       const dailyRes = await fetch(
-        `${BASE}/get-data-daily.json?session=${encodeURIComponent(session)}&id=${id}&start=2024-01-01&end=${end}`,
+        `${BASE}/get-data-daily.json?session=${session}&id=${id}&start=2024-01-01&end=${end}`,
         { headers: { "User-Agent": "Mozilla/5.0" }, cache: "no-store" }
       );
       const daily = await dailyRes.json();
