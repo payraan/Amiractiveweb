@@ -20,7 +20,7 @@ export const TIMEFRAMES: Timeframe[] = [
   { id: "24h", label: "۲۴ ساعته", hours: 24, cost: 1, freeFirst: 2, multiplier: 1 },
   { id: "12h", label: "۱۲ ساعته", hours: 12, cost: 2, freeFirst: 0, multiplier: 1 },
   { id: "4h", label: "۴ ساعته", hours: 4, cost: 3, freeFirst: 0, multiplier: 1 },
-  { id: "1h", label: "۱ ساعته", hours: 1, cost: 4, freeFirst: 0, multiplier: 1, dailyMax: 1 },
+  { id: "1h", label: "۱ ساعته", hours: 1, cost: 4, freeFirst: 0, multiplier: 1 },
 ];
 
 export function tf(id: string): Timeframe | undefined {
