@@ -106,13 +106,28 @@ export default function Hero() {
 
           <div className="rise flex flex-wrap gap-4" style={{ animationDelay: "270ms" }}>
             <a
+              href="#broker"
+              className="flex items-center gap-2.5 rounded-xl bg-gold px-7 py-3.5 font-display font-extrabold text-ink transition hover:bg-gold-deep"
+            >
+              فعال‌سازی ربات
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                className="h-4 w-4"
+              >
+                <path d="M19 12H5M12 5l-7 7 7 7" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </a>
+            <a
               href="https://t.me/CashflowFactorys"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2.5 rounded-xl bg-gold px-7 py-3.5 font-display font-extrabold text-ink transition hover:bg-gold-deep"
+              className="flex items-center gap-2.5 rounded-xl border border-line px-7 py-3.5 text-cream transition hover:border-gold hover:text-gold"
             >
               <TgIcon />
-              ورود به کانال تلگرام
+              کانال تلگرام
             </a>
             <a
               href="#results"
