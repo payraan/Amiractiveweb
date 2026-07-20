@@ -89,3 +89,23 @@ export function isGoldOpen(now: Date = new Date()): boolean {
 export function isAssetOpen(asset: Asset, now: Date = new Date()): boolean {
   return asset === "XAU" ? isGoldOpen(now) : true; // کریپتو ۲۴/۷
 }
+
+
+// ── بسته‌های خرید کردیت ────────────────────────────────────────
+// پرداخت با تتر (USDT) از طریق پشتیبانی انجام می‌شود.
+// برای تغییر قیمت یا تعداد فقط همین آرایه را ویرایش کن.
+export type CreditPack = {
+  id: string;
+  credits: number;
+  priceUsdt: number;
+  badge?: string; // مثلا "محبوب"
+};
+
+export const CREDIT_PACKS: CreditPack[] = [
+  { id: "starter", credits: 50, priceUsdt: 5 },
+  { id: "popular", credits: 200, priceUsdt: 15, badge: "محبوب" },
+  { id: "pro", credits: 500, priceUsdt: 30 },
+  { id: "arena", credits: 1000, priceUsdt: 50 },
+];
+
+export const SUPPORT_TG = "https://t.me/Amiractive_support";

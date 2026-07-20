@@ -69,12 +69,10 @@ export default function PredictBoard({
             </p>
             <div className="mt-5 flex items-center justify-between border-t border-line pt-4">
               <a
-                href="https://t.me/Amiractive_support"
-                target="_blank"
-                rel="noopener noreferrer"
+                href="#credits"
                 className="text-xs text-muted transition hover:text-gold"
               >
-                پشتیبانی و خرید کردیت
+                خرید کردیت
               </a>
               <button
                 type="button"

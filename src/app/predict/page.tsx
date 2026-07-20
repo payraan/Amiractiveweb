@@ -5,6 +5,7 @@ import Footer from "@/components/Footer";
 import PredictCycle from "@/components/predict/PredictCycle";
 import PredictBoard from "@/components/predict/PredictBoard";
 import Leaderboard from "@/components/predict/Leaderboard";
+import CreditStore from "@/components/predict/CreditStore";
 import { getAllMarket } from "@/lib/market";
 import { settleDueRounds } from "@/lib/settle";
 
@@ -117,6 +118,10 @@ export default async function PredictPage() {
         <div className="mt-8">
           <h2 className="mb-4 font-display text-xl font-black">لیدربورد</h2>
           <Leaderboard defaultRange="monthly" limit={10} />
+        </div>
+
+        <div className="mt-12">
+          <CreditStore />
         </div>
       </main>
       <Footer />
