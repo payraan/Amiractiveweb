@@ -49,7 +49,7 @@ export default function ArenaPage() {
           <ArenaBoard />
         </div>
 
-        <div className="mt-14 rounded-2xl border border-line bg-surface/40 p-6">
+        <div className="mt-14 rounded-2xl border border-line bg-surface/40 p-6 transition-all duration-300 hover:scale-[1.01] hover:border-gold/60 hover:shadow-[0_0_24px_rgba(232,196,106,0.12)]">
           <h2 className="text-sm font-bold">قوانین آرنا</h2>
           <ol className="mt-4 flex flex-col gap-3">
             {PROP_RULES.map((t, i) => (

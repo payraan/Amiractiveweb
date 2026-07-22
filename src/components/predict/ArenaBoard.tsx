@@ -93,7 +93,7 @@ function Spark({ points }: { points: PricePoint[] }) {
 }
 
 export default function ArenaBoard() {
-  const { player, loading, refresh } = usePlayer();
+  const { player, loading, refresh, logout } = usePlayer();
   const [markets, setMarkets] = useState<Market[]>([]);
   const [mine, setMine] = useState<Map<string, MyPred>>(new Map());
   const [freeLeft, setFreeLeft] = useState(0);
@@ -195,19 +195,43 @@ export default function ArenaBoard() {
       )}
 
       {player && (
-        <div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border border-line bg-surface/50 px-5 py-4 text-xs">
-          <span>
-            <span className="text-muted">پیش‌بینی رایگان امروز: </span>
+        <div className="mb-8 max-w-md rounded-2xl border border-line bg-surface/60 p-6 backdrop-blur transition-all duration-300 hover:scale-[1.01] hover:border-gold/50 hover:shadow-[0_0_24px_rgba(232,196,106,0.10)]">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-xs text-muted">حساب شما</div>
+              <div className="font-display text-lg font-extrabold">{player.displayName}</div>
+            </div>
+            <div className="flex gap-6 text-end">
+              <div>
+                <div className="text-xs text-muted">کردیت</div>
+                <div className="font-mono text-2xl font-bold text-cream" dir="ltr">
+                  {player.credits}◆
+                </div>
+              </div>
+              <div>
+                <div className="text-xs text-muted">امتیاز</div>
+                <div className="font-mono text-2xl font-bold text-gold" dir="ltr">
+                  {player.totalPoints}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="mt-3 text-[11px] text-muted">
+            پیش‌بینی رایگان امروز:{" "}
             <b className="font-mono text-gain" dir="ltr">{freeLeft}</b>
-          </span>
-          <span>
-            <span className="text-muted">کردیت: </span>
-            <b className="font-mono text-cream" dir="ltr">{player.credits}◆</b>
-          </span>
-          <span>
-            <span className="text-muted">امتیاز کل: </span>
-            <b className="font-mono text-gold" dir="ltr">{player.totalPoints}</b>
-          </span>
+          </div>
+          <div className="mt-4 flex items-center justify-between border-t border-line pt-4">
+            <a href="/predict#credits" className="text-xs text-muted transition hover:text-gold">
+              خرید کردیت
+            </a>
+            <button
+              type="button"
+              onClick={logout}
+              className="no-zoom text-xs text-muted transition hover:text-loss"
+            >
+              خروج از حساب
+            </button>
+          </div>
         </div>
       )}
 

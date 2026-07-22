@@ -6,7 +6,9 @@ import Results from "@/components/Results";
 import Bot from "@/components/Bot";
 import Broker from "@/components/Broker";
 import Faq from "@/components/Faq";
-import LeaderboardSection from "@/components/LeaderboardSection";
+import ArenaSection from "@/components/ArenaSection";
+import MarketPulseSection from "@/components/MarketPulseSection";
+import Legal from "@/components/Legal";
 import Footer from "@/components/Footer";
 
 export default function Home() {
@@ -17,11 +19,13 @@ export default function Home() {
       <main>
         <Hero />
         <Ticker />
+        <ArenaSection />
+        <MarketPulseSection />
         <Results />
         <Bot />
         <Broker />
         <Faq />
-        <LeaderboardSection />
+        <Legal />
       </main>
       <Footer />
     </>

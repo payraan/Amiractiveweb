@@ -128,7 +128,7 @@ export default function ChallengePanel() {
     const active = state.status === "active";
     return (
       <div
-        className={`rounded-2xl border p-6 ${
+        className={`rounded-2xl border p-6 transition-all duration-300 hover:scale-[1.01] hover:border-gold hover:shadow-[0_0_24px_rgba(232,196,106,0.15)] ${
           state.status === "passed"
             ? "border-gold bg-gold/10"
             : "border-gold/30 bg-surface/50"
