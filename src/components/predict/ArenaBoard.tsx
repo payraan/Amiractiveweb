@@ -25,34 +25,6 @@ type MyPred = {
 
 type PricePoint = { t: number; p: number };
 
-type ComboLeg = {
-  marketId: string;
-  question: string;
-  choice: "yes" | "no";
-  probPct: number;
-};
-
-type ComboTicket = {
-  id: number;
-  probPct: number;
-  legsCount: number;
-  charged: number;
-  points: number | null;
-  status: string;
-  legs: { question: string; choice: string; probPct: number; result: string | null }[];
-};
-
-const COMBO_MIN = 2;
-const COMBO_MAX = 5;
-const COMBO_COST = 2;
-
-function comboWinPreview(n: number, prob: number): number {
-  return Math.max(1, Math.round(100 * n * (1 - prob)));
-}
-function comboLosePreview(n: number, prob: number): number {
-  return -Math.max(1, Math.round(100 * n * prob));
-}
-
 const CATEGORY_TABS: { id: string; label: string }[] = [
   { id: "all", label: "همه" },
   { id: "crypto", label: "کریپتو" },
@@ -69,10 +41,6 @@ const ERRORS: Record<string, string> = {
   already_predicted: "برای این بازار قبلاً پیش‌بینی ثبت کرده‌اید.",
   insufficient_credits: "سهم رایگان امروز تمام شده و کردیت کافی ندارید.",
   market_not_found: "این بازار دیگر فعال نیست.",
-  too_few_legs: "کمبو حداقل به ۲ انتخاب نیاز دارد.",
-  too_many_legs: "کمبو حداکثر ۵ انتخاب می‌پذیرد.",
-  duplicate_leg: "هر بازار فقط یک بار در کمبو قابل انتخاب است.",
-  market_closed: "یکی از بازارهای انتخابی بسته شده است.",
 };
 
 function faDate(iso: string): string {
@@ -135,12 +103,6 @@ export default function ArenaBoard() {
   const [cat, setCat] = useState("all");
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState<"volume" | "ending">("volume");
-  const [comboMode, setComboMode] = useState(false);
-  const [legs, setLegs] = useState<ComboLeg[]>([]);
-  const [tickets, setTickets] = useState<ComboTicket[]>([]);
-  const [comboFree, setComboFree] = useState(0);
-  const [comboBusy, setComboBusy] = useState(false);
-  const [comboErr, setComboErr] = useState<string | null>(null);
   const [openChart, setOpenChart] = useState<string | null>(null);
   const [hist, setHist] = useState<Map<string, PricePoint[]>>(new Map());
 
@@ -166,22 +128,9 @@ export default function ArenaBoard() {
       .catch(() => {});
   };
 
-  const loadCombos = () => {
-    fetch("/api/predict/combo-me", { cache: "no-store" })
-      .then((r) => r.json())
-      .then((j) => {
-        setTickets(j.tickets ?? []);
-        setComboFree(j.freeLeft ?? 0);
-      })
-      .catch(() => {});
-  };
-
   useEffect(loadMarkets, []);
   useEffect(() => {
-    if (player) {
-      loadMine();
-      loadCombos();
-    }
+    if (player) loadMine();
   }, [player]);
 
   function toggleChart(marketId: string) {
@@ -203,55 +152,6 @@ export default function ArenaBoard() {
           });
         })
         .catch(() => {});
-    }
-  }
-
-  function pickCombo(m: Market, choice: "yes" | "no") {
-    setComboErr(null);
-    setLegs((prev) => {
-      const without = prev.filter((l) => l.marketId !== m.id);
-      const existing = prev.find((l) => l.marketId === m.id);
-      if (existing && existing.choice === choice) return without;
-      if (without.length >= COMBO_MAX) {
-        setComboErr(`حداکثر ${COMBO_MAX} انتخاب در یک کمبو مجاز است.`);
-        return prev;
-      }
-      return [
-        ...without,
-        {
-          marketId: m.id,
-          question: m.question,
-          choice,
-          probPct: choice === "yes" ? m.yesPct : Math.round((100 - m.yesPct) * 10) / 10,
-        },
-      ];
-    });
-  }
-
-  async function submitCombo() {
-    setComboErr(null);
-    setComboBusy(true);
-    try {
-      const res = await fetch("/api/predict/combo-submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          legs: legs.map((l) => ({ marketId: l.marketId, choice: l.choice })),
-        }),
-      });
-      const j = await res.json();
-      if (!j.ok) {
-        setComboErr(ERRORS[j.error] ?? "ثبت کمبو ناموفق بود.");
-        return;
-      }
-      setLegs([]);
-      setComboMode(false);
-      loadCombos();
-      refresh();
-    } catch {
-      setComboErr("ارتباط با سرور برقرار نشد.");
-    } finally {
-      setComboBusy(false);
     }
   }
 
@@ -292,11 +192,6 @@ export default function ArenaBoard() {
   const safePage = Math.min(page, totalPages);
   const paged = shown.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const settled = Array.from(mine.values()).filter((p) => p.status === "settled");
-  const picked = (id: string): "yes" | "no" | null =>
-    comboMode ? (legs.find((l) => l.marketId === id)?.choice ?? null) : null;
-  const comboProb = legs.reduce((acc, l) => acc * (l.probPct / 100), 1);
-  const comboWin = legs.length ? comboWinPreview(legs.length, comboProb) : 0;
-  const comboLose = legs.length ? comboLosePreview(legs.length, comboProb) : 0;
 
   return (
     <>
@@ -371,34 +266,6 @@ export default function ArenaBoard() {
           </button>
         ))}
       </div>
-
-      {player && (
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-surface/40 px-5 py-4">
-          <div>
-            <div className="text-xs font-bold">
-              حالت <span className="text-gold">کمبو</span>
-            </div>
-            <p className="mt-1 text-[11px] leading-6 text-muted">
-              ۲ تا ۵ انتخاب را در یک تیکت جمع کنید؛ اگر همه درست باشند امتیاز
-              چندبرابر می‌گیرید، یک اشتباه یعنی باخت کل تیکت.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              setComboMode((v) => !v);
-              setComboErr(null);
-            }}
-            className={`no-zoom shrink-0 rounded-xl border px-5 py-2.5 text-xs font-bold transition ${
-              comboMode
-                ? "border-gold bg-gold text-ink"
-                : "border-line text-cream hover:border-gold hover:text-gold"
-            }`}
-          >
-            {comboMode ? "خروج از حالت کمبو" : "ساخت کمبو"}
-          </button>
-        </div>
-      )}
 
       <div className="mb-6 flex flex-wrap items-center gap-2 text-[11px]">
         <span className="text-muted">مرتب‌سازی:</span>
@@ -533,28 +400,16 @@ export default function ArenaBoard() {
                     <button
                       type="button"
                       disabled={busy === m.id}
-                      onClick={() =>
-                        comboMode ? pickCombo(m, "yes") : submit(m.id, "yes")
-                      }
-                      className={`no-zoom rounded-xl border py-2.5 text-sm font-bold transition disabled:opacity-50 ${
-                        picked(m.id) === "yes"
-                          ? "border-gain bg-gain text-ink"
-                          : "border-gain/40 text-gain hover:bg-gain hover:text-ink"
-                      }`}
+                      onClick={() => submit(m.id, "yes")}
+                      className="no-zoom rounded-xl border border-gain/40 py-2.5 text-sm font-bold text-gain transition hover:bg-gain hover:text-ink disabled:opacity-50"
                     >
                       بله <span className="font-mono text-[10px]" dir="ltr">+{yesWin}</span>
                     </button>
                     <button
                       type="button"
                       disabled={busy === m.id}
-                      onClick={() =>
-                        comboMode ? pickCombo(m, "no") : submit(m.id, "no")
-                      }
-                      className={`no-zoom rounded-xl border py-2.5 text-sm font-bold transition disabled:opacity-50 ${
-                        picked(m.id) === "no"
-                          ? "border-loss bg-loss text-ink"
-                          : "border-loss/40 text-loss hover:bg-loss hover:text-ink"
-                      }`}
+                      onClick={() => submit(m.id, "no")}
+                      className="no-zoom rounded-xl border border-loss/40 py-2.5 text-sm font-bold text-loss transition hover:bg-loss hover:text-ink disabled:opacity-50"
                     >
                       خیر <span className="font-mono text-[10px]" dir="ltr">+{noWin}</span>
                     </button>
@@ -619,164 +474,6 @@ export default function ArenaBoard() {
           </div>
         </div>
       )}
-
-      {tickets.length > 0 && (
-        <div className="mt-10 max-w-2xl">
-          <h3 className="mb-3 text-sm font-bold">کمبوهای شما</h3>
-          <div className="flex flex-col gap-3">
-            {tickets.map((t) => (
-              <div
-                key={t.id}
-                className="rounded-2xl border border-line bg-surface/50 p-4 transition-all duration-300 hover:border-gold/50"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <span className="flex items-center gap-2 text-xs">
-                    <span className="rounded-full border border-gold/40 px-2.5 py-0.5 font-mono text-[10px] text-gold" dir="ltr">
-                      {t.legsCount} LEGS
-                    </span>
-                    <span className="text-muted">
-                      شانس ترکیبی:{" "}
-                      <b className="font-mono" dir="ltr">
-                        {t.probPct.toFixed(1)}%
-                      </b>
-                    </span>
-                  </span>
-                  {t.status === "open" ? (
-                    <span className="text-[11px] text-muted">در انتظار نتیجه</span>
-                  ) : (
-                    <b
-                      className={`font-mono text-sm ${
-                        (t.points ?? 0) >= 0 ? "text-gain" : "text-loss"
-                      }`}
-                      dir="ltr"
-                    >
-                      {(t.points ?? 0) >= 0 ? "+" : ""}
-                      {t.points}
-                    </b>
-                  )}
-                </div>
-                <div className="mt-3 flex flex-col gap-1.5">
-                  {t.legs.map((l, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between gap-3 text-[11px]"
-                    >
-                      <span className="line-clamp-1 flex-1 text-muted" dir="ltr">
-                        {l.question}
-                      </span>
-                      <span
-                        className={`shrink-0 font-bold ${
-                          l.choice === "yes" ? "text-gain" : "text-loss"
-                        }`}
-                      >
-                        {l.choice === "yes" ? "بله" : "خیر"}
-                      </span>
-                      <span className="w-4 shrink-0 text-center">
-                        {l.result === "won" ? (
-                          <span className="text-gain">✓</span>
-                        ) : l.result === "lost" ? (
-                          <span className="text-loss">✕</span>
-                        ) : (
-                          <span className="text-muted">·</span>
-                        )}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {comboMode && legs.length > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gold/40 bg-ink/95 backdrop-blur">
-          <div className="mx-auto max-w-5xl px-6 py-4">
-            <div className="flex flex-wrap items-center gap-2">
-              {legs.map((l) => (
-                <button
-                  key={l.marketId}
-                  type="button"
-                  onClick={() =>
-                    setLegs((prev) => prev.filter((x) => x.marketId !== l.marketId))
-                  }
-                  className="no-zoom flex max-w-[240px] items-center gap-2 rounded-full border border-line bg-surface/60 px-3 py-1.5 text-[10px] transition hover:border-loss hover:text-loss"
-                >
-                  <span
-                    className={`shrink-0 font-bold ${
-                      l.choice === "yes" ? "text-gain" : "text-loss"
-                    }`}
-                  >
-                    {l.choice === "yes" ? "بله" : "خیر"}
-                  </span>
-                  <span className="line-clamp-1 text-muted" dir="ltr">
-                    {l.question}
-                  </span>
-                  <span className="shrink-0">✕</span>
-                </button>
-              ))}
-            </div>
-
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-[11px]">
-                <span className="text-muted">
-                  شانس ترکیبی:{" "}
-                  <b className="font-mono text-cream" dir="ltr">
-                    {(comboProb * 100).toFixed(1)}%
-                  </b>
-                </span>
-                <span className="text-muted">
-                  برد:{" "}
-                  <b className="font-mono text-gain" dir="ltr">
-                    +{comboWin}
-                  </b>
-                </span>
-                <span className="text-muted">
-                  باخت:{" "}
-                  <b className="font-mono text-loss" dir="ltr">
-                    {comboLose}
-                  </b>
-                </span>
-                <span className="text-muted">
-                  {comboFree > 0 ? (
-                    <span className="text-gain">کمبوی رایگان امروز: {comboFree}</span>
-                  ) : (
-                    <span dir="ltr">{COMBO_COST}◆</span>
-                  )}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-3">
-                {comboErr && <span className="text-[11px] text-loss">{comboErr}</span>}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLegs([]);
-                    setComboErr(null);
-                  }}
-                  className="no-zoom rounded-lg border border-line px-4 py-2 text-xs text-muted transition hover:border-loss hover:text-loss"
-                >
-                  پاک‌کردن
-                </button>
-                <button
-                  type="button"
-                  disabled={comboBusy || legs.length < COMBO_MIN}
-                  onClick={submitCombo}
-                  className="no-zoom rounded-xl bg-gold px-6 py-2.5 font-display text-sm font-extrabold text-ink shadow-[0_8px_24px_rgba(232,196,106,0.25)] transition hover:bg-gold-deep disabled:opacity-50 disabled:shadow-none"
-                >
-                  {comboBusy
-                    ? "…"
-                    : legs.length < COMBO_MIN
-                      ? `حداقل ${COMBO_MIN} انتخاب`
-                      : "ثبت کمبو"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {comboMode && legs.length > 0 && <div className="h-32" />}
     </>
   );
 }
