@@ -160,3 +160,33 @@ button:not(.no-zoom):hover {
     transform: none;
   }
 }
+/* ── هاور یکدست همه‌ی کارت‌ها ─────────────────────────────
+   هر کارتی که با rounded-2xl و یکی از حاشیه‌های استاندارد ساخته شده،
+   با یک قاعده زنده می‌شود: زوم ملایم + قاب طلایی + هاله.
+   برای استثنا کردن یک کارت، کلاس no-lift را به آن اضافه کنید. */
+
+main .rounded-2xl.border-line:not(.no-lift),
+main .rounded-2xl.border-gold\/30:not(.no-lift),
+main .rounded-2xl.border-gold\/40:not(.no-lift),
+main .rounded-2xl.border-gold\/50:not(.no-lift) {
+  transition:
+    transform 300ms ease,
+    border-color 300ms ease,
+    box-shadow 300ms ease;
+  will-change: transform;
+}
+
+main .rounded-2xl.border-line:not(.no-lift):hover,
+main .rounded-2xl.border-gold\/30:not(.no-lift):hover,
+main .rounded-2xl.border-gold\/40:not(.no-lift):hover,
+main .rounded-2xl.border-gold\/50:not(.no-lift):hover {
+  transform: scale(1.02);
+  border-color: color-mix(in srgb, var(--color-gold) 60%, transparent);
+  box-shadow: 0 0 28px rgba(232, 196, 106, 0.14);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  main .rounded-2xl:hover {
+    transform: none !important;
+  }
+}
