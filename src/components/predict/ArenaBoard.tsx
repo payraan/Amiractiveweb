@@ -102,6 +102,7 @@ export default function ArenaBoard() {
   const [loadingMarkets, setLoadingMarkets] = useState(true);
   const [cat, setCat] = useState("all");
   const [page, setPage] = useState(1);
+  const [sort, setSort] = useState<"volume" | "ending">("volume");
   const [openChart, setOpenChart] = useState<string | null>(null);
   const [hist, setHist] = useState<Map<string, PricePoint[]>>(new Map());
 
@@ -179,7 +180,13 @@ export default function ArenaBoard() {
 
   const present = new Set(markets.map((m) => m.category));
   const tabs = CATEGORY_TABS.filter((t) => t.id === "all" || present.has(t.id));
-  const shown = cat === "all" ? markets : markets.filter((m) => m.category === cat);
+  const filtered = cat === "all" ? markets : markets.filter((m) => m.category === cat);
+  const shown =
+    sort === "ending"
+      ? [...filtered].sort(
+          (a, b) => new Date(a.endDate).getTime() - new Date(b.endDate).getTime()
+        )
+      : filtered;
   const PAGE_SIZE = 12;
   const totalPages = Math.max(1, Math.ceil(shown.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -260,6 +267,32 @@ export default function ArenaBoard() {
         ))}
       </div>
 
+      <div className="mb-6 flex flex-wrap items-center gap-2 text-[11px]">
+        <span className="text-muted">مرتب‌سازی:</span>
+        {(
+          [
+            { id: "volume", label: "پرحجم‌ترین" },
+            { id: "ending", label: "نزدیک‌ترین سررسید" },
+          ] as const
+        ).map((o) => (
+          <button
+            key={o.id}
+            type="button"
+            onClick={() => {
+              setSort(o.id);
+              setPage(1);
+            }}
+            className={`no-zoom rounded-full border px-3.5 py-1 transition ${
+              sort === o.id
+                ? "border-gold bg-gold/10 text-gold"
+                : "border-line text-muted hover:border-gold/40 hover:text-cream"
+            }`}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+
       {loadingMarkets ? (
         <div className="py-16 text-center text-xs text-muted">در حال دریافت بازارها…</div>
       ) : shown.length === 0 ? (
@@ -282,6 +315,16 @@ export default function ArenaBoard() {
                   <span className="rounded-full border border-line px-2.5 py-0.5 text-[10px] text-muted">
                     {m.categoryLabel}
                   </span>
+                  <div className="flex items-center gap-2">
+                  <a
+                    href={`/arena/m/${m.id}`}
+                    className="no-zoom flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-1 text-[10px] text-muted transition hover:border-gold/40 hover:text-gold"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3 w-3">
+                      <path d="M4 12v7a1 1 0 001 1h14a1 1 0 001-1v-7M16 6l-4-4-4 4M12 2v13" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    اشتراک
+                  </a>
                   <button
                     type="button"
                     onClick={() => toggleChart(m.id)}
@@ -296,6 +339,7 @@ export default function ArenaBoard() {
                     </svg>
                     نمودار
                   </button>
+                  </div>
                 </div>
 
                 <h3 className="mt-3 min-h-[3rem] text-sm font-bold leading-7" dir="ltr">

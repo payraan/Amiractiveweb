@@ -84,16 +84,17 @@ export default function Hero() {
       <div className="mx-auto grid min-h-[92vh] max-w-6xl items-center gap-14 px-6 pb-16 pt-32 lg:grid-cols-2">
         <div className="flex flex-col items-start gap-6">
           <span className="rise font-mono text-[11px] tracking-[0.4em] text-gold" dir="ltr">
-            ALGORITHMIC TRADING · SINCE 2017
+            PREDICTION PROP · ALGO TRADING · SINCE 2017
           </span>
 
           <h1
             className="rise max-w-xl text-balance font-display text-3xl font-black leading-[1.45] md:text-[2.5rem] md:leading-[1.3]"
             style={{ animationDelay: "90ms" }}
           >
-            معامله‌گری الگوریتمیک،
-            <br className="hidden md:block" />{" "}
-            <span className="text-gold">با نتایج قابل راستی‌آزمایی</span>
+            نخستین <span className="text-gold">پراپ پیش‌بینی</span> فارسی،
+            <br />
+            و معامله‌گری الگوریتمیک{" "}
+            <span className="text-gold">قابل راستی‌آزمایی</span>
           </h1>
 
           <p
@@ -106,10 +107,10 @@ export default function Hero() {
 
           <div className="rise flex flex-wrap gap-4" style={{ animationDelay: "270ms" }}>
             <a
-              href="#broker"
+              href="/arena"
               className="flex items-center gap-2.5 rounded-xl bg-gold px-7 py-3.5 font-display font-extrabold text-ink transition hover:bg-gold-deep"
             >
-              فعال‌سازی ربات
+              ورود به آرنای پیش‌بینی
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
@@ -130,10 +131,10 @@ export default function Hero() {
               کانال تلگرام
             </a>
             <a
-              href="#results"
+              href="#broker"
               className="rounded-xl border border-line px-7 py-3.5 text-cream transition hover:border-gold hover:text-gold"
             >
-              نتایج زنده
+              فعال‌سازی ربات
             </a>
           </div>
 

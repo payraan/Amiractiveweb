@@ -30,7 +30,7 @@ export default function ArenaSection() {
             PREDICTION ARENA · PROP CHALLENGE
           </span>
           <h2 className="mt-4 font-display text-3xl font-black md:text-4xl">
-            آرنای پیش‌بینی
+            آرنای <span className="text-gold">پیش‌بینی</span>
           </h2>
           <p className="mt-4 max-w-xl leading-8 text-muted">
             نخستین پراپ پیش‌بینی فارسی — با دیتای زنده‌ی پالی‌مارکت، بزرگ‌ترین

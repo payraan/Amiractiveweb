@@ -65,13 +65,13 @@ export async function getCuratedMarkets(): Promise<PolyMarket[]> {
     // برای پوشش همه‌ی کتگوری‌ها، علاوه بر پرحجم‌ترین‌های کلی،
     // هر کتگوری را جداگانه با tag_slug از Gamma می‌کشیم و ادغام می‌کنیم.
     const sources = [
-      { slug: "", limit: 20 },
-      { slug: "crypto", limit: 10 },
-      { slug: "politics", limit: 10 },
-      { slug: "sports", limit: 10 },
-      { slug: "finance", limit: 10 },
-      { slug: "tech", limit: 10 },
-      { slug: "geopolitics", limit: 10 },
+      { slug: "", limit: 30 },
+      { slug: "crypto", limit: 15 },
+      { slug: "politics", limit: 15 },
+      { slug: "sports", limit: 15 },
+      { slug: "finance", limit: 15 },
+      { slug: "tech", limit: 15 },
+      { slug: "geopolitics", limit: 15 },
     ];
     const results = await Promise.all(
       sources.map((src) =>
@@ -138,10 +138,10 @@ export async function getCuratedMarkets(): Promise<PolyMarket[]> {
           yesToken,
         });
         perEvent++;
-        if (perEvent >= 3) break;
-        if (out.length >= 60) break;
+        if (perEvent >= 4) break;
+        if (out.length >= 120) break;
       }
-      if (out.length >= 60) break;
+      if (out.length >= 120) break;
     }
 
     out.sort((a, b) => b.volume - a.volume);

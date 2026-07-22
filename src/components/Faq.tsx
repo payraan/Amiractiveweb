@@ -1,124 +1,193 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { FAQS } from "@/config/site";
+import { useState } from "react";
 
-const schema = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: FAQS.map((f) => ({
-    "@type": "Question",
-    name: f.q,
-    acceptedAnswer: { "@type": "Answer", text: f.a },
-  })),
-};
+type Item = { q: string; a: string };
+type Group = { title: string; items: Item[] };
 
-function useInView(threshold = 0.1) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [inView, setInView] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setInView(true);
-      return;
-    }
-    const io = new IntersectionObserver(
-      ([e]) => {
-        if (e.isIntersecting) {
-          setInView(true);
-          io.disconnect();
-        }
+const GROUPS: Group[] = [
+  {
+    title: "آرنای پیش‌بینی",
+    items: [
+      {
+        q: "آرنای پیش‌بینی چیست؟",
+        a: "آرنایی مهارتی که در آن روی رویدادهای واقعی جهان — سیاست، کریپتو، اقتصاد، ورزش — پیش‌بینی بله/خیر ثبت می‌کنید. بازارها و احتمال‌ها به‌صورت زنده از پالی‌مارکت، بزرگ‌ترین بازار پیش‌بینی جهان، می‌آیند و پس از اعلام نتیجه‌ی رسمی تسویه می‌شوند.",
       },
-      { threshold }
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, [threshold]);
-  return { ref, inView };
-}
+      {
+        q: "امتیازدهی چگونه است؟",
+        a: "بر اساس سختی پیش‌بینی: برد = ۱۰۰ منهای احتمال گزینه‌ی شما، باخت = منهای همان احتمال. مثلاً برد روی گزینه‌ی ۲۰٪ یعنی +۸۰ و باخت یعنی −۲۰. انتخاب گزینه‌های واضح امتیازی نمی‌سازد؛ فقط فهمیدن بهتر از بازار امتیاز مثبت می‌آورد.",
+      },
+      {
+        q: "چلنج پراپ چیست و جایزه‌اش چیست؟",
+        a: "حساب پراپ (از ۱,۰۰۰ تا ۵۰,۰۰۰ دلاری) را با کردیت فعال می‌کنید و در ۳۰ روز باید هدف پوینتی را بدون عبور از حد افت و سقف ضرر روزانه بزنید. پاداش هر چلنج، حساب پراپی به اندازه‌ی همان تیر است. حساب‌های ۱۰۰ تا ۱,۰۰۰ دلاری هم جوایز اکسترای کمپین‌های دوره‌ای‌اند.",
+      },
+      {
+        q: "شرکت در آرنا هزینه دارد؟",
+        a: "خیر — هر روز ۵ پیش‌بینی رایگان دارید. پیش‌بینی‌های بیشتر هر کدام ۱ کردیت هزینه دارند و ورود به چلنج پراپ نیز با کردیت انجام می‌شود. کردیت هیچ تأثیری بر امتیاز و نتیجه ندارد؛ فقط ظرفیت باز می‌کند.",
+      },
+      {
+        q: "پیش‌بینی‌ها کی تسویه می‌شوند؟",
+        a: "وقتی پالی‌مارکت نتیجه‌ی بازار را رسمی اعلام کند. تاریخ بسته‌شدن هر بازار روی کارت آن نوشته شده و با فیلتر «نزدیک‌ترین سررسید» می‌توانید بازارهای زودتسویه را پیدا کنید.",
+      },
+      {
+        q: "آیا می‌توانم چند حساب داشته باشم؟",
+        a: "خیر. هر شخص فقط یک حساب مجاز دارد. پیش‌بینی‌های آینه‌ای یا هماهنگ بین چند حساب به حذف چلنج و مصادره‌ی ورودی منجر می‌شود و جوایز پس از بررسی پشتیبانی پرداخت می‌شوند.",
+      },
+    ],
+  },
+  {
+    title: "نبض بازار",
+    items: [
+      {
+        q: "نبض بازار چیست؟",
+        a: "آرنای حدس قیمت: قیمت آینده‌ی بیت‌کوین و طلا را در تایم‌فریم‌های ۲۴، ۱۲، ۴ و ۱ ساعته پیش‌بینی می‌کنید و بر اساس دقت، امتیاز می‌گیرید یا از دست می‌دهید.",
+      },
+      {
+        q: "امتیاز چگونه محاسبه می‌شود؟",
+        a: "هرچه خطای پیش‌بینی کمتر، امتیاز بیشتر (+۱۰۰ تا +۵) و خطای زیاد امتیاز منفی دارد (−۱۰ و −۲۵). آستانه‌ی هر تایم‌فریم متناسب با نوسان طبیعی همان بازه تنظیم شده تا رقابت در همه‌ی تایم‌فریم‌ها عادلانه و هم‌ارز باشد. جدول کامل در صفحه‌ی نبض بازار آمده است.",
+      },
+      {
+        q: "بازی رایگان است؟",
+        a: "بله — تایم‌فریم ۲۴ ساعته رایگان است (تا ۲ بار در روز) و هنگام ثبت‌نام ۱۰ کردیت هدیه می‌گیرید. تایم‌فریم‌های ۱۲، ۴ و ۱ ساعته با کردیت باز می‌شوند.",
+      },
+      {
+        q: "کردیت چیست و چطور بخرم؟",
+        a: "کردیت فقط قابلیت باز می‌کند (تایم‌فریم کوتاه‌تر و پیش‌بینی بیشتر) و روی امتیاز و رتبه اثری ندارد. بسته‌ها از ۵۰ کردیت (۵ تتر) تا ۱۰۰۰ کردیت (۵۰ تتر) هستند و پرداخت با USDT از طریق پشتیبانی انجام می‌شود.",
+      },
+      {
+        q: "جوایز لیدربورد چیست؟",
+        a: "نفرات برتر لیدربورد ماهانه، اشتراک ربات معامله‌گر و حساب معاملاتی جایزه می‌گیرند. رتبه فقط با مهارت ساخته می‌شود و با پول قابل خرید نیست.",
+      },
+      {
+        q: "چرا آخر هفته بازار طلا بسته است؟",
+        a: "بازار جهانی طلا در تعطیلات آخر هفته بسته است؛ در این روزها فقط راندهای بیت‌کوین فعال‌اند و راند بعدی طلا از یکشنبه‌شب آغاز می‌شود.",
+      },
+    ],
+  },
+  {
+    title: "ربات اسکلپر",
+    items: [
+      {
+        q: "ربات معامله‌گر امیراکتیو چیست و چگونه کار می‌کند؟",
+        a: "یک ربات اسکلپر خودکار برای متاتریدر ۵ است که روی طلا و یورودلار معامله می‌کند. استراتژی الگوریتمیک با مدیریت ریسک تعریف‌شده — و همه‌ی عملکردش روی حساب واقعی و از طریق Myfxbook قابل راستی‌آزمایی است.",
+      },
+      {
+        q: "آیا سوددهی ربات تضمینی است؟",
+        a: "خیر — هیچ سود تضمینی در بازارهای مالی وجود ندارد و هرکس چنین ادعایی کند قابل اعتماد نیست. ما به‌جای وعده، عملکرد زنده و راستی‌آزمایی‌شده نشان می‌دهیم؛ ماه‌های منفی هم بخشی از واقعیت معامله‌گری‌اند.",
+      },
+      {
+        q: "برای استفاده از ربات به دانش تخصصی نیاز دارم؟",
+        a: "خیر. راهنمای نصب قدم‌به‌قدم دارید و پشتیبانی تلگرام در تمام مراحل نصب و راه‌اندازی همراه شماست. تنها به یک حساب متاتریدر ۵ نیاز دارید.",
+      },
+      {
+        q: "می‌توانم قبل از خرید ربات را تست کنم؟",
+        a: "بله — پلن تست ۷ روزه‌ی رایگان روی حساب دمو در دسترس است. برای فعال‌سازی کافی است به پشتیبانی تلگرام پیام دهید.",
+      },
+      {
+        q: "حداقل سرمایه برای استفاده از ربات چقدر است؟",
+        a: "به پلن انتخابی و مدیریت ریسک شما بستگی دارد. پشتیبانی بر اساس سرمایه و اهداف‌تان، تنظیمات و حساب مناسب را پیشنهاد می‌دهد.",
+      },
+      {
+        q: "آیا تنظیمات ربات قابل شخصی‌سازی است؟",
+        a: "بله — حجم معاملات، سطح ریسک و جفت‌ارزها قابل تنظیم است. تنظیمات پیشنهادی ما همان تنظیماتی است که روی حساب زنده استفاده می‌شود.",
+      },
+      {
+        q: "ربات روی چه بروکرهایی کار می‌کند؟",
+        a: "روی هر بروکر متاتریدر ۵ اجرا می‌شود؛ اما برای شرایط ویژه و فعال‌سازی با تخفیف، ثبت‌نام از طریق بروکرهای معرفی ما (GTC FX و Otet Markets) در بخش بروکر سایت انجام می‌شود.",
+      },
+      {
+        q: "فرآیند خرید و فعال‌سازی چگونه است؟",
+        a: "از بخش بروکر ثبت‌نام می‌کنید، سپس با پشتیبانی تلگرام در تماس می‌شوید تا پلن‌تان فعال شود. پرداخت اشتراک با تتر (USDT) انجام می‌شود و فعال‌سازی معمولاً در همان روز کامل می‌شود.",
+      },
+    ],
+  },
+];
 
 export default function Faq() {
-  const { ref, inView } = useInView();
-  const [open, setOpen] = useState(0);
+  const [open, setOpen] = useState<string | null>(null);
 
-  const rv = (extra = "") =>
-    `transition-all duration-700 ease-out ${
-      inView ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
-    } ${extra}`;
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: GROUPS.flatMap((g) =>
+      g.items.map((i) => ({
+        "@type": "Question",
+        name: i.q,
+        acceptedAnswer: { "@type": "Answer", text: i.a },
+      }))
+    ),
+  };
 
   return (
-    <section
-      id="faq"
-      className="relative mx-auto max-w-4xl scroll-mt-10 px-6 py-24 md:py-28"
-    >
+    <section id="faq" className="relative mx-auto max-w-3xl scroll-mt-10 px-6 py-24 md:py-28">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <div ref={ref}>
-        <span className={rv("font-mono text-[11px] tracking-[0.4em] text-gold")} dir="ltr">
-          FAQ
-        </span>
+      <span className="font-mono text-[11px] tracking-[0.4em] text-gold" dir="ltr">
+        FAQ
+      </span>
+      <h2 className="mt-4 font-display text-3xl font-black md:text-4xl">
+        پرسش‌های <span className="text-gold">متداول</span>
+      </h2>
 
-        <h2
-          className={rv("mt-4 font-display text-3xl font-black md:text-4xl")}
-          style={{ transitionDelay: "80ms" }}
-        >
-          پرسش‌های متداول
-        </h2>
-
-        <div className="mt-10 flex flex-col gap-3">
-          {FAQS.map((f, i) => {
-            const isOpen = open === i;
-            return (
-              <div
-                key={i}
-                className={rv()}
-                style={{ transitionDelay: `${140 + i * 50}ms` }}
-              >
-                <div className="frame-hover rounded-2xl border border-line bg-surface/40">
-                <button
-                  type="button"
-                  aria-expanded={isOpen}
-                  onClick={() => setOpen(isOpen ? -1 : i)}
-                  className="no-zoom flex w-full items-center justify-between gap-4 px-6 py-5"
-                >
-                  <span
-                    className={`text-start text-sm font-bold transition-colors md:text-base ${
-                      isOpen ? "text-gold" : "text-cream"
-                    }`}
-                  >
-                    {f.q}
-                  </span>
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    className={`h-4 w-4 shrink-0 transition-transform duration-300 ${
-                      isOpen ? "rotate-45 text-gold" : "text-muted"
-                    }`}
-                  >
-                    <path d="M12 5v14M5 12h14" strokeLinecap="round" />
-                  </svg>
-                </button>
-
+      {GROUPS.map((g, gi) => (
+        <div key={gi} className="mt-10">
+          <h3 className="mb-4 flex items-center gap-3 text-sm font-bold">
+            <span className="h-px w-6 bg-gold" />
+            {g.title}
+          </h3>
+          <div className="flex flex-col gap-3">
+            {g.items.map((item, i) => {
+              const key = `${gi}-${i}`;
+              const isOpen = open === key;
+              return (
                 <div
-                  className="grid transition-[grid-template-rows] duration-500 ease-out"
-                  style={{ gridTemplateRows: isOpen ? "1fr" : "0fr" }}
+                  key={key}
+                  className="overflow-hidden rounded-2xl border border-line bg-surface/40 transition-all duration-300 hover:border-gold/40"
                 >
-                  <div className="overflow-hidden">
-                    <p className="px-6 pb-6 text-sm leading-8 text-muted">{f.a}</p>
+                  <button
+                    type="button"
+                    onClick={() => setOpen(isOpen ? null : key)}
+                    className="no-zoom flex w-full items-center justify-between gap-4 px-5 py-4 text-start text-sm font-bold"
+                  >
+                    <span>{item.q}</span>
+                    <span
+                      className={`shrink-0 text-gold transition-transform duration-300 ${
+                        isOpen ? "rotate-45" : ""
+                      }`}
+                    >
+                      +
+                    </span>
+                  </button>
+                  <div
+                    className={`grid transition-all duration-300 ${
+                      isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                    }`}
+                  >
+                    <div className="overflow-hidden">
+                      <p className="px-5 pb-5 text-xs leading-7 text-muted">{item.a}</p>
+                    </div>
                   </div>
                 </div>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
-      </div>
+      ))}
+
+      <p className="mt-8 text-[11px] text-muted">
+        پاسخ سوال‌تان را پیدا نکردید؟{" "}
+        <a
+          href="https://t.me/Amiractive_support"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-gold transition hover:text-gold-deep"
+        >
+          پشتیبانی ۲۴ ساعته در تلگرام
+        </a>
+      </p>
     </section>
   );
 }

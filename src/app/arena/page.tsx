@@ -37,7 +37,7 @@ export default function ArenaPage() {
           PREDICTION ARENA · POWERED BY POLYMARKET DATA
         </span>
         <h1 className="mt-4 font-display text-3xl font-black md:text-4xl">
-          آرنای پیش‌بینی
+          آرنای <span className="text-gold">پیش‌بینی</span>
         </h1>
         <p className="mt-4 max-w-2xl leading-8 text-muted">
           روی مهم‌ترین رویدادهای جهان — از انتخابات تا کریپتو — پیش‌بینی بله/خیر

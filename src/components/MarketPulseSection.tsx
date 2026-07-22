@@ -21,7 +21,7 @@ export default function MarketPulseSection() {
       <span className="font-mono text-[11px] tracking-[0.4em] text-gold" dir="ltr">
         MARKET PULSE
       </span>
-      <h2 className="mt-4 font-display text-3xl font-black md:text-4xl">نبض بازار</h2>
+      <h2 className="mt-4 font-display text-3xl font-black md:text-4xl">نبض <span className="text-gold">بازار</span></h2>
       <p className="mt-4 max-w-xl leading-8 text-muted">
         آرنای حدس قیمت — دقت شما، امتیاز شما. با نمودار زنده، تسویه‌ی خودکار و
         رقابت کاملاً مهارتی.
