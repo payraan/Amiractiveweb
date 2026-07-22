@@ -17,7 +17,34 @@ export type PolyMarket = {
   endDate: string;
   yesPct: number; // 0..100
   volume: number;
+  category: string; // شناسه‌ی کتگوری
+  categoryLabel: string;
+  yesToken: string; // برای تاریخچه‌ی قیمت (سمت سرور)
 };
+
+// ── کتگوری‌ها: نگاشت تگ‌های پالی‌مارکت به دسته‌های فارسی ─────
+const CATS: { id: string; label: string; match: string[] }[] = [
+  { id: "crypto", label: "کریپتو", match: ["crypto", "bitcoin", "ethereum", "solana", "defi"] },
+  { id: "politics", label: "سیاست", match: ["politic", "election", "president", "senate", "congress", "primaries", "trump", "government"] },
+  { id: "sports", label: "ورزش", match: ["sport", "nba", "nfl", "mlb", "nhl", "soccer", "football", "epl", "ufc", "tennis", "olympic", "world-cup", "ballon"] },
+  { id: "economy", label: "اقتصاد", match: ["finance", "econom", "fed", "rates", "inflation", "stock", "business", "earn"] },
+  { id: "tech", label: "تکنولوژی", match: ["tech", "ai", "openai", "science", "space"] },
+  { id: "geo", label: "ژئوپلیتیک", match: ["geopolit", "world", "israel", "russia", "ukraine", "china", "iran", "war", "nato", "middle-east"] },
+];
+
+export const CATEGORY_LIST: { id: string; label: string }[] = [
+  { id: "all", label: "همه" },
+  ...CATS.map((c) => ({ id: c.id, label: c.label })),
+  { id: "other", label: "سایر" },
+];
+
+function categoryFor(slugs: string[]): { id: string; label: string } {
+  const joined = slugs.join(" ");
+  for (const c of CATS) {
+    if (c.match.some((m) => joined.includes(m))) return { id: c.id, label: c.label };
+  }
+  return { id: "other", label: "سایر" };
+}
 
 export function winPoints(probPct: number): number {
   return Math.max(1, Math.round(100 - probPct));
@@ -36,7 +63,7 @@ export async function getCuratedMarkets(): Promise<PolyMarket[]> {
   }
   try {
     const res = await fetch(
-      `${GAMMA}/events?limit=40&active=true&closed=false&order=volume&ascending=false`,
+      `${GAMMA}/events?limit=60&active=true&closed=false&order=volume&ascending=false`,
       { headers: UA, cache: "no-store" }
     );
     if (!res.ok) throw new Error(`gamma ${res.status}`);
@@ -63,6 +90,16 @@ export async function getCuratedMarkets(): Promise<PolyMarket[]> {
           const q = String(m.question ?? "").trim();
           if (!q || seen.has(q)) continue;
           seen.add(q);
+          const slugs: string[] = Array.isArray(ev.tags)
+            ? ev.tags.map((t: { slug?: string }) => String(t?.slug ?? "").toLowerCase())
+            : [];
+          const cat = categoryFor(slugs);
+          let yesToken = "";
+          try {
+            yesToken = String((JSON.parse(m.clobTokenIds ?? "[]") as string[])[0] ?? "");
+          } catch {
+            yesToken = "";
+          }
           out.push({
             id: String(m.id),
             question: q,
@@ -70,10 +107,13 @@ export async function getCuratedMarkets(): Promise<PolyMarket[]> {
             endDate: String(m.endDate ?? ev.endDate ?? ""),
             yesPct: Math.round(yes * 1000) / 10,
             volume: Number(ev.volume) || 0,
+            category: cat.id,
+            categoryLabel: cat.label,
+            yesToken,
           });
-          if (out.length >= 24) break;
+          if (out.length >= 40) break;
         }
-        if (out.length >= 24) break;
+        if (out.length >= 40) break;
       }
     }
 
@@ -188,4 +228,35 @@ export async function settlePolyDue(): Promise<{ settled: number }> {
     }
   }
   return { settled };
+}
+
+// ── تاریخچه‌ی احتمال برای نمودار بازار ─────────────────────────
+export type PricePoint = { t: number; p: number };
+const histCache = new Map<string, { data: PricePoint[]; ts: number }>();
+const HIST_TTL = 10 * 60 * 1000;
+
+export async function getMarketHistory(marketId: string): Promise<PricePoint[]> {
+  const hit = histCache.get(marketId);
+  if (hit && Date.now() - hit.ts < HIST_TTL) return hit.data;
+
+  const markets = await getCuratedMarkets();
+  const m = findMarket(markets, marketId);
+  if (!m || !m.yesToken) return hit?.data ?? [];
+
+  try {
+    const res = await fetch(
+      `https://clob.polymarket.com/prices-history?market=${m.yesToken}&interval=1w&fidelity=120`,
+      { headers: UA, cache: "no-store" }
+    );
+    if (!res.ok) return hit?.data ?? [];
+    const j = await res.json();
+    const raw = Array.isArray(j?.history) ? j.history : [];
+    const data: PricePoint[] = raw
+      .map((r: { t?: number; p?: number }) => ({ t: Number(r.t) || 0, p: Number(r.p) || 0 }))
+      .filter((r: PricePoint) => r.t > 0);
+    if (data.length) histCache.set(marketId, { data, ts: Date.now() });
+    return data.length ? data : (hit?.data ?? []);
+  } catch {
+    return hit?.data ?? [];
+  }
 }
