@@ -3,6 +3,7 @@ import CandleField from "@/components/CandleField";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import ArenaBoard from "@/components/predict/ArenaBoard";
+import ChallengePanel from "@/components/predict/ChallengePanel";
 import { settlePolyDue, POLY_FREE_PER_DAY, POLY_EXTRA_COST } from "@/lib/poly";
 
 export const metadata: Metadata = {
@@ -19,17 +20,6 @@ const PROP_RULES = [
   "این یعنی انتخاب گزینه‌های واضح امتیازی نمی‌سازد؛ فقط فهمیدن بهتر از بازار، امتیاز مثبت می‌آورد.",
   "بازارها و احتمال‌ها به‌صورت زنده از پالی‌مارکت — بزرگ‌ترین بازار پیش‌بینی جهان — می‌آیند و پس از اعلام نتیجه‌ی رسمی تسویه می‌شوند.",
   "روی هر بازار فقط یک بار می‌توانید پیش‌بینی ثبت کنید و پس از ثبت قابل تغییر نیست.",
-];
-
-const PROP_EVAL = [
-  "حداقل ۳۰ پیش‌بینی تسویه‌شده در ماه",
-  "امتیاز ماهانه‌ی مثبت (سود از بازار)",
-  "قرارگرفتن در رتبه‌های برتر لیدربورد ماهانه",
-];
-
-const PROP_PRIZES = [
-  "اشتراک ماهانه‌ی ربات معامله‌گر",
-  "حساب‌های معاملاتی ۱۰۰، ۲۰۰ و ۵۰۰ دلاری از کمپین بروکرها",
 ];
 
 export default function ArenaPage() {
@@ -71,34 +61,21 @@ export default function ArenaPage() {
           </ol>
         </div>
 
-        <div className="mt-6 grid gap-6 md:grid-cols-2">
-          <div className="rounded-2xl border border-gold/30 bg-gold/5 p-6">
-            <h2 className="text-sm font-bold text-gold">پراپ پیش‌بینی — شرایط ارزیابی ماهانه</h2>
-            <ul className="mt-4 flex flex-col gap-2 text-xs leading-7 text-muted">
-              {PROP_EVAL.map((t, i) => (
-                <li key={i} className="flex gap-2">
-                  <span className="text-gold">✓</span>
-                  <span>{t}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="rounded-2xl border border-line bg-surface/40 p-6">
-            <h2 className="text-sm font-bold">جوایز قبول‌شدگان</h2>
-            <ul className="mt-4 flex flex-col gap-2 text-xs leading-7 text-muted">
-              {PROP_PRIZES.map((t, i) => (
-                <li key={i} className="flex gap-2">
-                  <span className="text-gold">★</span>
-                  <span>{t}</span>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-4 text-[10px] leading-5 text-muted">
-              امتیاز و رتبه با پول خرید و فروش نمی‌شود؛ جایزه فقط بر اساس مهارت
-              است. کردیت تنها ظرفیت پیش‌بینی بیشتر را باز می‌کند.
-            </p>
+        <div id="challenge" className="mt-14 scroll-mt-10">
+          <span className="font-mono text-[11px] tracking-[0.4em] text-gold" dir="ltr">
+            PREDICTION PROP CHALLENGE
+          </span>
+          <h2 className="mt-3 font-display text-2xl font-black">چلنج پراپ پیش‌بینی</h2>
+          <p className="mt-3 max-w-2xl text-xs leading-7 text-muted">
+            حساب پراپ خود را انتخاب کنید، با کردیت فعالش کنید و در ۳۰ روز با
+            پیش‌بینی‌های همین آرنا هدف پوینتی را بزنید — بدون عبور از حد افت و
+            سقف ضرر روزانه. پاس کنید، جایزه‌ی واقعی بگیرید.
+          </p>
+          <div className="mt-6">
+            <ChallengePanel />
           </div>
         </div>
+
       </main>
       <Footer />
     </>

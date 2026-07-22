@@ -181,6 +181,11 @@ export async function ensurePolyTables(): Promise<void> {
              UNIQUE (market_id, player_id)
            )`
         )
+        .then(() =>
+          pool.query(
+            "ALTER TABLE poly_predictions ADD COLUMN IF NOT EXISTS settled_at TIMESTAMPTZ"
+          )
+        )
         .then(() => undefined)
     );
   }
@@ -237,7 +242,7 @@ export async function settlePolyDue(): Promise<{ settled: number }> {
           const won = (p.choice === "yes") === yesWon;
           const points = won ? winPoints(probPct) : losePoints(probPct);
           await client.query(
-            `UPDATE poly_predictions SET points=$1, status='settled' WHERE id=$2`,
+            `UPDATE poly_predictions SET points=$1, status='settled', settled_at=now() WHERE id=$2`,
             [points, p.id]
           );
           await client.query(
