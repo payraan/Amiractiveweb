@@ -637,7 +637,7 @@ export default function ArenaBoard() {
                     <span className="text-muted">
                       شانس ترکیبی:{" "}
                       <b className="font-mono" dir="ltr">
-                        {(Number(t.prob) * 100).toFixed(1)}%
+                        {t.probPct.toFixed(1)}%
                       </b>
                     </span>
                   </span>
