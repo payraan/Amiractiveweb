@@ -60,10 +60,8 @@ export default async function Hero() {
       </div>
 
       {market && (
-        <div
-          className="rise mx-auto mt-16 max-w-md rounded-2xl border border-line bg-surface/50 p-6 text-start backdrop-blur transition-all duration-300 hover:border-gold/50 hover:shadow-[0_0_40px_rgba(232,196,106,0.10)]"
-          style={{ animationDelay: "420ms" }}
-        >
+        <div className="rise mx-auto mt-16 max-w-md" style={{ animationDelay: "420ms" }}>
+        <div className="rounded-2xl border border-line bg-surface/50 p-6 text-start backdrop-blur">
           <div className="flex items-center justify-between">
             <span
               className="flex items-center gap-2 font-mono text-[10px] text-muted"
@@ -107,6 +105,7 @@ export default async function Hero() {
               خیر +{noWin}
             </span>
           </div>
+        </div>
         </div>
       )}
 
