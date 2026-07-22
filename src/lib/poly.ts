@@ -1,0 +1,191 @@
+// آرنای پیش‌بینی رویدادها — دیتای بازار از Gamma API پالی‌مارکت، سمت سرور.
+// امتیازدهی صفر-انتظار (zero-EV): برد = +(۱۰۰−احتمال٪)، باخت = −(احتمال٪).
+// یعنی فقط «بهتر از بازار فهمیدن» امتیاز مثبت می‌سازد — مهارت، نه شانس.
+
+import { db } from "@/lib/db";
+
+export const POLY_FREE_PER_DAY = 5; // پیش‌بینی رایگان روزانه
+export const POLY_EXTRA_COST = 1; // هزینه‌ی هر پیش‌بینی اضافه (کردیت)
+
+const UA = { "User-Agent": "Mozilla/5.0" };
+const GAMMA = "https://gamma-api.polymarket.com";
+
+export type PolyMarket = {
+  id: string;
+  question: string;
+  eventTitle: string;
+  endDate: string;
+  yesPct: number; // 0..100
+  volume: number;
+};
+
+export function winPoints(probPct: number): number {
+  return Math.max(1, Math.round(100 - probPct));
+}
+export function losePoints(probPct: number): number {
+  return -Math.max(1, Math.round(probPct));
+}
+
+// ── curated markets cache ──────────────────────────────────────
+let marketsCache: { data: PolyMarket[]; ts: number } | null = null;
+const MARKETS_TTL = 5 * 60 * 1000;
+
+export async function getCuratedMarkets(): Promise<PolyMarket[]> {
+  if (marketsCache && Date.now() - marketsCache.ts < MARKETS_TTL) {
+    return marketsCache.data;
+  }
+  try {
+    const res = await fetch(
+      `${GAMMA}/events?limit=40&active=true&closed=false&order=volume&ascending=false`,
+      { headers: UA, cache: "no-store" }
+    );
+    if (!res.ok) throw new Error(`gamma ${res.status}`);
+    const events = await res.json();
+    const out: PolyMarket[] = [];
+    const seen = new Set<string>();
+
+    if (Array.isArray(events)) {
+      for (const ev of events) {
+        const markets = Array.isArray(ev?.markets) ? ev.markets : [];
+        for (const m of markets) {
+          if (m?.closed) continue;
+          let outcomes: string[] = [];
+          let prices: number[] = [];
+          try {
+            outcomes = JSON.parse(m.outcomes ?? "[]");
+            prices = (JSON.parse(m.outcomePrices ?? "[]") as string[]).map(Number);
+          } catch {
+            continue;
+          }
+          if (outcomes.length !== 2 || outcomes[0] !== "Yes") continue;
+          const yes = prices[0];
+          if (!Number.isFinite(yes) || yes < 0.03 || yes > 0.97) continue;
+          const q = String(m.question ?? "").trim();
+          if (!q || seen.has(q)) continue;
+          seen.add(q);
+          out.push({
+            id: String(m.id),
+            question: q,
+            eventTitle: String(ev.title ?? ""),
+            endDate: String(m.endDate ?? ev.endDate ?? ""),
+            yesPct: Math.round(yes * 1000) / 10,
+            volume: Number(ev.volume) || 0,
+          });
+          if (out.length >= 24) break;
+        }
+        if (out.length >= 24) break;
+      }
+    }
+
+    if (out.length) {
+      marketsCache = { data: out, ts: Date.now() };
+      return out;
+    }
+    return marketsCache?.data ?? [];
+  } catch {
+    return marketsCache?.data ?? [];
+  }
+}
+
+export function findMarket(markets: PolyMarket[], id: string): PolyMarket | null {
+  return markets.find((m) => m.id === id) ?? null;
+}
+
+// ── tables ─────────────────────────────────────────────────────
+let polyReady: Promise<void> | null = null;
+export async function ensurePolyTables(): Promise<void> {
+  if (!polyReady) {
+    polyReady = db().then((pool) =>
+      pool
+        .query(
+          `CREATE TABLE IF NOT EXISTS poly_predictions (
+             id SERIAL PRIMARY KEY,
+             player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+             market_id TEXT NOT NULL,
+             question TEXT NOT NULL,
+             choice TEXT NOT NULL,
+             prob NUMERIC NOT NULL,
+             charged INTEGER NOT NULL DEFAULT 0,
+             points INTEGER,
+             status TEXT NOT NULL DEFAULT 'open',
+             created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+             UNIQUE (market_id, player_id)
+           )`
+        )
+        .then(() => undefined)
+    );
+  }
+  return polyReady;
+}
+
+// ── settlement ─────────────────────────────────────────────────
+// بازارهایی که پالی‌مارکت بسته و نتیجه‌شان قطعی شده را تسویه می‌کند.
+export async function settlePolyDue(): Promise<{ settled: number }> {
+  await ensurePolyTables();
+  const pool = await db();
+
+  const due = await pool.query<{ market_id: string }>(
+    `SELECT DISTINCT market_id FROM poly_predictions WHERE status='open' LIMIT 15`
+  );
+
+  let settled = 0;
+  for (const { market_id } of due.rows) {
+    try {
+      const res = await fetch(`${GAMMA}/markets/${market_id}`, {
+        headers: UA,
+        cache: "no-store",
+      });
+      if (!res.ok) continue;
+      const m = await res.json();
+      if (!m?.closed) continue;
+
+      let prices: number[] = [];
+      try {
+        prices = (JSON.parse(m.outcomePrices ?? "[]") as string[]).map(Number);
+      } catch {
+        continue;
+      }
+      if (prices.length !== 2) continue;
+      // بازار بسته ولی هنوز نتیجه قطعی نشده (قیمت وسط) → صبر
+      if (prices[0] > 0.05 && prices[0] < 0.95) continue;
+      const yesWon = prices[0] >= 0.95;
+
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        const preds = await client.query<{
+          id: number;
+          player_id: number;
+          choice: string;
+          prob: string;
+        }>(
+          `SELECT id, player_id, choice, prob FROM poly_predictions
+            WHERE market_id=$1 AND status='open' FOR UPDATE`,
+          [market_id]
+        );
+        for (const p of preds.rows) {
+          const probPct = Number(p.prob) * 100;
+          const won = (p.choice === "yes") === yesWon;
+          const points = won ? winPoints(probPct) : losePoints(probPct);
+          await client.query(
+            `UPDATE poly_predictions SET points=$1, status='settled' WHERE id=$2`,
+            [points, p.id]
+          );
+          await client.query(
+            `UPDATE players SET total_points = total_points + $1 WHERE id=$2`,
+            [points, p.player_id]
+          );
+        }
+        await client.query("COMMIT");
+        settled++;
+      } catch {
+        await client.query("ROLLBACK").catch(() => {});
+      } finally {
+        client.release();
+      }
+    } catch {
+      continue;
+    }
+  }
+  return { settled };
+}

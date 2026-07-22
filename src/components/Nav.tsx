@@ -10,7 +10,8 @@ const links: { href: string; label: string; badge?: string }[] = [
   { href: "/#bot", label: "ربات معامله‌گر" },
   { href: "/#broker", label: "بروکر" },
   { href: "/#academy", label: "آکادمی" },
-  { href: "/predict", label: "پیش‌بینی", badge: "جدید" },
+  { href: "/predict", label: "نبض بازار" },
+  { href: "/arena", label: "پیش‌بینی", badge: "جدید" },
 ];
 
 function CandleI() {
