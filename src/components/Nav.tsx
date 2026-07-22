@@ -12,7 +12,8 @@ const links: { href: string; label: string; badge?: string }[] = [
   { href: "/#academy", label: "آکادمی" },
   { href: "/predict", label: "نبض بازار" },
   { href: "/arena", label: "پیش‌بینی", badge: "جدید" },
-  { href: "/combos", label: "کمبو", badge: "جدید" },
+  { href: "/trade", label: "ترید", badge: "جدید" },
+  { href: "/combos", label: "کمبو" },
   { href: "/login", label: "ورود" },
 ];
 

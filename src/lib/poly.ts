@@ -269,8 +269,20 @@ export type PricePoint = { t: number; p: number };
 const histCache = new Map<string, { data: PricePoint[]; ts: number }>();
 const HIST_TTL = 10 * 60 * 1000;
 
-export async function getMarketHistory(marketId: string): Promise<PricePoint[]> {
-  const hit = histCache.get(marketId);
+export type HistoryInterval = "1d" | "1w" | "1m" | "max";
+const FIDELITY: Record<HistoryInterval, number> = {
+  "1d": 10,
+  "1w": 60,
+  "1m": 240,
+  max: 720,
+};
+
+export async function getMarketHistory(
+  marketId: string,
+  interval: HistoryInterval = "1w"
+): Promise<PricePoint[]> {
+  const key = `${marketId}:${interval}`;
+  const hit = histCache.get(key);
   if (hit && Date.now() - hit.ts < HIST_TTL) return hit.data;
 
   const markets = await getCuratedMarkets();
@@ -279,7 +291,7 @@ export async function getMarketHistory(marketId: string): Promise<PricePoint[]> 
 
   try {
     const res = await fetch(
-      `https://clob.polymarket.com/prices-history?market=${m.yesToken}&interval=1w&fidelity=120`,
+      `https://clob.polymarket.com/prices-history?market=${m.yesToken}&interval=${interval}&fidelity=${FIDELITY[interval]}`,
       { headers: UA, cache: "no-store" }
     );
     if (!res.ok) return hit?.data ?? [];
@@ -288,7 +300,7 @@ export async function getMarketHistory(marketId: string): Promise<PricePoint[]> 
     const data: PricePoint[] = raw
       .map((r: { t?: number; p?: number }) => ({ t: Number(r.t) || 0, p: Number(r.p) || 0 }))
       .filter((r: PricePoint) => r.t > 0);
-    if (data.length) histCache.set(marketId, { data, ts: Date.now() });
+    if (data.length) histCache.set(key, { data, ts: Date.now() });
     return data.length ? data : (hit?.data ?? []);
   } catch {
     return hit?.data ?? [];
