@@ -13,8 +13,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const market = findMarket(await getCuratedMarkets(), id);
   const title = market
-    ? `${market.question} | آرنای پیش‌بینی امیراکتیو`
-    : "آرنای پیش‌بینی | امیراکتیو";
+    ? `${market.question} | آرنای پیش‌بینی نارمون`
+    : "آرنای پیش‌بینی | نارمون";
   const description = market
     ? `Yes ${market.yesPct}% — روی این بازار پیش‌بینی ثبت کنید و بر اساس مهارت امتیاز بگیرید.`
     : "روی مهم‌ترین رویدادهای جهان پیش‌بینی بله/خیر ثبت کنید.";

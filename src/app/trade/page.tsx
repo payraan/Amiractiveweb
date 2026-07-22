@@ -4,7 +4,7 @@ import TradeTerminal from "@/components/predict/TradeTerminal";
 import { settlePolyDue } from "@/lib/poly";
 
 export const metadata: Metadata = {
-  title: "ترید پیش‌بینی | امیراکتیو",
+  title: "ترید پیش‌بینی | نارمون",
   description:
     "ترمینال حرفه‌ای بازارهای پیش‌بینی: نمودار احتمال، نردبان بازارهای رویداد و ثبت سریع پیش‌بینی.",
 };

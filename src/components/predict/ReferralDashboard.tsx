@@ -65,7 +65,7 @@ export default function ReferralDashboard() {
       .catch(() => {});
   }
 
-  const shareText = `من توی آرنای پیش‌بینی امیراکتیو پیش‌بینی می‌کنم — با این لینک ثبت‌نام کنی ${bonus} کردیت هدیه می‌گیری:`;
+  const shareText = `من توی آرنای پیش‌بینی نارمون پیش‌بینی می‌کنم — با این لینک ثبت‌نام کنی ${bonus} کردیت هدیه می‌گیری:`;
   const tgShare = `https://t.me/share/url?url=${encodeURIComponent(
     link
   )}&text=${encodeURIComponent(shareText)}`;

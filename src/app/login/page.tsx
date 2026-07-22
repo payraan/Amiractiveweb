@@ -5,9 +5,9 @@ import Footer from "@/components/Footer";
 import LoginClient from "@/components/LoginClient";
 
 export const metadata: Metadata = {
-  title: "ورود / ثبت‌نام | امیراکتیو",
+  title: "ورود / ثبت‌نام | نارمون",
   description:
-    "با یک حساب، به همه‌ی بخش‌های امیراکتیو دسترسی دارید: آرنای پیش‌بینی، نبض بازار و لیدربورد.",
+    "با یک حساب، به همه‌ی بخش‌های نارمون دسترسی دارید: آرنای پیش‌بینی، نبض بازار و لیدربورد.",
 };
 
 export const dynamic = "force-dynamic";

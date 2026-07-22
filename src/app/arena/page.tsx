@@ -8,9 +8,9 @@ import { settlePolyDue, POLY_FREE_PER_DAY, POLY_EXTRA_COST } from "@/lib/poly";
 import { settleCombosDue, COMBO_FREE_PER_DAY, COMBO_COST } from "@/lib/combos";
 
 export const metadata: Metadata = {
-  title: "آرنای پیش‌بینی | امیراکتیو",
+  title: "آرنای پیش‌بینی | نارمون",
   description:
-    "روی مهم‌ترین رویدادهای جهان پیش‌بینی بله/خیر ثبت کنید، بر اساس سختی پیش‌بینی امتیاز بگیرید و در پراپ پیش‌بینی امیراکتیو جایزه ببرید.",
+    "روی مهم‌ترین رویدادهای جهان پیش‌بینی بله/خیر ثبت کنید، بر اساس سختی پیش‌بینی امتیاز بگیرید و در پراپ پیش‌بینی نارمون جایزه ببرید.",
 };
 
 export const dynamic = "force-dynamic";

@@ -3,7 +3,7 @@
 import { CREDIT_PACKS, SUPPORT_TG } from "@/lib/game";
 
 function buyLink(credits: number, priceUsdt: number) {
-  const msg = `سلام، می‌خواهم بسته‌ی ${credits} کردیت (${priceUsdt} تتر) را برای بازی پیش‌بینی امیراکتیو خریداری کنم.`;
+  const msg = `سلام، می‌خواهم بسته‌ی ${credits} کردیت (${priceUsdt} تتر) را برای بازی پیش‌بینی نارمون خریداری کنم.`;
   return `${SUPPORT_TG}?text=${encodeURIComponent(msg)}`;
 }
 

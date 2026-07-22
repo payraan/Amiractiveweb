@@ -43,7 +43,7 @@ export default function AdminPanel() {
   if (!authed) {
     return (
       <div className="mx-auto mt-32 max-w-sm px-6">
-        <h1 className="font-display text-2xl font-black">پنل مدیریت امیراکتیو</h1>
+        <h1 className="font-display text-2xl font-black">پنل مدیریت نارمون</h1>
         <p className="mt-2 text-xs text-muted">برای ادامه، رمز مدیریت را وارد کنید.</p>
         <input
           type="password"

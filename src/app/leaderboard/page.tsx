@@ -6,7 +6,7 @@ import Footer from "@/components/Footer";
 import Leaderboard from "@/components/predict/Leaderboard";
 
 export const metadata: Metadata = {
-  title: "لیدربورد پیش‌بینی | امیراکتیو",
+  title: "لیدربورد پیش‌بینی | نارمون",
   description:
     "رتبه‌بندی دقیق‌ترین پیش‌بینی‌کننده‌های بیت‌کوین و طلا. نفرات برتر ماهانه، اشتراک ربات و حساب معاملاتی جایزه می‌گیرند.",
 };

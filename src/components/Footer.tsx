@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Logo from "@/components/Logo";
 
 const SUPPORT = "https://t.me/Amiractive_support";
 const CHANNEL = "https://t.me/CashflowFactorys";
@@ -27,8 +28,9 @@ export default function Footer() {
     <footer className="relative border-t border-line bg-surface/30">
       <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 md:grid-cols-4">
         <div>
-          <span className="font-display text-lg font-black tracking-wide" dir="ltr">
-            NARM<span className="text-gold">O</span>ON
+          <span className="flex items-center gap-2.5 font-display text-lg font-black tracking-wide" dir="ltr">
+            <Logo className="h-7 w-auto" />
+            NARMOON
           </span>
           <p className="mt-3 text-xs leading-6 text-muted">
             بازار پیش‌بینی فارسی: روی رویدادهای واقعی جهان پیش‌بینی کنید، بر

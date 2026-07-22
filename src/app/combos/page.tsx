@@ -6,7 +6,7 @@ import ComboBuilder from "@/components/predict/ComboBuilder";
 import { settleCombosDue } from "@/lib/combos";
 
 export const metadata: Metadata = {
-  title: "کمبو | امیراکتیو",
+  title: "کمبو | نارمون",
   description:
     "چند پیش‌بینی را در یک تیکت ترکیب کنید؛ اگر همه درست باشند امتیاز چندبرابر می‌گیرید.",
 };

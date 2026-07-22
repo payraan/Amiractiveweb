@@ -11,9 +11,9 @@ import { TIMEFRAMES, SCORING_BY_TF } from "@/lib/game";
 import { settleDueRounds } from "@/lib/settle";
 
 export const metadata: Metadata = {
-  title: "پیش‌بینی قیمت بیت‌کوین و طلا | امیراکتیو",
+  title: "پیش‌بینی قیمت بیت‌کوین و طلا | نارمون",
   description:
-    "قیمت فردای بیت‌کوین و طلا را پیش‌بینی کنید، بر اساس دقت امتیاز بگیرید و در لیدربورد امیراکتیو بالا بروید — رایگان.",
+    "قیمت فردای بیت‌کوین و طلا را پیش‌بینی کنید، بر اساس دقت امتیاز بگیرید و در لیدربورد نارمون بالا بروید — رایگان.",
 };
 
 export const dynamic = "force-dynamic";

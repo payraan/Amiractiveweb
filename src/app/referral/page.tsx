@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 import ReferralDashboard from "@/components/predict/ReferralDashboard";
 
 export const metadata: Metadata = {
-  title: "دعوت دوستان | امیراکتیو",
+  title: "دعوت دوستان | نارمون",
   description:
     "دوستان‌تان را دعوت کنید؛ آن‌ها کردیت هدیه می‌گیرند و شما از هر شارژشان پورسانت کردیتی دریافت می‌کنید.",
 };

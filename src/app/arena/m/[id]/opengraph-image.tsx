@@ -3,7 +3,7 @@ import { getCuratedMarkets, findMarket } from "@/lib/poly";
 
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-export const alt = "Amiractive Prediction Arena";
+export const alt = "Narmoon Prediction Arena";
 
 export default async function Image({
   params,
@@ -48,7 +48,7 @@ export default async function Image({
               color: "#e8c46a",
             }}
           >
-            AMIRACTIVE
+            NARMOON
           </div>
           <div
             style={{
@@ -115,7 +115,7 @@ export default async function Image({
             }}
           >
             <div style={{ display: "flex" }}>Predict. Earn points. Get funded.</div>
-            <div style={{ display: "flex", color: "#e8c46a" }}>amiractive.com</div>
+            <div style={{ display: "flex", color: "#e8c46a" }}>narmoon.com</div>
           </div>
         </div>
       </div>

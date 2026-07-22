@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Logo from "@/components/Logo";
 
 const TELEGRAM = "https://t.me/CashflowFactorys";
 
@@ -18,18 +19,6 @@ const links: { href: string; label: string; muted?: boolean }[] = [
   { href: "/login", label: "ورود", muted: true },
 ];
 
-function CandleI() {
-  return (
-    <svg
-      viewBox="0 0 8 22"
-      className="mx-[2px] inline-block h-[0.95em] w-auto fill-gold"
-      aria-hidden="true"
-    >
-      <rect x="3.25" y="0" width="1.5" height="22" rx="0.75" />
-      <rect x="1" y="6" width="6" height="10" rx="1" />
-    </svg>
-  );
-}
 
 function TgIcon() {
   return (
@@ -58,9 +47,8 @@ export default function Nav() {
           dir="ltr"
           aria-label="NARMOON"
         >
-          NARM
-          <CandleI />
-          ON
+          <Logo className="h-7 w-auto" />
+          <span className="ms-2.5">NARMOON</span>
         </Link>
 
         <div className="hidden items-center gap-5 text-[13px] text-muted lg:flex">

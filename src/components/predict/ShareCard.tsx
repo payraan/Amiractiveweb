@@ -6,7 +6,7 @@ import type { GameResult } from "@/components/predict/usePlayer";
 // Story format 1080x1920. Drawn on canvas so it can be downloaded as PNG
 // and shared to Instagram stories — every card is free advertising.
 
-const SITE = "amiractive.com";
+const SITE = "narmoon.com";
 
 function drawCard(
   canvas: HTMLCanvasElement,
