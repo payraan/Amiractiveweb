@@ -27,14 +27,14 @@ export default function ArenaSection() {
       <div className="grid items-center gap-12 lg:grid-cols-2">
         <div>
           <span className="font-mono text-[11px] tracking-[0.4em] text-gold" dir="ltr">
-            PREDICTION ARENA · PROP CHALLENGE
+            02 · PREDICTION ARENA
           </span>
           <h2 className="mt-4 font-display text-3xl font-black md:text-4xl">
             آرنای <span className="text-gold">پیش‌بینی</span>
           </h2>
           <p className="mt-4 max-w-xl leading-8 text-muted">
-            نخستین پراپ پیش‌بینی فارسی — با دیتای زنده‌ی پالی‌مارکت، بزرگ‌ترین
-            بازار پیش‌بینی جهان.
+            بازارهای بله/خیر روی رویدادهای واقعی جهان — با دیتای زنده‌ی
+            پالی‌مارکت، بزرگ‌ترین بازار پیش‌بینی جهان.
           </p>
 
           <ul className="mt-6 flex flex-col gap-3">

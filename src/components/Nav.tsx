@@ -5,17 +5,17 @@ import Link from "next/link";
 
 const TELEGRAM = "https://t.me/CashflowFactorys";
 
-const links: { href: string; label: string; badge?: string }[] = [
-  { href: "/#results", label: "نتایج زنده" },
-  { href: "/#bot", label: "ربات معامله‌گر" },
-  { href: "/#broker", label: "بروکر" },
-  { href: "/#academy", label: "آکادمی" },
+const links: { href: string; label: string; muted?: boolean }[] = [
+  { href: "/trade", label: "ترید" },
+  { href: "/arena", label: "پیش‌بینی" },
   { href: "/predict", label: "نبض بازار" },
-  { href: "/arena", label: "پیش‌بینی", badge: "جدید" },
-  { href: "/trade", label: "ترید", badge: "جدید" },
   { href: "/combos", label: "کمبو" },
-  { href: "/referral", label: "دعوت دوستان" },
-  { href: "/login", label: "ورود" },
+  { href: "/#bot", label: "ربات معامله‌گر" },
+  { href: "/#results", label: "نتایج زنده" },
+  { href: "/#broker", label: "بروکر" },
+  { href: "/#academy", label: "آکادمی", muted: true },
+  { href: "/referral", label: "دعوت دوستان", muted: true },
+  { href: "/login", label: "ورود", muted: true },
 ];
 
 function CandleI() {
@@ -56,26 +56,23 @@ export default function Nav() {
           href="/"
           className="relative z-50 flex items-center font-mono text-sm font-bold tracking-[0.3em] text-cream"
           dir="ltr"
-          aria-label="AMIRACTIVE"
+          aria-label="NARMOON"
         >
-          AM
+          NARM
           <CandleI />
-          RACTIVE
+          ON
         </Link>
 
-        <div className="hidden items-center gap-6 text-sm text-muted lg:flex">
+        <div className="hidden items-center gap-5 text-[13px] text-muted lg:flex">
           {links.map((l) => (
             <Link
               key={l.href}
               href={l.href}
-              className="flex items-center gap-1.5 whitespace-nowrap transition hover:text-cream"
+              className={`whitespace-nowrap transition hover:text-cream ${
+                l.muted ? "text-muted/70" : ""
+              }`}
             >
               {l.label}
-              {l.badge && (
-                <span className="rounded-full bg-gold px-1.5 py-[1px] text-[9px] font-bold text-ink">
-                  {l.badge}
-                </span>
-              )}
             </Link>
           ))}
         </div>
@@ -130,11 +127,6 @@ export default function Nav() {
                 style={{ transitionDelay: open ? `${120 + i * 60}ms` : "0ms" }}
               >
                 {l.label}
-                {l.badge && (
-                  <span className="ms-2 rounded-full bg-gold px-2 py-0.5 align-middle font-sans text-[10px] font-bold text-ink">
-                    {l.badge}
-                  </span>
-                )}
               </Link>
             ))}
           </div>

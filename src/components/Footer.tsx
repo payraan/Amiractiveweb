@@ -7,12 +7,14 @@ const X_URL = "https://x.com/amiractive4";
 const YOUTUBE = "https://www.youtube.com/@amiractivee";
 
 const QUICK: { href: string; label: string }[] = [
-  { href: "/arena", label: "آرنای پیش‌بینی" },
+  { href: "/trade", label: "ترید" },
+  { href: "/arena", label: "پیش‌بینی" },
   { href: "/predict", label: "نبض بازار" },
-  { href: "/leaderboard", label: "لیدربورد" },
-  { href: "/#results", label: "نتایج زنده" },
+  { href: "/combos", label: "کمبو" },
   { href: "/#bot", label: "ربات معامله‌گر" },
-  { href: "/#broker", label: "بروکرها" },
+  { href: "/#results", label: "نتایج زنده" },
+  { href: "/#broker", label: "بروکر" },
+  { href: "/referral", label: "دعوت دوستان" },
 ];
 
 const LEGAL: { href: string; label: string }[] = [
@@ -26,11 +28,11 @@ export default function Footer() {
       <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 md:grid-cols-4">
         <div>
           <span className="font-display text-lg font-black tracking-wide" dir="ltr">
-            AM<span className="text-gold">I</span>RACTIVE
+            NARM<span className="text-gold">O</span>ON
           </span>
           <p className="mt-3 text-xs leading-6 text-muted">
-            معامله‌گری الگوریتمیک با نتایج قابل راستی‌آزمایی — و نخستین پراپ
-            پیش‌بینی فارسی. اثبات زنده، نه وعده.
+            بازار پیش‌بینی فارسی: روی رویدادهای واقعی جهان پیش‌بینی کنید، بر
+            اساس مهارت امتیاز بگیرید و حساب پراپ بگیرید.
           </p>
           <a
             href={CHANNEL}
@@ -113,7 +115,7 @@ export default function Footer() {
 
       <div className="border-t border-line">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-6 py-5 text-[10px] leading-5 text-muted md:flex-row md:items-center md:justify-between">
-          <span>© {new Date().getFullYear()} امیراکتیو — همه‌ی حقوق محفوظ است.</span>
+          <span>© {new Date().getFullYear()} نارمون — همه‌ی حقوق محفوظ است.</span>
           <span>
             معامله در بازارهای مالی ریسک بالایی دارد؛ پیش از هر تصمیم،{" "}
             <Link href="/#terms" className="text-gold transition hover:text-gold-deep">
