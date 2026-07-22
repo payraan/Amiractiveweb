@@ -40,8 +40,27 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "market_not_found" }, { status: 404 });
   }
 
-  // احتمالِ گزینه‌ی انتخابی در لحظه‌ی ثبت (اسنپ‌شات برای امتیازدهی)
-  const prob = choice === "yes" ? market.yesPct / 100 : 1 - market.yesPct / 100;
+  // قیمت زنده در لحظه‌ی ثبت (بستن حفره‌ی کش کهنه)؛ اگر نشد، کش مبنا می‌ماند.
+  let yesLive = market.yesPct / 100;
+  try {
+    const liveRes = await fetch(
+      `https://gamma-api.polymarket.com/markets/${marketId}`,
+      { headers: { "User-Agent": "Mozilla/5.0" }, cache: "no-store" }
+    );
+    if (liveRes.ok) {
+      const lm = await liveRes.json();
+      if (lm?.closed) {
+        return NextResponse.json({ ok: false, error: "market_not_found" }, { status: 409 });
+      }
+      const prices = (JSON.parse(lm.outcomePrices ?? "[]") as string[]).map(Number);
+      if (Number.isFinite(prices[0]) && prices[0] > 0 && prices[0] < 1) {
+        yesLive = prices[0];
+      }
+    }
+  } catch {
+    /* fallback to cached price */
+  }
+  const prob = choice === "yes" ? yesLive : 1 - yesLive;
 
   await ensurePolyTables();
   const pool = await db();

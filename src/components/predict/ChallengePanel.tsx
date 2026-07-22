@@ -86,6 +86,16 @@ export default function ChallengePanel() {
 
   useEffect(load, [load, player?.credits]);
 
+  useEffect(() => {
+    const onAuthed = () => {
+      refresh();
+      load();
+    };
+    window.addEventListener("amir:authed", onAuthed);
+    return () => window.removeEventListener("amir:authed", onAuthed);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function start(tierId: string) {
     setErr(null);
     setBusy(tierId);
@@ -222,7 +232,7 @@ export default function ChallengePanel() {
         {tiers.map((t) => (
           <div
             key={t.id}
-            className={`relative flex flex-col rounded-2xl border p-5 ${
+            className={`relative flex flex-col rounded-2xl border p-5 transition-all duration-300 hover:scale-[1.02] hover:border-gold/60 hover:shadow-[0_0_24px_rgba(232,196,106,0.12)] ${
               t.popular ? "border-gold/50 bg-surface/70" : "border-line bg-surface/40"
             }`}
           >
@@ -254,7 +264,7 @@ export default function ChallengePanel() {
 
             <button
               type="button"
-              disabled={busy === t.id || !player}
+              disabled={busy === t.id}
               onClick={() => start(t.id)}
               className={`no-zoom mt-5 rounded-xl py-3 font-display text-sm font-extrabold transition disabled:opacity-50 ${
                 t.popular
@@ -270,7 +280,7 @@ export default function ChallengePanel() {
 
       {!player && (
         <p className="mt-4 text-[11px] text-muted">
-          برای شروع چلنج، از پایین صفحه وارد حساب شوید یا ثبت‌نام کنید.
+          برای شروع چلنج، از بالای صفحه وارد حساب شوید یا ثبت‌نام کنید.
         </p>
       )}
       {err && <p className="mt-3 text-xs text-loss">{err}</p>}

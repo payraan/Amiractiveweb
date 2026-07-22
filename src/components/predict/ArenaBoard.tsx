@@ -183,6 +183,17 @@ export default function ArenaBoard() {
 
   return (
     <>
+      {!loading && !player && (
+        <div className="mb-8 max-w-md">
+          <AuthPanel
+            onAuthed={() => {
+              refresh();
+              window.dispatchEvent(new Event("amir:authed"));
+            }}
+          />
+        </div>
+      )}
+
       {player && (
         <div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border border-line bg-surface/50 px-5 py-4 text-xs">
           <span>
@@ -232,7 +243,7 @@ export default function ArenaBoard() {
             return (
               <div
                 key={m.id}
-                className="flex flex-col rounded-2xl border border-line bg-surface/50 p-5"
+                className="flex flex-col rounded-2xl border border-line bg-surface/50 p-5 transition-all duration-300 hover:scale-[1.02] hover:border-gold/60 hover:shadow-[0_0_24px_rgba(232,196,106,0.12)]"
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="rounded-full border border-line px-2.5 py-0.5 text-[10px] text-muted">
@@ -334,12 +345,6 @@ export default function ArenaBoard() {
               </div>
             );
           })}
-        </div>
-      )}
-
-      {!loading && !player && (
-        <div className="mt-10 max-w-md">
-          <AuthPanel onAuthed={() => refresh()} />
         </div>
       )}
 
