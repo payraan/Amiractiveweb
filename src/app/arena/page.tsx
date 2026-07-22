@@ -5,6 +5,7 @@ import Footer from "@/components/Footer";
 import ArenaBoard from "@/components/predict/ArenaBoard";
 import ChallengePanel from "@/components/predict/ChallengePanel";
 import { settlePolyDue, POLY_FREE_PER_DAY, POLY_EXTRA_COST } from "@/lib/poly";
+import { settleCombosDue, COMBO_FREE_PER_DAY, COMBO_COST } from "@/lib/combos";
 
 export const metadata: Metadata = {
   title: "آرنای پیش‌بینی | امیراکتیو",
@@ -22,11 +23,14 @@ const PROP_RULES = [
   "روی هر بازار فقط یک بار می‌توانید پیش‌بینی ثبت کنید و پس از ثبت قابل تغییر نیست.",
   "هر شخص فقط مجاز به یک حساب است؛ پیش‌بینی‌های آینه‌ای یا هماهنگ بین چند حساب، به حذف چلنج و مصادره‌ی ورودی منجر می‌شود.",
   "جوایز چلنج پس از بررسی پشتیبانی و احراز یکتایی حساب پرداخت می‌شوند.",
+  `کمبو: می‌توانید ۲ تا ۵ انتخاب را در یک تیکت ترکیب کنید؛ تیکت فقط وقتی برنده است که همه‌ی انتخاب‌ها درست باشند. هر روز ${COMBO_FREE_PER_DAY} کمبوی رایگان دارید و کمبوهای بعدی هر کدام ${COMBO_COST} کردیت است.`,
+  "امتیاز کمبو در لیدربورد لحاظ می‌شود اما در ارزیابی چلنج پراپ محاسبه نمی‌شود؛ ارزیابی پراپ فقط بر پایه‌ی پیش‌بینی‌های تکی است.",
 ];
 
 export default function ArenaPage() {
   // تسویه‌ی تنبل بازارهای نتیجه‌گرفته
   settlePolyDue().catch(() => {});
+  settleCombosDue().catch(() => {});
 
   return (
     <>
