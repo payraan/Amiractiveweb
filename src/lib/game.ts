@@ -30,20 +30,51 @@ export function tf(id: string): Timeframe | undefined {
 // هدیه‌ی خوش‌آمد هنگام ثبت‌نام (کردیت رایگان برای تست تایم‌فریم‌های کوتاه)
 export const WELCOME_CREDITS = 10;
 
-// جدول امتیاز بر اساس درصد خطا (پیش از اعمال ضریب تایم‌فریم)
-export const SCORING: { maxErr: number; points: number }[] = [
-  { maxErr: 0.1, points: 100 },
-  { maxErr: 0.5, points: 50 },
-  { maxErr: 1, points: 25 },
-  { maxErr: 2, points: 5 },
-  { maxErr: 5, points: -10 },
-  { maxErr: Infinity, points: -25 },
-];
+// جدول امتیاز بر اساس درصد خطا — برای هر تایم‌فریم جداگانه.
+// آستانه‌ها متناسب با نوسان طبیعی هر بازه (تقریب جذر زمان) تنگ‌تر می‌شوند
+// تا گرفتن امتیاز در همه‌ی تایم‌فریم‌ها به یک اندازه مهارت بخواهد.
+export type ScoreRow = { maxErr: number; points: number };
 
-export function scoreFor(errorPct: number, multiplier: number): number {
+export const SCORING_BY_TF: Record<TimeframeId, ScoreRow[]> = {
+  "24h": [
+    { maxErr: 0.1, points: 100 },
+    { maxErr: 0.5, points: 50 },
+    { maxErr: 1, points: 25 },
+    { maxErr: 2, points: 5 },
+    { maxErr: 5, points: -10 },
+    { maxErr: Infinity, points: -25 },
+  ],
+  "12h": [
+    { maxErr: 0.08, points: 100 },
+    { maxErr: 0.35, points: 50 },
+    { maxErr: 0.7, points: 25 },
+    { maxErr: 1.5, points: 5 },
+    { maxErr: 3.5, points: -10 },
+    { maxErr: Infinity, points: -25 },
+  ],
+  "4h": [
+    { maxErr: 0.05, points: 100 },
+    { maxErr: 0.25, points: 50 },
+    { maxErr: 0.5, points: 25 },
+    { maxErr: 1, points: 5 },
+    { maxErr: 2.5, points: -10 },
+    { maxErr: Infinity, points: -25 },
+  ],
+  "1h": [
+    { maxErr: 0.03, points: 100 },
+    { maxErr: 0.12, points: 50 },
+    { maxErr: 0.25, points: 25 },
+    { maxErr: 0.5, points: 5 },
+    { maxErr: 1.2, points: -10 },
+    { maxErr: Infinity, points: -25 },
+  ],
+};
+
+export function scoreFor(errorPct: number, tfId: TimeframeId = "24h"): number {
+  const table = SCORING_BY_TF[tfId] ?? SCORING_BY_TF["24h"];
   const abs = Math.abs(errorPct);
-  const row = SCORING.find((r) => abs < r.maxErr) ?? SCORING[SCORING.length - 1];
-  return Math.round(row.points * multiplier);
+  const row = table.find((r) => abs < r.maxErr) ?? table[table.length - 1];
+  return row.points;
 }
 
 // ── مرزهای زمانی راندها ───────────────────────────────────────

@@ -7,6 +7,7 @@ import PredictBoard from "@/components/predict/PredictBoard";
 import Leaderboard from "@/components/predict/Leaderboard";
 import CreditStore from "@/components/predict/CreditStore";
 import { getAllMarket } from "@/lib/market";
+import { TIMEFRAMES, SCORING_BY_TF } from "@/lib/game";
 import { settleDueRounds } from "@/lib/settle";
 
 export const metadata: Metadata = {
@@ -17,20 +18,11 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-const SCORE_ROWS = [
-  { label: "خطای زیر ۰.۱٪", value: "+۱۰۰", tone: "text-gain" },
-  { label: "خطای زیر ۰.۵٪", value: "+۵۰", tone: "text-gain" },
-  { label: "خطای زیر ۱٪", value: "+۲۵", tone: "text-gain" },
-  { label: "خطای زیر ۲٪", value: "+۵", tone: "text-gain" },
-  { label: "خطای بالای ۲٪", value: "−۱۰", tone: "text-loss" },
-  { label: "خطای بالای ۵٪", value: "−۲۵", tone: "text-loss" },
-];
-
 const RULES_TEXT = [
   "هر روز برای بیت‌کوین و طلا راند پیش‌بینی برگزار می‌شود. کافی است حدس خود از قیمت آینده را وارد کنید.",
   "چهار تایم‌فریم دارید: ۲۴ ساعته (رایگان، تا ۲ بار در روز)، و ۱۲، ۴ و ۱ ساعته که با کردیت باز می‌شوند. تایم‌فریم ۱ ساعته روزی یک بار.",
   "پس از بسته‌شدن راند، قیمت واقعی همان لحظه ثبت می‌شود و بر اساس دقت شما امتیاز می‌گیرید یا از دست می‌دهید.",
-  "امتیاز در همه‌ی تایم‌فریم‌ها یکسان است؛ تایم‌فریم کوتاه‌تر فقط چالش بیشتری برای دقت شماست.",
+  "آستانه‌های دقت در هر تایم‌فریم متناسب با نوسان همان بازه تنظیم شده‌اند؛ رقابت در همه‌ی تایم‌فریم‌ها عادلانه و هم‌ارز است.",
   "امتیاز فقط از دقت شما می‌آید و با پول خرید و فروش نمی‌شود؛ همین امتیاز، جایگاه شما در لیدربورد را می‌سازد.",
   "کردیت با تتر (USDT) و از طریق پشتیبانی خریداری می‌شود و تنها قابلیت‌ها را باز می‌کند (تایم‌فریم کوتاه‌تر و پیش‌بینی بیشتر) — نه رتبه و نه جایزه.",
   "نفرات برتر لیدربورد ماهانه، اشتراک ربات و حساب‌های معاملاتی جایزه می‌گیرند. رقابت بر پایه‌ی مهارت است، نه شانس.",
@@ -70,23 +62,57 @@ export default async function PredictPage() {
         </div>
 
         <div className="mt-10 rounded-2xl border border-line bg-surface/40 p-6">
-          <h2 className="text-sm font-bold">امتیازدهی بر اساس دقت</h2>
+          <h2 className="text-sm font-bold">امتیازدهی عادلانه بر اساس دقت</h2>
           <p className="mt-2 text-[11px] leading-6 text-muted">
-            هرچه پیش‌بینی به قیمت واقعی نزدیک‌تر باشد، امتیاز بیشتر؛ خطای زیاد
-            امتیاز منفی دارد. این امتیازها در همه‌ی تایم‌فریم‌ها یکسان است.
+            آستانه‌ی دقت هر تایم‌فریم متناسب با نوسان طبیعی همان بازه تنظیم شده
+            است؛ یعنی گرفتن امتیاز در تایم‌فریم کوتاه همان‌قدر مهارت می‌خواهد که
+            در تایم‌فریم بلند. ستون هر تایم‌فریم، بازه‌ی خطای موردنیاز برای هر
+            امتیاز را نشان می‌دهد.
           </p>
-          <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3">
-            {SCORE_ROWS.map((r) => (
-              <div
-                key={r.label}
-                className="rounded-xl border border-line bg-raised/50 px-4 py-3 text-center"
-              >
-                <div className="text-[11px] text-muted">{r.label}</div>
-                <div className={`mt-1 font-mono text-lg font-extrabold ${r.tone}`} dir="ltr">
-                  {r.value}
-                </div>
-              </div>
-            ))}
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[520px] text-center text-[11px]">
+              <thead>
+                <tr className="text-muted">
+                  <th className="py-2 font-normal">امتیاز</th>
+                  {TIMEFRAMES.map((t) => (
+                    <th key={t.id} className="py-2 font-bold text-cream">
+                      {t.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {SCORING_BY_TF["24h"].map((row, i) => (
+                  <tr key={i} className={i % 2 ? "bg-surface/30" : "bg-raised/30"}>
+                    <td
+                      className={`py-2 font-mono font-extrabold ${
+                        row.points >= 0 ? "text-gain" : "text-loss"
+                      }`}
+                      dir="ltr"
+                    >
+                      {row.points >= 0 ? "+" : ""}
+                      {row.points}
+                    </td>
+                    {TIMEFRAMES.map((t) => {
+                      const rows = SCORING_BY_TF[t.id];
+                      const r = rows[i];
+                      const prev = i > 0 ? rows[i - 1].maxErr : 0;
+                      const label =
+                        r.maxErr === Infinity
+                          ? `بیش از ${prev}٪`
+                          : i === 0
+                            ? `تا ${r.maxErr}٪`
+                            : `${prev}٪ تا ${r.maxErr}٪`;
+                      return (
+                        <td key={t.id} className="py-2 font-mono text-muted">
+                          {label}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 

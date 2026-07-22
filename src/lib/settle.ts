@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { getMarket } from "@/lib/market";
-import { scoreFor, type Asset } from "@/lib/game";
+import { scoreFor, type Asset, type TimeframeId } from "@/lib/game";
 
 // Settle every round whose settle_at has passed and isn't settled yet.
 // Idempotent: only touches rounds with status='open' past settle_at.
@@ -66,7 +66,7 @@ export async function settleDueRounds(): Promise<{ settled: number; scored: numb
       for (const p of preds.rows) {
         const guess = Number(p.guess);
         const errorPct = Math.abs((guess - settlePrice) / settlePrice) * 100;
-        const points = scoreFor(errorPct, 1); // multiplier is 1 for all timeframes now
+        const points = scoreFor(errorPct, round.timeframe as TimeframeId);
 
         await client.query(
           `UPDATE predictions SET error_pct=$1, points=$2 WHERE id=$3`,

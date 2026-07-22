@@ -117,18 +117,40 @@ export default function AssetCard({
   return (
     <div className="frame-hover rounded-2xl border border-line bg-surface/60 p-6 backdrop-blur md:p-7">
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="font-display text-lg font-extrabold">{title}</h2>
-          <span className="font-mono text-[11px] tracking-widest text-muted" dir="ltr">
-            {symbol}
+        <div className="flex items-center gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-gold/30 bg-gold/10 text-gold">
+            {asset === "BTC" ? (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
+                <path d="M9 4v16M9 4h4.5a3 3 0 010 6H9m0 0h5a3 3 0 010 6H9M11 2v2m3-2v2M11 20v2m3-2v2" strokeLinecap="round" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
+                <path d="M4.5 15.5l1.8-4.5h4.4l1.8 4.5H4.5zM11.5 15.5l1.8-4.5h4.4l1.8 4.5h-8zM8 10.5l1.8-4.5h4.4l-.9 2.2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            )}
           </span>
+          <div>
+            <h2 className="font-display text-lg font-extrabold">{title}</h2>
+            <span className="font-mono text-[11px] tracking-widest text-muted" dir="ltr">
+              {symbol}
+            </span>
+          </div>
         </div>
         <div className="flex flex-col items-end gap-1">
-          <span className="font-mono text-2xl font-bold text-cream md:text-3xl" dir="ltr">
+          <span className="flex items-center gap-2 font-mono text-2xl font-bold text-cream md:text-3xl" dir="ltr">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gain opacity-60" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-gain" />
+            </span>
             ${fmt(data.price, asset)}
           </span>
-          <span className={`font-mono text-xs ${up ? "text-gain" : "text-loss"}`} dir="ltr">
-            {data.changePct == null ? "" : `${up ? "+" : ""}${data.changePct.toFixed(2)}%`}
+          <span
+            className={`rounded-full px-2.5 py-0.5 font-mono text-xs ${
+              up ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"
+            }`}
+            dir="ltr"
+          >
+            {data.changePct == null ? "—" : `${up ? "+" : ""}${data.changePct.toFixed(2)}%`}
           </span>
         </div>
       </div>
@@ -143,7 +165,7 @@ export default function AssetCard({
         </div>
       ) : (
         <>
-          <div className="mt-5 grid grid-cols-3 gap-2">
+          <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {TIMEFRAMES.map((t) => {
               const active = t.id === tfId;
               const paid = t.freeFirst === 0 || (freeRemaining[t.id] ?? 0) === 0;
@@ -156,11 +178,13 @@ export default function AssetCard({
                     setErr(null);
                   }}
                   className={`no-zoom flex flex-col items-center gap-0.5 rounded-xl border py-2 text-xs transition ${
-                    active ? "border-gold/60 bg-gold/10 text-gold" : "border-line text-muted hover:text-cream"
+                    active
+                      ? "border-gold/60 bg-gold/10 text-gold shadow-[0_0_18px_rgba(232,196,106,0.18)]"
+                      : "border-line text-muted hover:border-gold/30 hover:text-cream"
                   }`}
                 >
                   <span className="font-bold">{t.label}</span>
-                  <span className="font-mono text-[10px]" dir="ltr">
+                  <span className={`font-mono text-[10px] ${paid ? "" : "text-gain"}`} dir="ltr">
                     {paid ? `${t.cost}◆` : "رایگان"}
                   </span>
                 </button>
@@ -169,7 +193,13 @@ export default function AssetCard({
           </div>
 
           <div className="mt-3 flex items-center justify-between rounded-xl border border-line bg-raised/60 px-4 py-3">
-            <span className="text-xs text-muted">بسته‌شدن راند</span>
+            <span className="flex items-center gap-2 text-xs text-muted">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-3.5 w-3.5">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7v5l3 2" strokeLinecap="round" />
+          </svg>
+          بسته‌شدن راند
+        </span>
             <span className="font-mono text-sm font-bold text-gold" dir="ltr">
               {countdown}
             </span>
@@ -200,7 +230,7 @@ export default function AssetCard({
                   type="button"
                   onClick={submit}
                   disabled={busy || !guess || !canAfford}
-                  className="no-zoom rounded-xl bg-gold py-3.5 font-display font-extrabold text-ink transition hover:bg-gold-deep disabled:opacity-50"
+                  className="no-zoom rounded-xl bg-gold py-3.5 font-display font-extrabold text-ink shadow-[0_8px_24px_rgba(232,196,106,0.25)] transition hover:bg-gold-deep hover:shadow-[0_8px_32px_rgba(232,196,106,0.35)] disabled:opacity-50 disabled:shadow-none"
                 >
                   {busy
                     ? "در حال ثبت…"
