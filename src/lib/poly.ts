@@ -62,60 +62,89 @@ export async function getCuratedMarkets(): Promise<PolyMarket[]> {
     return marketsCache.data;
   }
   try {
-    const res = await fetch(
-      `${GAMMA}/events?limit=60&active=true&closed=false&order=volume&ascending=false`,
-      { headers: UA, cache: "no-store" }
+    // برای پوشش همه‌ی کتگوری‌ها، علاوه بر پرحجم‌ترین‌های کلی،
+    // هر کتگوری را جداگانه با tag_slug از Gamma می‌کشیم و ادغام می‌کنیم.
+    const sources = [
+      { slug: "", limit: 20 },
+      { slug: "crypto", limit: 10 },
+      { slug: "politics", limit: 10 },
+      { slug: "sports", limit: 10 },
+      { slug: "finance", limit: 10 },
+      { slug: "tech", limit: 10 },
+      { slug: "geopolitics", limit: 10 },
+    ];
+    const results = await Promise.all(
+      sources.map((src) =>
+        fetch(
+          `${GAMMA}/events?limit=${src.limit}&active=true&closed=false&order=volume&ascending=false${src.slug ? `&tag_slug=${src.slug}` : ""}`,
+          { headers: UA, cache: "no-store" }
+        )
+          .then((r) => (r.ok ? r.json() : []))
+          .catch(() => [])
+      )
     );
-    if (!res.ok) throw new Error(`gamma ${res.status}`);
-    const events = await res.json();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const eventsById = new Map<string, any>();
+    for (const arr of results) {
+      if (!Array.isArray(arr)) continue;
+      for (const ev of arr) {
+        const id = String(ev?.id ?? "");
+        if (id && !eventsById.has(id)) eventsById.set(id, ev);
+      }
+    }
+
     const out: PolyMarket[] = [];
     const seen = new Set<string>();
 
-    if (Array.isArray(events)) {
-      for (const ev of events) {
-        const markets = Array.isArray(ev?.markets) ? ev.markets : [];
-        for (const m of markets) {
-          if (m?.closed) continue;
-          let outcomes: string[] = [];
-          let prices: number[] = [];
-          try {
-            outcomes = JSON.parse(m.outcomes ?? "[]");
-            prices = (JSON.parse(m.outcomePrices ?? "[]") as string[]).map(Number);
-          } catch {
-            continue;
-          }
-          if (outcomes.length !== 2 || outcomes[0] !== "Yes") continue;
-          const yes = prices[0];
-          if (!Number.isFinite(yes) || yes < 0.03 || yes > 0.97) continue;
-          const q = String(m.question ?? "").trim();
-          if (!q || seen.has(q)) continue;
-          seen.add(q);
-          const slugs: string[] = Array.isArray(ev.tags)
-            ? ev.tags.map((t: { slug?: string }) => String(t?.slug ?? "").toLowerCase())
-            : [];
-          const cat = categoryFor(slugs);
-          let yesToken = "";
-          try {
-            yesToken = String((JSON.parse(m.clobTokenIds ?? "[]") as string[])[0] ?? "");
-          } catch {
-            yesToken = "";
-          }
-          out.push({
-            id: String(m.id),
-            question: q,
-            eventTitle: String(ev.title ?? ""),
-            endDate: String(m.endDate ?? ev.endDate ?? ""),
-            yesPct: Math.round(yes * 1000) / 10,
-            volume: Number(ev.volume) || 0,
-            category: cat.id,
-            categoryLabel: cat.label,
-            yesToken,
-          });
-          if (out.length >= 40) break;
+    for (const ev of eventsById.values()) {
+      const markets = Array.isArray(ev?.markets) ? ev.markets : [];
+      let perEvent = 0;
+      for (const m of markets) {
+        if (m?.closed) continue;
+        let outcomes: string[] = [];
+        let prices: number[] = [];
+        try {
+          outcomes = JSON.parse(m.outcomes ?? "[]");
+          prices = (JSON.parse(m.outcomePrices ?? "[]") as string[]).map(Number);
+        } catch {
+          continue;
         }
-        if (out.length >= 40) break;
+        if (outcomes.length !== 2 || outcomes[0] !== "Yes") continue;
+        const yes = prices[0];
+        if (!Number.isFinite(yes) || yes < 0.03 || yes > 0.97) continue;
+        const q = String(m.question ?? "").trim();
+        if (!q || seen.has(q)) continue;
+        seen.add(q);
+        const slugs: string[] = Array.isArray(ev.tags)
+          ? ev.tags.map((t: { slug?: string }) => String(t?.slug ?? "").toLowerCase())
+          : [];
+        const cat = categoryFor(slugs);
+        let yesToken = "";
+        try {
+          yesToken = String((JSON.parse(m.clobTokenIds ?? "[]") as string[])[0] ?? "");
+        } catch {
+          yesToken = "";
+        }
+        out.push({
+          id: String(m.id),
+          question: q,
+          eventTitle: String(ev.title ?? ""),
+          endDate: String(m.endDate ?? ev.endDate ?? ""),
+          yesPct: Math.round(yes * 1000) / 10,
+          volume: Number(ev.volume) || 0,
+          category: cat.id,
+          categoryLabel: cat.label,
+          yesToken,
+        });
+        perEvent++;
+        if (perEvent >= 3) break;
+        if (out.length >= 60) break;
       }
+      if (out.length >= 60) break;
     }
+
+    out.sort((a, b) => b.volume - a.volume);
 
     if (out.length) {
       marketsCache = { data: out, ts: Date.now() };
