@@ -102,7 +102,7 @@ export default function AuthPanel({
         <input
           type="password"
           dir="ltr"
-          placeholder="رمز عبور"
+          placeholder="رمز عبور (حداقل ۸ کاراکتر، حرف و عدد)"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           className="w-full rounded-xl border border-line bg-raised/60 px-4 py-3 font-mono text-sm text-cream placeholder:text-muted focus:border-gold focus:outline-none"

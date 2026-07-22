@@ -63,7 +63,8 @@ export function usePlayer() {
 
 const ERRORS: Record<string, string> = {
   bad_username: "نام کاربری باید حداقل ۳ کاراکتر و فقط حروف انگلیسی، عدد و _ باشد.",
-  weak_password: "رمز عبور باید حداقل ۶ کاراکتر باشد.",
+  weak_password:
+    "رمز عبور باید حداقل ۸ کاراکتر و شامل حرف و عدد باشد.",
   username_taken: "این نام کاربری قبلاً ثبت شده است.",
   not_found: "کاربری با این مشخصات پیدا نشد.",
   bad_credentials: "نام کاربری یا رمز عبور اشتباه است.",

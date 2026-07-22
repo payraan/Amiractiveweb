@@ -40,6 +40,13 @@ export async function POST(req: Request) {
   if (!username || username.length < 3 || !/^[a-z0-9_]+$/.test(username)) {
     return NextResponse.json({ ok: false, error: "bad_username" }, { status: 400 });
   }
+  // رمز عبور: حداقل ۸ کاراکتر و ترکیبی از حرف و عدد.
+  // حساب‌ها کردیت خریداری‌شده نگه می‌دارند، پس سخت‌گیری اینجا لازم است.
+  const strongEnough =
+    password.length >= 8 && /[a-zA-Z]/.test(password) && /[0-9]/.test(password);
+  if (mode === "register" && !strongEnough) {
+    return NextResponse.json({ ok: false, error: "weak_password" }, { status: 400 });
+  }
   if (password.length < 6) {
     return NextResponse.json({ ok: false, error: "weak_password" }, { status: 400 });
   }
