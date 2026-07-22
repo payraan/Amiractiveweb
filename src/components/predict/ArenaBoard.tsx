@@ -101,6 +101,7 @@ export default function ArenaBoard() {
   const [err, setErr] = useState<{ id: string; text: string } | null>(null);
   const [loadingMarkets, setLoadingMarkets] = useState(true);
   const [cat, setCat] = useState("all");
+  const [page, setPage] = useState(1);
   const [openChart, setOpenChart] = useState<string | null>(null);
   const [hist, setHist] = useState<Map<string, PricePoint[]>>(new Map());
 
@@ -179,6 +180,10 @@ export default function ArenaBoard() {
   const present = new Set(markets.map((m) => m.category));
   const tabs = CATEGORY_TABS.filter((t) => t.id === "all" || present.has(t.id));
   const shown = cat === "all" ? markets : markets.filter((m) => m.category === cat);
+  const PAGE_SIZE = 12;
+  const totalPages = Math.max(1, Math.ceil(shown.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paged = shown.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const settled = Array.from(mine.values()).filter((p) => p.status === "settled");
 
   return (
@@ -240,7 +245,10 @@ export default function ArenaBoard() {
           <button
             key={t.id}
             type="button"
-            onClick={() => setCat(t.id)}
+            onClick={() => {
+              setCat(t.id);
+              setPage(1);
+            }}
             className={`no-zoom rounded-full border px-4 py-1.5 text-xs font-bold transition ${
               cat === t.id
                 ? "border-gold bg-gold text-ink"
@@ -259,8 +267,9 @@ export default function ArenaBoard() {
           بازاری در این دسته فعال نیست.
         </div>
       ) : (
+        <>
         <div className="grid gap-5 md:grid-cols-2">
-          {shown.map((m) => {
+          {paged.map((m) => {
             const my = mine.get(m.id);
             const yesWin = Math.max(1, Math.round(100 - m.yesPct));
             const noWin = Math.max(1, Math.round(m.yesPct));
@@ -370,6 +379,31 @@ export default function ArenaBoard() {
             );
           })}
         </div>
+
+        {totalPages > 1 && (
+          <div className="mt-6 flex items-center justify-center gap-4 text-xs">
+            <button
+              type="button"
+              disabled={safePage <= 1}
+              onClick={() => setPage(safePage - 1)}
+              className="no-zoom rounded-lg border border-line px-4 py-2 text-muted transition hover:border-gold hover:text-gold disabled:opacity-40"
+            >
+              صفحه قبل
+            </button>
+            <span className="font-mono text-muted" dir="ltr">
+              {safePage} / {totalPages}
+            </span>
+            <button
+              type="button"
+              disabled={safePage >= totalPages}
+              onClick={() => setPage(safePage + 1)}
+              className="no-zoom rounded-lg border border-line px-4 py-2 text-muted transition hover:border-gold hover:text-gold disabled:opacity-40"
+            >
+              صفحه بعد
+            </button>
+          </div>
+        )}
+        </>
       )}
 
       {settled.length > 0 && (

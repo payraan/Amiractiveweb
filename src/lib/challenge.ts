@@ -28,7 +28,7 @@ export const CHALLENGES: ChallengeTier[] = [
     dailyLoss: 40,
     minPreds: 15,
     days: 30,
-    prize: "حساب معاملاتی واقعی ۱۰۰ دلاری",
+    prize: "حساب پراپ ۱,۰۰۰ دلاری",
   },
   {
     id: "c5k",
@@ -40,7 +40,7 @@ export const CHALLENGES: ChallengeTier[] = [
     dailyLoss: 60,
     minPreds: 15,
     days: 30,
-    prize: "حساب معاملاتی واقعی ۲۰۰ دلاری",
+    prize: "حساب پراپ ۵,۰۰۰ دلاری",
   },
   {
     id: "c10k",
@@ -52,7 +52,7 @@ export const CHALLENGES: ChallengeTier[] = [
     dailyLoss: 90,
     minPreds: 15,
     days: 30,
-    prize: "حساب معاملاتی واقعی ۵۰۰ دلاری",
+    prize: "حساب پراپ ۱۰,۰۰۰ دلاری",
     popular: true,
   },
   {
@@ -65,7 +65,7 @@ export const CHALLENGES: ChallengeTier[] = [
     dailyLoss: 120,
     minPreds: 20,
     days: 30,
-    prize: "اشتراک یک‌ماهه‌ی ربات + حساب ۵۰۰ دلاری",
+    prize: "حساب پراپ ۵۰,۰۰۰ دلاری",
   },
 ];
 

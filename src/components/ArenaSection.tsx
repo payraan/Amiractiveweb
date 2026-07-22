@@ -1,12 +1,8 @@
 import Link from "next/link";
+import ArenaCycle from "@/components/ArenaCycle";
 
 const SUPPORT = "https://t.me/Amiractive_support";
 const CHANNEL = "https://t.me/CashflowFactorys";
-
-const MOCK_MARKETS = [
-  { q: "Will Bitcoin reach $95,000 by Dec 31?", yes: 17 },
-  { q: "Fed rate cut in September?", yes: 62 },
-];
 
 const TIERS = [
   { label: "$1K", fee: "50◆" },
@@ -19,7 +15,7 @@ const POINTS = [
   "روی مهم‌ترین رویدادهای جهان — سیاست، کریپتو، اقتصاد، ورزش — پیش‌بینی بله/خیر ثبت کنید؛ ورود رایگان است.",
   "امتیازدهی صفر-انتظار: برد روی گزینه‌ی سخت امتیاز بزرگ می‌دهد و انتخاب گزینه‌های واضح چیزی نمی‌سازد — فقط مهارت.",
   "چلنج پراپ: حساب ۱K تا ۵۰K را با کردیت فعال کنید، در ۳۰ روز هدف پوینتی را بدون عبور از حد افت بزنید.",
-  "جوایز قبولی: حساب‌های معاملاتی واقعی ۱۰۰ تا ۵۰۰ دلاری و اشتراک ربات — بر پایه‌ی مهارت، نه شانس.",
+  "پاداش هر چلنج، حساب پراپی به اندازه‌ی همان تیر است — از ۱,۰۰۰ تا ۵۰,۰۰۰ دلار. حساب‌های ۱۰۰ تا ۱,۰۰۰ دلاری هم جوایز اکسترای کمپین‌های دوره‌ای‌اند.",
 ];
 
 export default function ArenaSection() {
@@ -102,27 +98,8 @@ export default function ArenaSection() {
             </span>
           </div>
 
-          <div className="mt-5 flex flex-col gap-4">
-            {MOCK_MARKETS.map((m) => (
-              <div
-                key={m.q}
-                className="rounded-xl border border-line bg-ink/40 p-4"
-              >
-                <div className="text-xs font-bold leading-6" dir="ltr">
-                  {m.q}
-                </div>
-                <div className="mt-2 flex justify-between font-mono text-[10px]" dir="ltr">
-                  <span className="text-gain">Yes {m.yes}%</span>
-                  <span className="text-loss">No {100 - m.yes}%</span>
-                </div>
-                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-loss/25">
-                  <div
-                    className="h-full rounded-full bg-gain"
-                    style={{ width: `${m.yes}%` }}
-                  />
-                </div>
-              </div>
-            ))}
+          <div className="mt-5">
+            <ArenaCycle />
           </div>
 
           <div className="mt-5 border-t border-line pt-4">
@@ -139,7 +116,7 @@ export default function ArenaSection() {
               ))}
             </div>
             <div className="mt-3 text-[10px] leading-5 text-muted">
-              🏆 جوایز: حساب معاملاتی واقعی ۱۰۰ تا ۵۰۰ دلاری + اشتراک ربات
+              🏆 پاداش هر چلنج: حساب پراپی به همان اندازه — تا ۵۰,۰۰۰ دلار
             </div>
           </div>
         </div>
