@@ -1,6 +1,7 @@
 import CandleField from "@/components/CandleField";
 import Nav from "@/components/Nav";
 import Hero from "@/components/Hero";
+import PredictTicker from "@/components/PredictTicker";
 import Ticker from "@/components/Ticker";
 import TradeSection from "@/components/TradeSection";
 import ArenaSection from "@/components/ArenaSection";
@@ -20,11 +21,13 @@ export default function Home() {
       <Nav />
       <main>
         <Hero />
-        <Ticker />
+        <PredictTicker variant="volume" />
         <TradeSection />
         <ArenaSection />
+        <PredictTicker variant="ending" reverse />
         <MarketPulseSection />
         <ComboSection />
+        <Ticker />
         <Bot />
         <Results />
         <Broker />

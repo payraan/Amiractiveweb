@@ -153,7 +153,7 @@ export default function ShareCard({
     const c = canvasRef.current;
     if (!c) return;
     const link = document.createElement("a");
-    link.download = `amiractive-${result.asset}-${result.timeframe}.png`;
+    link.download = `narmoon-${result.asset}-${result.timeframe}.png`;
     link.href = c.toDataURL("image/png");
     link.click();
   }

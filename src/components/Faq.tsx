@@ -68,7 +68,7 @@ const GROUPS: Group[] = [
     title: "ربات اسکلپر",
     items: [
       {
-        q: "ربات معامله‌گر نارمون چیست و چگونه کار می‌کند؟",
+        q: "ربات معامله‌گر امیراکتیو چیست و چگونه کار می‌کند؟",
         a: "یک ربات اسکلپر خودکار برای متاتریدر ۵ است که روی طلا و یورودلار معامله می‌کند. استراتژی الگوریتمیک با مدیریت ریسک تعریف‌شده — و همه‌ی عملکردش روی حساب واقعی و از طریق Myfxbook قابل راستی‌آزمایی است.",
       },
       {
@@ -104,6 +104,7 @@ const GROUPS: Group[] = [
 ];
 
 export default function Faq() {
+  const [group, setGroup] = useState(0);
   const [open, setOpen] = useState<string | null>(null);
 
   const jsonLd = {
@@ -118,64 +119,84 @@ export default function Faq() {
     ),
   };
 
+  const active = GROUPS[group];
+
   return (
-    <section id="faq" className="relative mx-auto max-w-3xl scroll-mt-10 px-6 py-24 md:py-28">
+    <section id="faq" className="relative mx-auto max-w-5xl scroll-mt-20 px-6 py-24">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <span className="font-mono text-[11px] tracking-[0.4em] text-gold" dir="ltr">
-        FAQ
-      </span>
-      <h2 className="mt-4 font-display text-3xl font-black md:text-4xl">
-        پرسش‌های <span className="text-gold">متداول</span>
-      </h2>
-
-      {GROUPS.map((g, gi) => (
-        <div key={gi} className="mt-10">
-          <h3 className="mb-4 flex items-center gap-3 text-sm font-bold">
-            <span className="h-px w-6 bg-gold" />
-            {g.title}
-          </h3>
-          <div className="flex flex-col gap-3">
-            {g.items.map((item, i) => {
-              const key = `${gi}-${i}`;
-              const isOpen = open === key;
-              return (
-                <div
-                  key={key}
-                  className="overflow-hidden rounded-2xl border border-line bg-surface/40 transition-all duration-300 hover:border-gold/40"
-                >
-                  <button
-                    type="button"
-                    onClick={() => setOpen(isOpen ? null : key)}
-                    className="no-zoom flex w-full items-center justify-between gap-4 px-5 py-4 text-start text-sm font-bold"
-                  >
-                    <span>{item.q}</span>
-                    <span
-                      className={`shrink-0 text-gold transition-transform duration-300 ${
-                        isOpen ? "rotate-45" : ""
-                      }`}
-                    >
-                      +
-                    </span>
-                  </button>
-                  <div
-                    className={`grid transition-all duration-300 ${
-                      isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-                    }`}
-                  >
-                    <div className="overflow-hidden">
-                      <p className="px-5 pb-5 text-xs leading-7 text-muted">{item.a}</p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+      <div className="flex flex-wrap items-end justify-between gap-6">
+        <div>
+          <span className="font-mono text-[11px] tracking-[0.4em] text-gold" dir="ltr">
+            FAQ
+          </span>
+          <h2 className="mt-4 font-display text-3xl font-black md:text-4xl">
+            پرسش‌های <span className="text-gold">متداول</span>
+          </h2>
         </div>
-      ))}
+
+        <div className="flex flex-wrap gap-2">
+          {GROUPS.map((g, i) => (
+            <button
+              key={g.title}
+              type="button"
+              onClick={() => {
+                setGroup(i);
+                setOpen(null);
+              }}
+              className={`no-zoom rounded-full border px-4 py-2 text-xs font-bold transition ${
+                group === i
+                  ? "border-gold bg-gold text-ink"
+                  : "border-line text-muted hover:border-gold/40 hover:text-cream"
+              }`}
+            >
+              {g.title}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-8 grid gap-3 md:grid-cols-2">
+        {active.items.map((item, i) => {
+          const key = `${group}-${i}`;
+          const isOpen = open === key;
+          return (
+            <div
+              key={key}
+              className={`h-fit overflow-hidden rounded-2xl border bg-surface/40 transition-all duration-300 ${
+                isOpen ? "border-gold/50" : "border-line hover:border-gold/40"
+              }`}
+            >
+              <button
+                type="button"
+                onClick={() => setOpen(isOpen ? null : key)}
+                className="no-zoom flex w-full items-center justify-between gap-4 px-5 py-4 text-start text-[13px] font-bold"
+              >
+                <span>{item.q}</span>
+                <span
+                  className={`shrink-0 text-gold transition-transform duration-300 ${
+                    isOpen ? "rotate-45" : ""
+                  }`}
+                >
+                  +
+                </span>
+              </button>
+              <div
+                className={`grid transition-all duration-300 ${
+                  isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                }`}
+              >
+                <div className="overflow-hidden">
+                  <p className="px-5 pb-5 text-xs leading-7 text-muted">{item.a}</p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
       <p className="mt-8 text-[11px] text-muted">
         پاسخ سوال‌تان را پیدا نکردید؟{" "}

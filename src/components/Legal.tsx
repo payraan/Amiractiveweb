@@ -1,3 +1,7 @@
+"use client";
+
+import { useState } from "react";
+
 const SUPPORT = "https://t.me/Amiractive_support";
 
 const TERMS: { title: string; body: string }[] = [
@@ -36,30 +40,65 @@ const TERMS: { title: string; body: string }[] = [
 ];
 
 export default function Legal() {
-  return (
-    <section
-      id="terms"
-      className="relative mx-auto max-w-4xl scroll-mt-10 px-6 py-20"
-    >
-      <span className="font-mono text-[11px] tracking-[0.4em] text-gold" dir="ltr">
-        TERMS · RISK · PRIVACY
-      </span>
-      <h2 className="mt-4 font-display text-2xl font-black">
-        قوانین، افشای ریسک و سلب مسئولیت
-      </h2>
+  const [open, setOpen] = useState<number | null>(0);
 
-      <div className="mt-8 flex flex-col gap-4">
-        {TERMS.map((t, i) => (
-          <div
-            key={i}
-            className="rounded-2xl border border-line bg-surface/40 p-5 transition-all duration-300 hover:scale-[1.01] hover:border-gold/50"
-          >
-            <h3 className="text-sm font-bold">
-              {i + 1}. {t.title}
-            </h3>
-            <p className="mt-2 text-xs leading-7 text-muted">{t.body}</p>
-          </div>
-        ))}
+  return (
+    <section id="terms" className="relative mx-auto max-w-5xl scroll-mt-20 px-6 py-24">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <span className="font-mono text-[11px] tracking-[0.4em] text-gold" dir="ltr">
+            TERMS · RISK · PRIVACY
+          </span>
+          <h2 className="mt-4 font-display text-2xl font-black md:text-3xl">
+            قوانین، افشای <span className="text-gold">ریسک</span> و سلب مسئولیت
+          </h2>
+        </div>
+        <p className="max-w-xs text-[11px] leading-6 text-muted">
+          روی هر بند بزنید تا متن کامل آن باز شود.
+        </p>
+      </div>
+
+      <div className="mt-8 grid gap-3 md:grid-cols-2">
+        {TERMS.map((t, i) => {
+          const isOpen = open === i;
+          return (
+            <div
+              key={i}
+              className={`h-fit overflow-hidden rounded-2xl border bg-surface/40 transition-all duration-300 ${
+                isOpen ? "border-gold/50" : "border-line hover:border-gold/40"
+              }`}
+            >
+              <button
+                type="button"
+                onClick={() => setOpen(isOpen ? null : i)}
+                className="no-zoom flex w-full items-center justify-between gap-3 px-5 py-4 text-start"
+              >
+                <span className="flex items-center gap-3 text-[13px] font-bold">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-gold/40 font-mono text-[10px] text-gold">
+                    {i + 1}
+                  </span>
+                  {t.title}
+                </span>
+                <span
+                  className={`shrink-0 text-gold transition-transform duration-300 ${
+                    isOpen ? "rotate-45" : ""
+                  }`}
+                >
+                  +
+                </span>
+              </button>
+              <div
+                className={`grid transition-all duration-300 ${
+                  isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                }`}
+              >
+                <div className="overflow-hidden">
+                  <p className="px-5 pb-5 text-xs leading-7 text-muted">{t.body}</p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <p className="mt-6 text-[11px] leading-6 text-muted">

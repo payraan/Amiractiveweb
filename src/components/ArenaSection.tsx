@@ -25,7 +25,7 @@ export default function ArenaSection() {
       className="relative mx-auto max-w-6xl scroll-mt-10 px-6 py-24 md:py-28"
     >
       <div className="grid items-center gap-12 lg:grid-cols-2">
-        <div>
+        <div className="order-2 lg:order-2">
           <span className="font-mono text-[11px] tracking-[0.4em] text-gold" dir="ltr">
             02 · PREDICTION ARENA
           </span>
@@ -84,7 +84,7 @@ export default function ArenaSection() {
         </div>
 
         {/* گرافیک: بازارهای زنده + تیرهای پراپ */}
-        <div className="rounded-2xl border border-line bg-surface/50 p-6 backdrop-blur transition-all duration-300 hover:scale-[1.02] hover:border-gold/60 hover:shadow-[0_0_28px_rgba(232,196,106,0.14)]">
+        <div className="order-1 lg:order-1 rounded-2xl border border-line bg-surface/50 p-6 backdrop-blur transition-all duration-300 hover:scale-[1.02] hover:border-gold/60 hover:shadow-[0_0_28px_rgba(232,196,106,0.14)]">
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-2 rounded-full border border-line px-3 py-1 font-mono text-[10px] text-muted" dir="ltr">
               <span className="relative flex h-1.5 w-1.5">
