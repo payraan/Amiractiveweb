@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { payReferralCommission } from "@/lib/referral";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { verifyAdmin, ADMIN_COOKIE, ensureTopupTable } from "@/lib/admin";
@@ -53,10 +54,23 @@ export async function POST(req: Request) {
       [playerId, amount, note || null]
     );
     await client.query("COMMIT");
+
+    // پورسانت دعوت‌کننده (فقط برای شارژ مثبت؛ خطایش نباید شارژ را خراب کند)
+    let commission = 0;
+    if (amount > 0) {
+      try {
+        const r = await payReferralCommission(playerId, amount);
+        commission = r.paid;
+      } catch {
+        commission = 0;
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       username,
       newCredits: upd.rows[0].credits,
+      referralCommission: commission,
     });
   } catch (err) {
     await client.query("ROLLBACK").catch(() => {});

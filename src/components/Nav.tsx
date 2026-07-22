@@ -14,6 +14,7 @@ const links: { href: string; label: string; badge?: string }[] = [
   { href: "/arena", label: "پیش‌بینی", badge: "جدید" },
   { href: "/trade", label: "ترید", badge: "جدید" },
   { href: "/combos", label: "کمبو" },
+  { href: "/referral", label: "دعوت دوستان" },
   { href: "/login", label: "ورود" },
 ];
 

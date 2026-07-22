@@ -3,6 +3,21 @@
 import { useState } from "react";
 import { errorText } from "@/components/predict/usePlayer";
 
+/** کد دعوت را از آدرس (?ref=) یا حافظه‌ی مرورگر می‌خواند و ذخیره می‌کند. */
+function readRef(): string | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    const fromUrl = new URLSearchParams(window.location.search).get("ref");
+    if (fromUrl) {
+      window.sessionStorage.setItem("amir_ref", fromUrl);
+      return fromUrl;
+    }
+    return window.sessionStorage.getItem("amir_ref") ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export default function AuthPanel({
   onAuthed,
 }: {
@@ -22,7 +37,13 @@ export default function AuthPanel({
       const res = await fetch("/api/predict/auth", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mode, username, password, displayName }),
+        body: JSON.stringify({
+          mode,
+          username,
+          password,
+          displayName,
+          ref: mode === "register" ? readRef() : undefined,
+        }),
       });
       const j = await res.json();
       if (!j.ok) {
