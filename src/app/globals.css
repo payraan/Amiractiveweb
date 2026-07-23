@@ -190,3 +190,86 @@ main .rounded-2xl.border-gold\/50:not(.no-lift):hover {
     transform: none !important;
   }
 }
+
+/* ── قاب گرادیانی نارمون ─────────────────────────────────
+   قابی که لبه‌ی بالایش طلایی است و به سمت پایین محو می‌شود.
+   جایگزین border ساده برای کارت‌های شاخص. */
+.frame {
+  border-radius: 1.25rem;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(rgba(19, 19, 24, 0.72), rgba(19, 19, 24, 0.72)) padding-box,
+    linear-gradient(
+        155deg,
+        rgba(232, 196, 106, 0.5),
+        rgba(38, 38, 46, 0.7) 45%,
+        rgba(38, 38, 46, 0.25)
+      )
+      border-box;
+  transition:
+    transform 300ms ease,
+    box-shadow 300ms ease,
+    background 300ms ease;
+}
+
+.frame:hover {
+  transform: scale(1.02);
+  background:
+    linear-gradient(rgba(19, 19, 24, 0.82), rgba(19, 19, 24, 0.82)) padding-box,
+    linear-gradient(
+        155deg,
+        rgba(232, 196, 106, 0.9),
+        rgba(232, 196, 106, 0.3) 55%,
+        rgba(38, 38, 46, 0.35)
+      )
+      border-box;
+  box-shadow: 0 0 44px rgba(232, 196, 106, 0.13);
+}
+
+/* قابی که نباید موقع هاور حرکت کند */
+.frame-still:hover {
+  transform: none;
+}
+
+/* ── بادبزن احتمال ──────────────────────────────────────── */
+.horizon-mask {
+  -webkit-mask-image: linear-gradient(to top, #000 30%, transparent 96%);
+  mask-image: linear-gradient(to top, #000 30%, transparent 96%);
+}
+
+@keyframes narmoon-ray {
+  0% {
+    stroke-dashoffset: 1500;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: -260;
+    opacity: 0;
+  }
+}
+
+@keyframes narmoon-glow {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .narmoon-ray,
+  .narmoon-glow {
+    animation: none !important;
+  }
+  .frame:hover {
+    transform: none;
+  }
+}

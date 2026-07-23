@@ -39,8 +39,8 @@ export default function Nav() {
   }, [open]);
 
   return (
-    <header className="absolute inset-x-0 top-0 z-40">
-      <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
+    <header className="fixed inset-x-0 top-0 z-40 px-3 pt-3 md:px-5 md:pt-4">
+      <nav className="mx-auto flex max-w-6xl items-center justify-between gap-4 rounded-full border border-line bg-ink/70 px-5 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-xl">
         <Link
           href="/"
           className="relative z-50 flex items-center font-mono text-sm font-bold tracking-[0.3em] text-cream"
@@ -51,7 +51,7 @@ export default function Nav() {
           <span className="ms-2.5">NARMOON</span>
         </Link>
 
-        <div className="hidden items-center gap-5 text-[13px] text-muted lg:flex">
+        <div className="hidden items-center gap-4 text-[13px] text-muted lg:flex">
           {links.map((l) => (
             <Link
               key={l.href}
