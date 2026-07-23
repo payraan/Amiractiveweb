@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import FloatingSupport from "@/components/FloatingSupport";
 import Logo from "@/components/Logo";
 
 const TELEGRAM = "https://t.me/CashflowFactorys";
@@ -47,6 +48,7 @@ export default function Nav() {
   }, [open]);
 
   return (
+    <>
     <header className="fixed inset-x-0 top-0 z-40 px-3 pt-3 md:px-5 md:pt-4">
       <nav className="relative z-50 mx-auto flex max-w-6xl items-center justify-between gap-4 rounded-full border border-line bg-ink/70 px-5 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-xl">
         <Link
@@ -145,5 +147,9 @@ export default function Nav() {
         </div>
       </div>
     </header>
+
+    {/* پشتیبانی در تمام صفحات — نو روی همه‌ی صفحات رندر می‌شود */}
+    <FloatingSupport />
+    </>
   );
 }

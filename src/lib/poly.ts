@@ -19,6 +19,7 @@ export type PolyMarket = {
   volume: number;
   category: string; // شناسه‌ی کتگوری
   categoryLabel: string;
+  startDate: string; // برای مرتب‌سازی جدیدترین‌ها
   yesToken: string; // برای تاریخچه‌ی قیمت (سمت سرور)
 };
 
@@ -64,19 +65,29 @@ export async function getCuratedMarkets(): Promise<PolyMarket[]> {
   try {
     // برای پوشش همه‌ی کتگوری‌ها، علاوه بر پرحجم‌ترین‌های کلی،
     // هر کتگوری را جداگانه با tag_slug از Gamma می‌کشیم و ادغام می‌کنیم.
-    const sources = [
-      { slug: "", limit: 30 },
-      { slug: "crypto", limit: 15 },
-      { slug: "politics", limit: 15 },
-      { slug: "sports", limit: 15 },
-      { slug: "finance", limit: 15 },
-      { slug: "tech", limit: 15 },
-      { slug: "geopolitics", limit: 15 },
+    // پرحجم‌ترین‌ها + جدیدترین‌ها + پوشش تک‌تک کتگوری‌ها
+    const sources: { slug: string; limit: number; order?: string }[] = [
+      { slug: "", limit: 40 },
+      { slug: "", limit: 40, order: "startDate" }, // تازه‌ترین بازارها
+      { slug: "crypto", limit: 20 },
+      { slug: "politics", limit: 20 },
+      { slug: "sports", limit: 20 },
+      { slug: "finance", limit: 20 },
+      { slug: "tech", limit: 20 },
+      { slug: "geopolitics", limit: 20 },
+      { slug: "business", limit: 15 },
+      { slug: "science", limit: 15 },
+      { slug: "esports", limit: 15 },
+      { slug: "pop-culture", limit: 15 },
+      { slug: "elections", limit: 15 },
+      { slug: "world-cup", limit: 15 },
+      { slug: "weather", limit: 10 },
+      { slug: "ai", limit: 10 },
     ];
     const results = await Promise.all(
       sources.map((src) =>
         fetch(
-          `${GAMMA}/events?limit=${src.limit}&active=true&closed=false&order=volume&ascending=false${src.slug ? `&tag_slug=${src.slug}` : ""}`,
+          `${GAMMA}/events?limit=${src.limit}&active=true&closed=false&order=${src.order ?? "volume"}&ascending=false${src.slug ? `&tag_slug=${src.slug}` : ""}`,
           { headers: UA, cache: "no-store" }
         )
           .then((r) => (r.ok ? r.json() : []))
@@ -131,6 +142,7 @@ export async function getCuratedMarkets(): Promise<PolyMarket[]> {
           question: q,
           eventTitle: String(ev.title ?? ""),
           endDate: String(m.endDate ?? ev.endDate ?? ""),
+          startDate: String(m.startDate ?? ev.startDate ?? ev.createdAt ?? ""),
           yesPct: Math.round(yes * 1000) / 10,
           volume: Number(ev.volume) || 0,
           category: cat.id,
@@ -138,10 +150,10 @@ export async function getCuratedMarkets(): Promise<PolyMarket[]> {
           yesToken,
         });
         perEvent++;
-        if (perEvent >= 4) break;
-        if (out.length >= 120) break;
+        if (perEvent >= 6) break;
+        if (out.length >= 260) break;
       }
-      if (out.length >= 120) break;
+      if (out.length >= 260) break;
     }
 
     out.sort((a, b) => b.volume - a.volume);

@@ -12,6 +12,7 @@ type Market = {
   yesPct: number;
   category: string;
   categoryLabel: string;
+  startDate: string;
 };
 
 type MyPred = {
@@ -102,7 +103,7 @@ export default function ArenaBoard() {
   const [loadingMarkets, setLoadingMarkets] = useState(true);
   const [cat, setCat] = useState("all");
   const [page, setPage] = useState(1);
-  const [sort, setSort] = useState<"volume" | "ending">("volume");
+  const [sort, setSort] = useState<"volume" | "ending" | "newest">("volume");
   const [openChart, setOpenChart] = useState<string | null>(null);
   const [hist, setHist] = useState<Map<string, PricePoint[]>>(new Map());
 
@@ -186,7 +187,13 @@ export default function ArenaBoard() {
       ? [...filtered].sort(
           (a, b) => new Date(a.endDate).getTime() - new Date(b.endDate).getTime()
         )
-      : filtered;
+      : sort === "newest"
+        ? [...filtered].sort(
+            (a, b) =>
+              new Date(b.startDate || 0).getTime() -
+              new Date(a.startDate || 0).getTime()
+          )
+        : filtered;
   const PAGE_SIZE = 12;
   const totalPages = Math.max(1, Math.ceil(shown.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -273,6 +280,7 @@ export default function ArenaBoard() {
           [
             { id: "volume", label: "پرحجم‌ترین" },
             { id: "ending", label: "نزدیک‌ترین سررسید" },
+            { id: "newest", label: "جدیدترین" },
           ] as const
         ).map((o) => (
           <button

@@ -13,7 +13,6 @@ import Broker from "@/components/Broker";
 import Faq from "@/components/Faq";
 import Legal from "@/components/Legal";
 import Footer from "@/components/Footer";
-import FloatingSupport from "@/components/FloatingSupport";
 
 export default function Home() {
   return (
@@ -36,7 +35,6 @@ export default function Home() {
         <Legal />
       </main>
       <Footer />
-      <FloatingSupport />
     </>
   );
 }
