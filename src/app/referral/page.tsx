@@ -3,6 +3,7 @@ import CandleField from "@/components/CandleField";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import ReferralDashboard from "@/components/predict/ReferralDashboard";
+import TelegramConnect from "@/components/predict/TelegramConnect";
 
 export const metadata: Metadata = {
   title: "دعوت دوستان | نارمون",
@@ -30,6 +31,10 @@ export default function ReferralPage() {
         </p>
 
         <div className="mt-10">
+          <TelegramConnect />
+        </div>
+
+        <div className="mt-8">
           <ReferralDashboard />
         </div>
       </main>
