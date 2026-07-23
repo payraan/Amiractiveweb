@@ -273,3 +273,87 @@ main .rounded-2xl.border-gold\/50:not(.no-lift):hover {
     transform: none;
   }
 }
+
+/* ── نسخه‌ی دوم: ماسک بلند بادبزن + عمق سه‌بعدی کارت‌ها ───── */
+
+/* بادبزن حالا تا بالای صفحه می‌رود، پس محو باید ملایم‌تر باشد */
+.horizon-mask {
+  -webkit-mask-image: linear-gradient(
+    to top,
+    #000 18%,
+    rgba(0, 0, 0, 0.55) 60%,
+    rgba(0, 0, 0, 0.18) 100%
+  );
+  mask-image: linear-gradient(
+    to top,
+    #000 18%,
+    rgba(0, 0, 0, 0.55) 60%,
+    rgba(0, 0, 0, 0.18) 100%
+  );
+}
+
+@keyframes narmoon-ray {
+  0% {
+    stroke-dashoffset: 2400;
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  72% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: -420;
+    opacity: 0;
+  }
+}
+
+/* کارت‌ها موقع هاور کمی به سمت بیننده می‌چرخند */
+main .rounded-2xl.border-line:not(.no-lift):hover,
+main .rounded-2xl.border-gold\/30:not(.no-lift):hover,
+main .rounded-2xl.border-gold\/40:not(.no-lift):hover,
+main .rounded-2xl.border-gold\/50:not(.no-lift):hover,
+.frame:hover {
+  transform: perspective(1100px) rotateX(2.5deg) translateY(-7px) scale(1.02);
+  box-shadow:
+    0 22px 48px -18px rgba(0, 0, 0, 0.75),
+    0 0 42px rgba(232, 196, 106, 0.14);
+}
+
+/* سرِ کارت‌ها یک درخشش نازک طلایی می‌گیرد */
+main .rounded-2xl.border-line:not(.no-lift),
+.frame {
+  position: relative;
+}
+
+main .rounded-2xl.border-line:not(.no-lift)::after,
+.frame::after {
+  content: "";
+  position: absolute;
+  inset-inline: 12%;
+  top: -1px;
+  height: 1px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to left,
+    transparent,
+    rgba(232, 196, 106, 0.7),
+    transparent
+  );
+  opacity: 0;
+  transition: opacity 300ms ease;
+  pointer-events: none;
+}
+
+main .rounded-2xl.border-line:not(.no-lift):hover::after,
+.frame:hover::after {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  main .rounded-2xl:hover,
+  .frame:hover {
+    transform: none !important;
+  }
+}

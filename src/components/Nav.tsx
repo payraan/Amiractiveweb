@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import Logo from "@/components/Logo";
 
 const TELEGRAM = "https://t.me/CashflowFactorys";
@@ -30,6 +31,13 @@ function TgIcon() {
 
 export default function Nav() {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+
+  /** لینک‌های لنگردار (#) حالت فعال ندارند؛ فقط مسیرهای واقعی. */
+  const isActive = (href: string) => {
+    if (href.startsWith("/#")) return false;
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
 
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
@@ -40,7 +48,7 @@ export default function Nav() {
 
   return (
     <header className="fixed inset-x-0 top-0 z-40 px-3 pt-3 md:px-5 md:pt-4">
-      <nav className="mx-auto flex max-w-6xl items-center justify-between gap-4 rounded-full border border-line bg-ink/70 px-5 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+      <nav className="relative z-50 mx-auto flex max-w-6xl items-center justify-between gap-4 rounded-full border border-line bg-ink/70 px-5 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-xl">
         <Link
           href="/"
           className="relative z-50 flex items-center font-mono text-sm font-bold tracking-[0.3em] text-cream"
@@ -51,13 +59,15 @@ export default function Nav() {
           <span className="ms-2.5">NARMOON</span>
         </Link>
 
-        <div className="hidden items-center gap-4 text-[13px] text-muted lg:flex">
+        <div className="hidden items-center gap-1 text-[13px] text-muted lg:flex">
           {links.map((l) => (
             <Link
               key={l.href}
               href={l.href}
-              className={`whitespace-nowrap transition hover:text-cream ${
-                l.muted ? "text-muted/70" : ""
+              className={`whitespace-nowrap rounded-full px-3 py-1.5 transition ${
+                isActive(l.href)
+                  ? "bg-raised font-bold text-cream shadow-[inset_0_0_0_1px_rgba(232,196,106,0.28)]"
+                  : `hover:text-cream ${l.muted ? "text-muted/70" : ""}`
               }`}
             >
               {l.label}
@@ -98,7 +108,7 @@ export default function Nav() {
       </nav>
 
       <div
-        className={`fixed inset-0 z-40 bg-ink/95 backdrop-blur-md transition-opacity duration-300 lg:hidden ${
+        className={`fixed inset-0 z-30 bg-ink/95 backdrop-blur-md transition-opacity duration-300 lg:hidden ${
           open ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
       >
@@ -109,9 +119,9 @@ export default function Nav() {
                 key={l.href}
                 href={l.href}
                 onClick={() => setOpen(false)}
-                className={`border-b border-line py-4 font-display text-2xl font-extrabold text-cream transition-all duration-500 ${
-                  open ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
-                }`}
+                className={`border-b border-line py-4 font-display text-2xl font-extrabold transition-all duration-500 ${
+                  isActive(l.href) ? "text-gold" : "text-cream"
+                } ${open ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"}`}
                 style={{ transitionDelay: open ? `${120 + i * 60}ms` : "0ms" }}
               >
                 {l.label}
