@@ -11,8 +11,9 @@ export async function settleDueRounds(): Promise<{ settled: number; scored: numb
     id: number;
     asset: Asset;
     timeframe: string;
+    vol_scale: string | number | null;
   }>(
-    `SELECT id, asset, timeframe
+    `SELECT id, asset, timeframe, vol_scale
        FROM rounds
       WHERE status = 'open' AND settle_at <= now()
       ORDER BY settle_at ASC
@@ -66,7 +67,8 @@ export async function settleDueRounds(): Promise<{ settled: number; scored: numb
       for (const p of preds.rows) {
         const guess = Number(p.guess);
         const errorPct = Math.abs((guess - settlePrice) / settlePrice) * 100;
-        const points = scoreFor(errorPct, round.timeframe as TimeframeId);
+        const volScale = Number(round.vol_scale) > 0 ? Number(round.vol_scale) : 1;
+        const points = scoreFor(errorPct, round.timeframe as TimeframeId, volScale);
 
         await client.query(
           `UPDATE predictions SET error_pct=$1, points=$2 WHERE id=$3`,

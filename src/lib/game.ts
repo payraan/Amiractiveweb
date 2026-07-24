@@ -1,9 +1,11 @@
+import { assetById, isLikelyOpen } from "@/lib/assets";
+
 // ── اقتصاد و قواعد بازی پیش‌بینی ──────────────────────────────
 // همه‌ی اعداد قابل‌تنظیم اینجاست. برای تغییر هزینه/امتیاز/جایزه فقط همین فایل.
 // این فایل هیچ وابستگی سمت‌سروری ندارد و هم در کلاینت و هم سرور import می‌شود.
 
 export type TimeframeId = "24h" | "12h" | "4h" | "1h";
-export type Asset = "BTC" | "XAU";
+export type Asset = string;
 
 export type Timeframe = {
   id: TimeframeId;
@@ -70,8 +72,12 @@ export const SCORING_BY_TF: Record<TimeframeId, ScoreRow[]> = {
   ],
 };
 
-export function scoreFor(errorPct: number, tfId: TimeframeId = "24h"): number {
-  const table = SCORING_BY_TF[tfId] ?? SCORING_BY_TF["24h"];
+export function scoreFor(
+  errorPct: number,
+  tfId: TimeframeId = "24h",
+  volScale = 1
+): number {
+  const table = thresholdsFor(tfId, volScale);
   const abs = Math.abs(errorPct);
   const row = table.find((r) => abs < r.maxErr) ?? table[table.length - 1];
   return row.points;
@@ -118,7 +124,38 @@ export function isGoldOpen(now: Date = new Date()): boolean {
 }
 
 export function isAssetOpen(asset: Asset, now: Date = new Date()): boolean {
-  return asset === "XAU" ? isGoldOpen(now) : true; // کریپتو ۲۴/۷
+  const def = assetById(asset);
+  if (!def) return false;
+  return isLikelyOpen(def.category, now);
+}
+
+// ── امتیازدهی نرمال‌شده با نوسان ───────────────────────────────
+// جدول‌های بالا برای دارایی با نوسان روزانه‌ی حدود ۲٪ تنظیم شده‌اند.
+// جفت‌ارزها حدود ۰.۲۵٪ و سهامی مثل تسلا حدود ۹.۶٪ نوسان دارند —
+// بدون این ضریب، جفت‌ارز مزرعه‌ی امتیاز مفت می‌شد و سهام پرنوسان
+// عملاً غیرقابل‌بازی. ضریب در لحظه‌ی ساخت راند قفل می‌شود تا قانون
+// وسط بازی عوض نشود.
+export const REF_VOL_PCT = 2.0;
+const VOL_SCALE_MIN = 0.2;
+const VOL_SCALE_MAX = 4.0;
+
+export function volScaleFor(dailyVolPct: number | null | undefined): number {
+  if (!dailyVolPct || !Number.isFinite(dailyVolPct) || dailyVolPct <= 0) return 1;
+  const raw = dailyVolPct / REF_VOL_PCT;
+  const clamped = Math.min(VOL_SCALE_MAX, Math.max(VOL_SCALE_MIN, raw));
+  return Math.round(clamped * 1000) / 1000;
+}
+
+/** آستانه‌های واقعی یک راند، پس از اعمال ضریب نوسان. */
+export function thresholdsFor(
+  tfId: TimeframeId,
+  volScale = 1
+): { maxErr: number; points: number }[] {
+  const table = SCORING_BY_TF[tfId] ?? SCORING_BY_TF["24h"];
+  return table.map((r) => ({
+    points: r.points,
+    maxErr: r.maxErr === Infinity ? Infinity : r.maxErr * volScale,
+  }));
 }
 
 
