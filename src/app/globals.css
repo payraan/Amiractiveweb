@@ -357,3 +357,93 @@ main .rounded-2xl.border-line:not(.no-lift):hover::after,
     transform: none !important;
   }
 }
+
+/* ── نسخه‌ی سوم: کره‌ی چرخان + قاب نور دورانی ─────────────── */
+
+/* نصف‌النهارهای کره که می‌چرخند (توهم چرخش با scaleX) */
+@keyframes narmoon-meridian {
+  0% { transform: scaleX(1); opacity: 0.55; }
+  25% { transform: scaleX(0.05); opacity: 0.15; }
+  50% { transform: scaleX(1); opacity: 0.55; }
+  75% { transform: scaleX(0.05); opacity: 0.15; }
+  100% { transform: scaleX(1); opacity: 0.55; }
+}
+
+.narmoon-meridian {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: narmoon-meridian 18s linear infinite;
+}
+
+/* قاب نور دورانی دور باکس اعتماد */
+@keyframes narmoon-spin {
+  to { transform: rotate(360deg); }
+}
+
+.spin-frame {
+  position: relative;
+  border-radius: 999px;
+  isolation: isolate;
+}
+
+.spin-frame::before {
+  content: "";
+  position: absolute;
+  inset: -1.5px;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    transparent 200deg,
+    rgba(232, 196, 106, 0.15) 260deg,
+    rgba(232, 196, 106, 0.9) 320deg,
+    rgba(244, 241, 232, 0.95) 340deg,
+    rgba(232, 196, 106, 0.9) 360deg
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: narmoon-spin 6s linear infinite;
+  z-index: -1;
+}
+
+.spin-frame::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+  background: radial-gradient(
+    closest-side,
+    rgba(232, 196, 106, 0.18),
+    transparent
+  );
+  opacity: 0;
+  transition: opacity 300ms ease;
+  z-index: -2;
+}
+
+.spin-frame:hover::after {
+  opacity: 1;
+}
+
+.spin-frame:hover::before {
+  animation-duration: 2.5s;
+}
+
+.spin-frame:hover {
+  transform: scale(1.04);
+  transition: transform 300ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .narmoon-meridian,
+  .spin-frame::before {
+    animation: none !important;
+  }
+  .spin-frame:hover {
+    transform: none;
+  }
+}

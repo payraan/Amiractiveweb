@@ -29,9 +29,10 @@ export default async function Hero() {
       <ProbabilityHorizon />
 
       <div className="relative mx-auto max-w-3xl text-center">
-        {/* نشان اعتماد */}
+        {/* نشان اعتماد با قاب نور چرخان */}
         <div className="rise flex justify-center">
-          <div className="flex items-center gap-2.5 rounded-full border border-line bg-surface/60 px-4 py-1.5 backdrop-blur">
+          <div className="spin-frame">
+          <div className="flex items-center gap-2.5 rounded-full border border-line bg-surface/70 px-4 py-1.5 backdrop-blur">
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gain opacity-60" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-gain" />
@@ -47,6 +48,7 @@ export default async function Hero() {
                 </span>
               </>
             )}
+          </div>
           </div>
         </div>
 
