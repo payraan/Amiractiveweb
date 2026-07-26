@@ -25,7 +25,7 @@ export default async function Hero() {
   const noWin = Math.max(1, Math.round(yes));
 
   return (
-    <section className="relative overflow-hidden px-6 pb-40 pt-36 md:pb-52 md:pt-44">
+    <section className="relative overflow-hidden px-6 pb-64 pt-36 md:pb-80 md:pt-44">
       <ProbabilityHorizon />
 
       <div className="relative mx-auto max-w-3xl text-center">
@@ -115,13 +115,27 @@ export default async function Hero() {
           </Link>
         </div>
 
-        {/* کارت بازار زنده */}
+        {/* کارت بازار زنده — پنجره‌ای زنده به رویدادهای جهان که با فاصله بالای
+            قله‌ی کره شناور است (پدستالِ نور زیرش آن را از کره جدا نگه می‌دارد) */}
         {market && (
           <div
-            className="rise mx-auto mt-20 max-w-md"
+            className="rise relative mx-auto mt-16 max-w-md"
             style={{ animationDelay: "430ms" }}
           >
-            <Link href={`/trade?market=${market.id}`} className="frame block p-6 text-start">
+            {/* هاله‌ی نزدیکِ کارت */}
+            <span
+              className="pointer-events-none absolute -inset-x-6 -bottom-8 top-6 -z-10 rounded-[2rem] bg-gold/10 blur-2xl"
+              aria-hidden="true"
+            />
+            {/* پدستالِ نور — کارت روی این «می‌نشیند» و شناور به‌نظر می‌رسد */}
+            <span
+              className="pointer-events-none absolute inset-x-10 -bottom-24 -z-10 h-24 rounded-[50%] bg-gold/20 blur-2xl"
+              aria-hidden="true"
+            />
+            <Link
+              href={`/trade?market=${market.id}`}
+              className="frame block p-6 text-start shadow-[0_28px_70px_-26px_rgba(0,0,0,0.9)] backdrop-blur-md"
+            >
               <div className="flex items-center justify-between">
                 <span
                   className="flex items-center gap-2 font-mono text-[10px] tracking-wider text-muted"
