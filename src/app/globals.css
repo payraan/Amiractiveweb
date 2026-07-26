@@ -375,72 +375,81 @@ main .rounded-2xl.border-line:not(.no-lift):hover::after,
   animation: narmoon-meridian 18s linear infinite;
 }
 
-/* قاب نور دورانی دور باکس اعتماد */
+/* قاب نور دور باکس اعتماد
+   قاب کاملا ثابت است و هرگز نمیچرخد. یک حلقه طلایی کامل همیشه دیده میشود
+   (لایه ::before) و فقط یک مهره نور باریک روی همان حلقه ثابت میدود
+   (لایه ::after) که تنها زاویه گرادیان مخروطیاش انیمیت میشود. */
+@property --spin-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
 @keyframes narmoon-spin {
-  to { transform: rotate(360deg); }
+  to { --spin-angle: 360deg; }
 }
 
 .spin-frame {
+  --spin-angle: 0deg; /* fallback for browsers without @property */
   position: relative;
   border-radius: 999px;
   isolation: isolate;
+  transition: transform 300ms ease, box-shadow 300ms ease;
 }
 
+/* حلقه پایه: قاب طلایی کامل و ثابت */
 .spin-frame::before {
   content: "";
   position: absolute;
   inset: -1.5px;
   border-radius: inherit;
   padding: 1.5px;
+  background: linear-gradient(rgba(232, 196, 106, 0.42) 0 0);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  z-index: -1;
+}
+
+/* مهره نور: باریک و روشن، فقط زاویهاش میچرخد پس دور قاب ثابت میدود */
+.spin-frame::after {
+  content: "";
+  position: absolute;
+  inset: -1.5px;
+  border-radius: inherit;
+  padding: 1.5px;
   background: conic-gradient(
-    from 0deg,
+    from var(--spin-angle),
     transparent 0deg,
-    transparent 200deg,
-    rgba(232, 196, 106, 0.15) 260deg,
-    rgba(232, 196, 106, 0.9) 320deg,
-    rgba(244, 241, 232, 0.95) 340deg,
-    rgba(232, 196, 106, 0.9) 360deg
+    transparent 318deg,
+    rgba(232, 196, 106, 0.55) 336deg,
+    rgba(244, 241, 232, 1) 348deg,
+    rgba(232, 196, 106, 0.55) 360deg
   );
   -webkit-mask:
     linear-gradient(#000 0 0) content-box,
     linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
-  animation: narmoon-spin 6s linear infinite;
+  animation: narmoon-spin 4.5s linear infinite;
   z-index: -1;
 }
 
-.spin-frame::after {
-  content: "";
-  position: absolute;
-  inset: -6px;
-  border-radius: inherit;
-  background: radial-gradient(
-    closest-side,
-    rgba(232, 196, 106, 0.18),
-    transparent
-  );
-  opacity: 0;
-  transition: opacity 300ms ease;
-  z-index: -2;
+/* هاور: زوم + هاله طلایی روی box-shadow و تندترشدن حرکت نور */
+.spin-frame:hover {
+  transform: scale(1.04);
+  box-shadow: 0 0 22px rgba(232, 196, 106, 0.18);
 }
 
 .spin-frame:hover::after {
-  opacity: 1;
-}
-
-.spin-frame:hover::before {
   animation-duration: 2.5s;
-}
-
-.spin-frame:hover {
-  transform: scale(1.04);
-  transition: transform 300ms ease;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .narmoon-meridian,
-  .spin-frame::before {
+  .spin-frame::after {
     animation: none !important;
   }
   .spin-frame:hover {
