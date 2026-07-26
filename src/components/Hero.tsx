@@ -115,8 +115,8 @@ export default async function Hero() {
           </Link>
         </div>
 
-        {/* کارت بازار زنده — پنجره‌ای زنده به رویدادهای جهان که با فاصله بالای
-            قله‌ی کره شناور است (پدستالِ نور زیرش آن را از کره جدا نگه می‌دارد) */}
+        {/* کارت بازار زنده — با فاصله بالای قله‌ی کره شناور است (پدستالِ نور زیرش
+            آن را از کره جدا نگه می‌دارد) */}
         {market && (
           <div
             className="rise relative mx-auto mt-16 max-w-md"
@@ -127,57 +127,65 @@ export default async function Hero() {
               className="pointer-events-none absolute -inset-x-6 -bottom-8 top-6 -z-10 rounded-[2rem] bg-gold/10 blur-2xl"
               aria-hidden="true"
             />
-            {/* پدستالِ نور — کارت روی این «می‌نشیند» و شناور به‌نظر می‌رسد */}
+            {/* پدستالِ نور — کارت روی این می‌نشیند و شناور به‌نظر می‌رسد */}
             <span
               className="pointer-events-none absolute inset-x-10 -bottom-24 -z-10 h-24 rounded-[50%] bg-gold/20 blur-2xl"
               aria-hidden="true"
             />
             <Link
               href={`/trade?market=${market.id}`}
-              className="frame block p-6 text-start shadow-[0_28px_70px_-26px_rgba(0,0,0,0.9)] backdrop-blur-md"
+              className="frame relative block p-6 text-start shadow-[0_28px_70px_-26px_rgba(0,0,0,0.9)] backdrop-blur-md"
             >
-              <div className="flex items-center justify-between">
-                <span
-                  className="flex items-center gap-2 font-mono text-[10px] tracking-wider text-muted"
-                  dir="ltr"
-                >
-                  <span className="relative flex h-1.5 w-1.5">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gain opacity-60" />
-                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-gain" />
+              {/* شیشه‌ی مات: پس‌زمینه‌ی مات که پرتوهای پشت را می‌پوشاند تا مثل
+                  دسکتاپ یکدست و خوانا بماند و روی موبایل هم مطمئن رندر شود */}
+              <span
+                className="pointer-events-none absolute inset-0 rounded-[1.2rem] bg-surface/90"
+                aria-hidden="true"
+              />
+              <div className="relative">
+                <div className="flex items-center justify-between">
+                  <span
+                    className="flex items-center gap-2 font-mono text-[10px] tracking-wider text-muted"
+                    dir="ltr"
+                  >
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gain opacity-60" />
+                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-gain" />
+                    </span>
+                    LIVE MARKET
                   </span>
-                  LIVE MARKET
-                </span>
-                <span className="font-mono text-[10px] text-muted" dir="ltr">
-                  NOW
-                </span>
-              </div>
-
-              <p className="mt-4 line-clamp-2 text-sm font-bold leading-7" dir="ltr">
-                {market.question}
-              </p>
-
-              <div className="mt-5">
-                <div className="flex justify-between font-mono text-[11px]" dir="ltr">
-                  <span className="text-gain">Yes {yes}%</span>
-                  <span className="text-loss">
-                    No {Math.round((100 - yes) * 10) / 10}%
+                  <span className="font-mono text-[10px] text-muted" dir="ltr">
+                    NOW
                   </span>
                 </div>
-                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-loss/25">
-                  <div
-                    className="h-full rounded-full bg-gain"
-                    style={{ width: `${yes}%` }}
-                  />
-                </div>
-              </div>
 
-              <div className="mt-5 grid grid-cols-2 gap-2 font-mono text-[10px]">
-                <span className="rounded-lg border border-gain/40 py-2.5 text-center text-gain">
-                  بله +{yesWin}
-                </span>
-                <span className="rounded-lg border border-loss/40 py-2.5 text-center text-loss">
-                  خیر +{noWin}
-                </span>
+                <p className="mt-4 line-clamp-2 text-sm font-bold leading-7" dir="ltr">
+                  {market.question}
+                </p>
+
+                <div className="mt-5">
+                  <div className="flex justify-between font-mono text-[11px]" dir="ltr">
+                    <span className="text-gain">Yes {yes}%</span>
+                    <span className="text-loss">
+                      No {Math.round((100 - yes) * 10) / 10}%
+                    </span>
+                  </div>
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-loss/25">
+                    <div
+                      className="h-full rounded-full bg-gain"
+                      style={{ width: `${yes}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-5 grid grid-cols-2 gap-2 font-mono text-[10px]">
+                  <span className="rounded-lg border border-gain/40 py-2.5 text-center text-gain">
+                    بله +{yesWin}
+                  </span>
+                  <span className="rounded-lg border border-loss/40 py-2.5 text-center text-loss">
+                    خیر +{noWin}
+                  </span>
+                </div>
               </div>
             </Link>
           </div>

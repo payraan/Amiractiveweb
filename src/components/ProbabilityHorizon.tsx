@@ -15,35 +15,35 @@ type Ray = {
   tone: "gold" | "gain";
 };
 
+// پرتوها بلندترند تا یا به بالای هیرو برسند یا از لبه‌ی کناری خارج شوند —
+// هیچ‌کدام وسطِ صفحه معلق تمام نمی‌شوند.
 const RAYS: Ray[] = [
-  { dx: -1020, dy: -520, w: 1.0, o: 0.08, delay: "0s", tone: "gold" },
-  { dx: -760, dy: -700, w: 1.3, o: 0.13, delay: "1.9s", tone: "gold" },
-  { dx: -500, dy: -820, w: 1.1, o: 0.1, delay: "3.6s", tone: "gain" },
-  { dx: -250, dy: -900, w: 1.7, o: 0.18, delay: "1.0s", tone: "gold" },
-  { dx: 0, dy: -940, w: 2.1, o: 0.26, delay: "2.6s", tone: "gold" },
-  { dx: 250, dy: -900, w: 1.7, o: 0.18, delay: "4.1s", tone: "gold" },
-  { dx: 500, dy: -820, w: 1.1, o: 0.1, delay: "1.4s", tone: "gain" },
-  { dx: 760, dy: -700, w: 1.3, o: 0.13, delay: "3.1s", tone: "gold" },
-  { dx: 1020, dy: -520, w: 1.0, o: 0.08, delay: "4.8s", tone: "gold" },
+  { dx: -1160, dy: -770, w: 1.0, o: 0.1, delay: "0s", tone: "gold" },
+  { dx: -840, dy: -840, w: 1.3, o: 0.14, delay: "1.9s", tone: "gold" },
+  { dx: -540, dy: -890, w: 1.1, o: 0.12, delay: "3.6s", tone: "gain" },
+  { dx: -260, dy: -930, w: 1.7, o: 0.2, delay: "1.0s", tone: "gold" },
+  { dx: 0, dy: -950, w: 2.1, o: 0.28, delay: "2.6s", tone: "gold" },
+  { dx: 260, dy: -930, w: 1.7, o: 0.2, delay: "4.1s", tone: "gold" },
+  { dx: 540, dy: -890, w: 1.1, o: 0.12, delay: "1.4s", tone: "gain" },
+  { dx: 840, dy: -840, w: 1.3, o: 0.14, delay: "3.1s", tone: "gold" },
+  { dx: 1160, dy: -770, w: 1.0, o: 0.1, delay: "4.8s", tone: "gold" },
 ];
 
 const OX = 600;
-const OY = 990; // مرکز کره پایین‌تر رفت تا کره زیرِ کارتِ شناور بنشیند
+const OY = 990; // مرکز کره پایین‌تر تا کره زیرِ کارتِ شناور بنشیند
 const R = 190;
+const CROWN_Y = OY - R; // قله‌ی کره؛ روی همین نقطه هم فریم و هم تلاقیِ پرتوها می‌نشیند
 
 function pathFor(r: Ray): string {
-  // پرتوها از قله‌ی کره (بالاترین نقطه‌ی افق) شروع می‌شوند
+  // همه‌ی پرتوها دقیقاً از قله‌ی کره (روی خطِ فریم) شروع می‌شوند
   const sx = OX;
-  const sy = OY - R;
+  const sy = CROWN_Y;
   const cx = sx + r.dx * 0.26;
   const cy = sy + r.dy * 0.78;
   return `M${sx},${sy} Q${cx.toFixed(0)},${cy.toFixed(0)} ${OX + r.dx},${OY + r.dy}`;
 }
 
-// نصف‌النهارهای کمتر و نازک‌تر تا کره تمیزتر و کم‌شلوغ‌تر باشد
 const MERIDIAN_DELAYS = ["0s", "-6s", "-12s"];
-
-// مدارها (خطوط عرضی) — نسبت به شعاع، ملایم
 const PARALLELS = [-0.5, -0.25, 0, 0.25, 0.5];
 
 export default function ProbabilityHorizon() {
@@ -87,6 +87,12 @@ export default function ProbabilityHorizon() {
             <stop offset="90%" stopColor="var(--color-gold)" stopOpacity="0.14" />
             <stop offset="100%" stopColor="var(--color-gold)" stopOpacity="0" />
           </radialGradient>
+          {/* جرقه‌ی تلاقی — روی نقطه‌ی همگراییِ پرتوها، دقیقاً روی خطِ فریم */}
+          <radialGradient id="nm-spark" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="var(--color-cream)" stopOpacity="0.95" />
+            <stop offset="30%" stopColor="var(--color-gold)" stopOpacity="0.7" />
+            <stop offset="100%" stopColor="var(--color-gold)" stopOpacity="0" />
+          </radialGradient>
           <clipPath id="nm-globe-clip">
             <circle cx={OX} cy={OY} r={R} />
           </clipPath>
@@ -125,8 +131,8 @@ export default function ProbabilityHorizon() {
                 strokeWidth={r.w + 0.8}
                 strokeOpacity="0.7"
                 strokeLinecap="round"
-                strokeDasharray="180 2400"
-                style={{ animation: `narmoon-ray 8s linear ${r.delay} infinite` }}
+                strokeDasharray="180 2600"
+                style={{ animation: `narmoon-ray 8.5s linear ${r.delay} infinite` }}
               />
             </g>
           );
@@ -139,7 +145,6 @@ export default function ProbabilityHorizon() {
         <g clipPath="url(#nm-globe-clip)">
           <circle cx={OX} cy={OY} r={R} fill="url(#nm-globe)" />
 
-          {/* مدارها (خطوط عرضی ثابت) */}
           {PARALLELS.map((f, i) => {
             const ry = R * Math.cos(Math.asin(f));
             return (
@@ -157,7 +162,6 @@ export default function ProbabilityHorizon() {
             );
           })}
 
-          {/* نصف‌النهارها (خطوط طولی چرخان) */}
           {MERIDIAN_DELAYS.map((delay, i) => (
             <ellipse
               key={`mer-${i}`}
@@ -175,30 +179,31 @@ export default function ProbabilityHorizon() {
             />
           ))}
 
-          {/* درخششِ نورِ خورشید روی لبه‌ی بالا-چپ */}
           <circle cx={OX} cy={OY} r={R} fill="url(#nm-sheen)" />
         </g>
 
-        {/* لبه‌ی محوِ کره (کل دور) — فقط برای تعریفِ شکل */}
+        {/* فریمِ کاملِ کره — دورِ کلِ دایره (نه فقط قوسِ بالا) تا در دسکتاپ هم کامل باشد */}
         <circle
           cx={OX}
           cy={OY}
           r={R}
           fill="none"
           stroke="var(--color-gold)"
-          strokeOpacity="0.2"
-          strokeWidth="1"
+          strokeOpacity="0.55"
+          strokeWidth="1.4"
         />
-
-        {/* برجستگیِ نور فقط روی قوسِ بالا (خطِ افق) تا با کارت نجنگد */}
+        {/* برجستگیِ نور روی قوسِ بالا برای حسِ افقِ روشن */}
         <path
-          d={`M${OX - R * 0.82},${OY - R * 0.58} A${R},${R} 0 0 1 ${OX + R * 0.82},${OY - R * 0.58}`}
+          d={`M${OX - R * 0.86},${OY - R * 0.5} A${R},${R} 0 0 1 ${OX + R * 0.86},${OY - R * 0.5}`}
           fill="none"
           stroke="var(--color-gold)"
-          strokeOpacity="0.62"
-          strokeWidth="1.4"
+          strokeOpacity="0.8"
+          strokeWidth="1.6"
           strokeLinecap="round"
         />
+
+        {/* جرقه‌ی تلاقیِ پرتوها — دقیقاً روی قله‌ی فریم تا نقطه‌ی همگرایی با خطِ کره یکی شود */}
+        <circle cx={OX} cy={CROWN_Y} r="46" fill="url(#nm-spark)" />
       </svg>
     </div>
   );
