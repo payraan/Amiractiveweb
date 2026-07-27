@@ -37,38 +37,60 @@ export const WELCOME_CREDITS = 10;
 // تا گرفتن امتیاز در همه‌ی تایم‌فریم‌ها به یک اندازه مهارت بخواهد.
 export type ScoreRow = { maxErr: number; points: number };
 
+// ── جدول امتیازدهی (کالیبره‌شده بر پایه‌ی مهارت) ─────────────────
+//
+// طراحی این جدول تصادفی نیست. مدل: بازیکنی که هیچ مهارتی ندارد قیمت
+// فعلی را وارد می‌کند، پس خطایش برابر |بازده| آن بازه است. بازده‌ی
+// کریپتو دم‌کلفت است (Student-t با df=4)، و آستانه‌ها ضریبی از انحراف
+// معیار همان بازه‌اند: 0.05σ / 0.22σ / 0.45σ / 0.85σ / 1.80σ.
+//
+// σ هر تایم‌فریم با قانون جذر زمان از نوسان روزانه می‌آید:
+//   σ(tf) = REF_VOL_PCT × √(ساعت/۲۴)
+// به همین دلیل هر چهار تایم‌فریم دقیقاً هم‌سختی‌اند. (در نسخه‌ی قبلی
+// آستانه‌های ۴ و ۱ ساعته شل‌تر بودند، یعنی گران‌تر ولی آسان‌تر.)
+//
+// امید ریاضی با این امتیازها:
+//   بی‌مهارت (چشم‌بسته) ≈ −۶.۵   |   ۱۰٪ بهتر از تصادف ≈ −۳.۲
+//   ۲۰٪ بهتر ≈ +۰.۵            |   ۳۰٪ بهتر ≈ +۴.۷
+// یعنی حدس‌زدن کورکورانه ضرر است و امتیاز فقط از مهارت می‌آید —
+// و چون هر پیش‌بینی اضافه به‌طور میانگین منفی است، خریدِ کردیت
+// بیشتر رتبه نمی‌خرد.
 export const SCORING_BY_TF: Record<TimeframeId, ScoreRow[]> = {
+  // σ = ۲.۰۰۰٪
   "24h": [
     { maxErr: 0.1, points: 100 },
-    { maxErr: 0.5, points: 50 },
-    { maxErr: 1, points: 25 },
-    { maxErr: 2, points: 5 },
-    { maxErr: 5, points: -10 },
-    { maxErr: Infinity, points: -25 },
+    { maxErr: 0.44, points: 55 },
+    { maxErr: 0.9, points: 25 },
+    { maxErr: 1.7, points: 5 },
+    { maxErr: 3.6, points: -14 },
+    { maxErr: Infinity, points: -50 },
   ],
+  // σ = ۱.۴۱۴٪
   "12h": [
-    { maxErr: 0.08, points: 100 },
-    { maxErr: 0.35, points: 50 },
-    { maxErr: 0.7, points: 25 },
-    { maxErr: 1.5, points: 5 },
-    { maxErr: 3.5, points: -10 },
-    { maxErr: Infinity, points: -25 },
+    { maxErr: 0.07, points: 100 },
+    { maxErr: 0.31, points: 55 },
+    { maxErr: 0.64, points: 25 },
+    { maxErr: 1.2, points: 5 },
+    { maxErr: 2.55, points: -14 },
+    { maxErr: Infinity, points: -50 },
   ],
+  // σ = ۰.۸۱۶٪
   "4h": [
-    { maxErr: 0.05, points: 100 },
-    { maxErr: 0.25, points: 50 },
-    { maxErr: 0.5, points: 25 },
-    { maxErr: 1, points: 5 },
-    { maxErr: 2.5, points: -10 },
-    { maxErr: Infinity, points: -25 },
+    { maxErr: 0.04, points: 100 },
+    { maxErr: 0.18, points: 55 },
+    { maxErr: 0.37, points: 25 },
+    { maxErr: 0.69, points: 5 },
+    { maxErr: 1.47, points: -14 },
+    { maxErr: Infinity, points: -50 },
   ],
+  // σ = ۰.۴۰۸٪
   "1h": [
-    { maxErr: 0.03, points: 100 },
-    { maxErr: 0.12, points: 50 },
-    { maxErr: 0.25, points: 25 },
-    { maxErr: 0.5, points: 5 },
-    { maxErr: 1.2, points: -10 },
-    { maxErr: Infinity, points: -25 },
+    { maxErr: 0.02, points: 100 },
+    { maxErr: 0.09, points: 55 },
+    { maxErr: 0.18, points: 25 },
+    { maxErr: 0.35, points: 5 },
+    { maxErr: 0.74, points: -14 },
+    { maxErr: Infinity, points: -50 },
   ],
 };
 
