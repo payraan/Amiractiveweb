@@ -6,26 +6,17 @@ import { getCuratedMarkets } from "@/lib/poly";
 export const dynamic = "force-dynamic";
 
 export default async function Hero() {
-  let market: { id: string; question: string; yesPct: number } | null = null;
   let marketCount = 0;
 
   try {
     const all = await getCuratedMarkets();
     marketCount = all.length;
-    const pick = all.find((m) => m.yesPct >= 20 && m.yesPct <= 80) ?? all[0];
-    if (pick) {
-      market = { id: pick.id, question: pick.question, yesPct: pick.yesPct };
-    }
   } catch {
-    market = null;
+    marketCount = 0;
   }
 
-  const yes = market?.yesPct ?? 50;
-  const yesWin = Math.max(1, Math.round(100 - yes));
-  const noWin = Math.max(1, Math.round(yes));
-
   return (
-    <section className="relative overflow-hidden px-6 pb-40 pt-24 md:flex md:h-[calc(100svh-2.75rem)] md:min-h-[640px] md:flex-col md:justify-center md:pb-[19vh] md:pt-[7vh]">
+    <section className="relative overflow-hidden px-6 pb-40 pt-24 md:flex md:h-[calc(100svh-2.75rem)] md:min-h-[600px] md:flex-col md:justify-center md:pb-[24vh] md:pt-[8vh]">
       <ProbabilityHorizon />
 
       <div className="relative mx-auto max-w-3xl text-center">
@@ -54,19 +45,19 @@ export default async function Hero() {
 
         {/* لوگو با هاله */}
         <div
-          className="rise relative mt-6 flex justify-center"
+          className="rise relative mt-8 flex justify-center"
           style={{ animationDelay: "80ms" }}
         >
           <span
-            className="pointer-events-none absolute inset-0 -z-10 mx-auto my-auto h-20 w-20 rounded-full bg-gold/25 blur-3xl"
+            className="pointer-events-none absolute inset-0 -z-10 mx-auto my-auto h-24 w-24 rounded-full bg-gold/25 blur-3xl"
             aria-hidden="true"
           />
-          <Logo className="h-14 w-auto md:h-16" />
+          <Logo className="h-16 w-auto md:h-20" />
         </div>
 
         {/* تیترِ تک‌خطی */}
         <h1
-          className="rise mt-6 font-display text-4xl font-black leading-[1.15] tracking-tight md:text-6xl"
+          className="rise mt-8 font-display text-4xl font-black leading-[1.15] tracking-tight md:text-6xl"
           style={{ animationDelay: "160ms" }}
         >
           آینده را <span className="text-gold">پیش‌بینی</span> کن،{" "}
@@ -74,7 +65,7 @@ export default async function Hero() {
         </h1>
 
         <p
-          className="rise mx-auto mt-4 max-w-lg text-sm leading-7 text-muted md:text-base"
+          className="rise mx-auto mt-6 max-w-lg text-sm leading-7 text-muted md:text-base"
           style={{ animationDelay: "240ms" }}
         >
           بازار پیش‌بینی فارسی، با دیتای زنده. امتیاز فقط از مهارت می‌آید — نه
@@ -82,7 +73,7 @@ export default async function Hero() {
         </p>
 
         <div
-          className="rise mt-6 flex flex-wrap items-center justify-center gap-4"
+          className="rise mt-9 flex flex-wrap items-center justify-center gap-4"
           style={{ animationDelay: "330ms" }}
         >
           <Link
@@ -109,85 +100,11 @@ export default async function Hero() {
 
           <Link
             href="/arena#challenge"
-            className="rounded-full border border-line px-8 py-3.5 text-cream transition hover:border-gold/60 hover:text-gold"
+            className="rounded-full border border-line px-8 py-4 text-cream transition hover:border-gold/60 hover:text-gold"
           >
             چلنج پراپ
           </Link>
         </div>
-
-        {/* کارت بازار زنده — با فاصله بالای قله‌ی کره شناور است */}
-        {market && (
-          <div
-            className="rise relative mx-auto mt-6 max-w-md"
-            style={{ animationDelay: "430ms" }}
-          >
-            {/* هاله‌ی نزدیکِ کارت */}
-            <span
-              className="pointer-events-none absolute -inset-x-6 -bottom-8 top-6 -z-10 rounded-[2rem] bg-gold/10 blur-2xl"
-              aria-hidden="true"
-            />
-            {/* پدستالِ نور — کارت روی این می‌نشیند و شناور به‌نظر می‌رسد */}
-            <span
-              className="pointer-events-none absolute inset-x-10 -bottom-16 -z-10 h-16 rounded-[50%] bg-gold/20 blur-2xl"
-              aria-hidden="true"
-            />
-            <Link
-              href={`/trade?market=${market.id}`}
-              className="frame relative block p-5 text-start shadow-[0_28px_70px_-26px_rgba(0,0,0,0.9)] backdrop-blur-md"
-            >
-              {/* شیشه‌ی مات: پس‌زمینه‌ی مات که پرتوهای پشت را می‌پوشاند */}
-              <span
-                className="pointer-events-none absolute inset-0 rounded-[1.2rem] bg-surface/90"
-                aria-hidden="true"
-              />
-              <div className="relative">
-                <div className="flex items-center justify-between">
-                  <span
-                    className="flex items-center gap-2 font-mono text-[10px] tracking-wider text-muted"
-                    dir="ltr"
-                  >
-                    <span className="relative flex h-1.5 w-1.5">
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gain opacity-60" />
-                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-gain" />
-                    </span>
-                    LIVE MARKET
-                  </span>
-                  <span className="font-mono text-[10px] text-muted" dir="ltr">
-                    NOW
-                  </span>
-                </div>
-
-                <p className="mt-3 line-clamp-2 text-sm font-bold leading-6" dir="ltr">
-                  {market.question}
-                </p>
-
-                <div className="mt-4">
-                  <div className="flex justify-between font-mono text-[11px]" dir="ltr">
-                    <span className="text-gain">Yes {yes}%</span>
-                    <span className="text-loss">
-                      No {Math.round((100 - yes) * 10) / 10}%
-                    </span>
-                  </div>
-                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-loss/25">
-                    <div
-                      className="h-full rounded-full bg-gain"
-                      style={{ width: `${yes}%` }}
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-4 grid grid-cols-2 gap-2 font-mono text-[10px]">
-                  <span className="rounded-lg border border-gain/40 py-2.5 text-center text-gain">
-                    بله +{yesWin}
-                  </span>
-                  <span className="rounded-lg border border-loss/40 py-2.5 text-center text-loss">
-                    خیر +{noWin}
-                  </span>
-                </div>
-              </div>
-            </Link>
-          </div>
-        )}
       </div>
     </section>
   );
