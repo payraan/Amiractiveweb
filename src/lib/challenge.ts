@@ -3,8 +3,11 @@
 
 import { db } from "@/lib/db";
 
+export type ChallengeTrack = "forex" | "predict";
+
 export type ChallengeTier = {
   id: string;
+  track: ChallengeTrack;
   label: string; // "$1,000"
   size: number;
   fee: number; // کردیت ورود
@@ -12,62 +15,142 @@ export type ChallengeTier = {
   maxDrawdown: number; // حداکثر افت از سقف (Trailing)
   dailyLoss: number; // سقف ضرر روزانه (پوینت)
   minPreds: number; // حداقل پیش‌بینی تسویه‌شده
+  minDays: number; // حداقل روزهای فعال (روزی که حداقل یک تسویه داشته)
   days: number; // مهلت
   prize: string;
+  payoutNote?: string; // توضیح نحوه‌ی پرداخت جایزه
   popular?: boolean;
 };
 
+// ── قوانین مشترک همه‌ی چلنج‌ها ──────────────────────────────────
+//
+// قانون ثبات: هیچ روزی نباید بیش از این درصدِ کلِ سود باشد. این قانون
+// استراتژی «بلیت بخت‌آزمایی» را می‌بندد — کسی که با دو برد روی گزینه‌های
+// خیلی بعید به هدف برسد، آن روز سهم بیش از حد از سودش دارد و قبول
+// نمی‌شود. قبولی نیازمند عملکرد مستمر در چند روز است.
+export const CONSISTENCY_PCT = 35;
+
+// فقط پیش‌بینی‌هایی که در این بازه‌ی احتمال ثبت شده‌اند در ارزیابی چلنج
+// حساب می‌شوند. گزینه‌های خیلی بعید (زیر ۱۵٪) قمارند و گزینه‌های خیلی
+// محتمل (بالای ۸۵٪) مهارتی نشان نمی‌دهند. مرجع: استاندارد صنعت.
+export const ELIGIBLE_PROB_MIN = 0.15;
+export const ELIGIBLE_PROB_MAX = 0.85;
+
 export const CHALLENGES: ChallengeTier[] = [
+  // ── مسیر الف: حساب معاملاتی واقعی نزد بروکر همکار ───────────
   {
-    id: "c1k",
-    label: "$1,000",
-    size: 1000,
-    fee: 50,
-    target: 150,
-    maxDrawdown: 75,
-    dailyLoss: 40,
-    minPreds: 15,
+    id: "fx250",
+    track: "forex",
+    label: "$250",
+    size: 250,
+    fee: 600,
+    target: 200,
+    maxDrawdown: 100,
+    dailyLoss: 50,
+    minPreds: 20,
+    minDays: 5,
     days: 30,
-    prize: "حساب پراپ ۱,۰۰۰ دلاری",
+    prize: "حساب معاملاتی ۲۵۰ دلاری",
+    payoutNote: "سود قابل برداشت، نزد بروکر همکار",
   },
   {
-    id: "c5k",
-    label: "$5,000",
-    size: 5000,
-    fee: 150,
-    target: 250,
-    maxDrawdown: 125,
-    dailyLoss: 60,
-    minPreds: 15,
+    id: "fx500",
+    track: "forex",
+    label: "$500",
+    size: 500,
+    fee: 1000,
+    target: 300,
+    maxDrawdown: 150,
+    dailyLoss: 70,
+    minPreds: 25,
+    minDays: 5,
     days: 30,
-    prize: "حساب پراپ ۵,۰۰۰ دلاری",
-  },
-  {
-    id: "c10k",
-    label: "$10,000",
-    size: 10000,
-    fee: 250,
-    target: 350,
-    maxDrawdown: 175,
-    dailyLoss: 90,
-    minPreds: 15,
-    days: 30,
-    prize: "حساب پراپ ۱۰,۰۰۰ دلاری",
+    prize: "حساب معاملاتی ۵۰۰ دلاری",
+    payoutNote: "سود قابل برداشت، نزد بروکر همکار",
     popular: true,
   },
   {
-    id: "c50k",
-    label: "$50,000",
-    size: 50000,
-    fee: 500,
+    id: "fx1k",
+    track: "forex",
+    label: "$1,000",
+    size: 1000,
+    fee: 1800,
+    target: 450,
+    maxDrawdown: 225,
+    dailyLoss: 100,
+    minPreds: 30,
+    minDays: 7,
+    days: 30,
+    prize: "حساب معاملاتی ۱,۰۰۰ دلاری",
+    payoutNote: "سود قابل برداشت، نزد بروکر همکار",
+  },
+
+  // ── مسیر ب: حساب پیش‌بینی با پرداخت کریپتویی سقف‌دار ─────────
+  {
+    id: "pr5k",
+    track: "predict",
+    label: "$5,000",
+    size: 5000,
+    fee: 400,
+    target: 250,
+    maxDrawdown: 125,
+    dailyLoss: 60,
+    minPreds: 20,
+    minDays: 5,
+    days: 30,
+    prize: "حساب پیش‌بینی ۵,۰۰۰ دلاری",
+    payoutNote: "پرداخت هفتگی کریپتو تا سقف ۲۵۰ دلار",
+  },
+  {
+    id: "pr10k",
+    track: "predict",
+    label: "$10,000",
+    size: 10000,
+    fee: 700,
+    target: 350,
+    maxDrawdown: 175,
+    dailyLoss: 85,
+    minPreds: 25,
+    minDays: 5,
+    days: 30,
+    prize: "حساب پیش‌بینی ۱۰,۰۰۰ دلاری",
+    payoutNote: "پرداخت هفتگی کریپتو تا سقف ۵۰۰ دلار",
+  },
+  {
+    id: "pr25k",
+    track: "predict",
+    label: "$25,000",
+    size: 25000,
+    fee: 1600,
     target: 500,
     maxDrawdown: 250,
     dailyLoss: 120,
-    minPreds: 20,
+    minPreds: 30,
+    minDays: 7,
     days: 30,
-    prize: "حساب پراپ ۵۰,۰۰۰ دلاری",
+    prize: "حساب پیش‌بینی ۲۵,۰۰۰ دلاری",
+    payoutNote: "پرداخت هفتگی کریپتو تا سقف ۱,۲۵۰ دلار",
+  },
+  {
+    id: "pr50k",
+    track: "predict",
+    label: "$50,000",
+    size: 50000,
+    fee: 2800,
+    target: 700,
+    maxDrawdown: 350,
+    dailyLoss: 160,
+    minPreds: 35,
+    minDays: 7,
+    days: 30,
+    prize: "حساب پیش‌بینی ۵۰,۰۰۰ دلاری",
+    payoutNote: "پرداخت هفتگی کریپتو تا سقف ۲,۵۰۰ دلار",
   },
 ];
+
+export function tiersByTrack(track: ChallengeTrack): ChallengeTier[] {
+  return CHALLENGES.filter((c) => c.track === track);
+}
 
 export function tierById(id: string): ChallengeTier | null {
   return CHALLENGES.find((c) => c.id === id) ?? null;
@@ -170,6 +253,13 @@ export type ChallengeState = {
   dailyLoss: number;
   settledCount: number;
   minPreds: number;
+  activeDays: number;
+  minDays: number;
+  bestDayPct: number;
+  consistencyPct: number;
+  consistencyOk: boolean;
+  track: ChallengeTrack;
+  payoutNote: string | null;
   daysLeft: number;
   prize: string;
 };
@@ -193,13 +283,16 @@ export async function getChallengeState(
   const tier = tierById(row.tier_id);
   if (!tier) return null;
 
+  // فقط پیش‌بینی‌های داخل بازه‌ی احتمال مجاز در ارزیابی حساب می‌شوند.
+  // گزینه‌های خیلی بعید قمارند و گزینه‌های خیلی محتمل مهارتی نشان نمی‌دهند.
   const preds = await pool.query<{ points: number; settled_at: string }>(
     `SELECT points, settled_at FROM poly_predictions
       WHERE player_id=$1 AND status='settled'
         AND created_at >= $2
         AND settled_at IS NOT NULL AND settled_at <= $3
+        AND prob >= $4 AND prob <= $5
       ORDER BY settled_at ASC`,
-    [playerId, row.started_at, row.deadline]
+    [playerId, row.started_at, row.deadline, ELIGIBLE_PROB_MIN, ELIGIBLE_PROB_MAX]
   );
 
   let total = 0;
@@ -217,7 +310,15 @@ export async function getChallengeState(
     daily.set(day, (daily.get(day) ?? 0) + pts);
   }
   let worstDay = 0;
-  for (const v of daily.values()) if (v < worstDay) worstDay = v;
+  let bestDay = 0;
+  for (const v of daily.values()) {
+    if (v < worstDay) worstDay = v;
+    if (v > bestDay) bestDay = v;
+  }
+  const activeDays = daily.size;
+  // سهم بهترین روز از کل سود — پایه‌ی قانون ثبات
+  const bestDayPct = total > 0 ? Math.round((bestDay / total) * 100) : 0;
+  const consistencyOk = total <= 0 ? false : bestDayPct <= CONSISTENCY_PCT;
 
   const now = Date.now();
   const deadlineMs = new Date(row.deadline).getTime();
@@ -233,7 +334,12 @@ export async function getChallengeState(
     } else if (worstDay < -tier.dailyLoss) {
       status = "failed";
       failReason = "daily_loss";
-    } else if (total >= tier.target && preds.rowCount! >= tier.minPreds) {
+    } else if (
+      total >= tier.target &&
+      preds.rowCount! >= tier.minPreds &&
+      activeDays >= tier.minDays &&
+      consistencyOk
+    ) {
       status = "passed";
     } else if (now > deadlineMs) {
       status = "failed";
@@ -261,6 +367,13 @@ export async function getChallengeState(
     dailyLoss: tier.dailyLoss,
     settledCount: preds.rowCount ?? 0,
     minPreds: tier.minPreds,
+    activeDays,
+    minDays: tier.minDays,
+    bestDayPct,
+    consistencyPct: CONSISTENCY_PCT,
+    consistencyOk,
+    track: tier.track,
+    payoutNote: tier.payoutNote ?? null,
     daysLeft,
     prize: tier.prize,
   };
