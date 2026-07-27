@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { MarketData } from "@/lib/market";
 import type { Player, PredictedKey } from "@/components/predict/usePlayer";
-import { TIMEFRAMES, volScaleFor, isAssetOpen } from "@/lib/game";
+import { TIMEFRAMES, volScaleFor, isAssetOpen, tf, nextClose, settleFor } from "@/lib/game";
+import LiveChart from "@/components/predict/LiveChart";
 
 const CAT_ICON: Record<string, string> = {
   crypto: "M9 4v16M9 4h4.5a3 3 0 010 6H9m0 0h5a3 3 0 010 6H9M11 2v2m3-2v2M11 20v2m3-2v2",
@@ -20,30 +21,31 @@ function fmt(n: number | null, decimals: number): string {
   });
 }
 
-function Spark({ series }: { series: { t: number; p: number }[] }) {
-  if (series.length < 2) return null;
-  const W = 300;
-  const H = 56;
-  const ps = series.map((s) => s.p);
-  const min = Math.min(...ps);
-  const max = Math.max(...ps);
-  const span = max - min || 1;
-  const pts = series.map((s, i) => {
-    const x = (i / (series.length - 1)) * W;
-    const y = H - 4 - ((s.p - min) / span) * (H - 10);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
+
+/** زمان به وقت تهران، مثل «۵ مرداد ۲۱:۰۰» */
+function fmtTehran(d: Date): string {
+  return d.toLocaleString("fa-IR", {
+    timeZone: "Asia/Tehran",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
-  const up = ps[ps.length - 1] >= ps[0];
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="h-14 w-full" preserveAspectRatio="none">
-      <path
-        d={`M ${pts[0]} L ${pts.slice(1).join(" L ")}`}
-        fill="none"
-        stroke={up ? "var(--color-gain)" : "var(--color-loss)"}
-        strokeWidth="1.6"
-      />
-    </svg>
-  );
+}
+
+/** فاصله‌ی باقی‌مانده تا یک زمان، به فارسی */
+function remaining(to: Date, now: Date): string {
+  const ms = to.getTime() - now.getTime();
+  if (ms <= 0) return "به‌زودی";
+  const totalMin = Math.floor(ms / 60000);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h >= 24) {
+    const d = Math.floor(h / 24);
+    return `${d} روز و ${h % 24} ساعت`;
+  }
+  if (h > 0) return `${h} ساعت و ${m} دقیقه`;
+  return `${m} دقیقه`;
 }
 
 export default function AssetCard({
@@ -63,6 +65,32 @@ export default function AssetCard({
   const [guess, setGuess] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
+
+  // زمان‌های راند فقط سمت مرورگر محاسبه می‌شوند تا هیدریشن نشکند
+  // (سرور و مرورگر منطقه‌ی زمانی یکسانی ندارند).
+  const [timing, setTiming] = useState<{
+    closeLabel: string;
+    settleLabel: string;
+    leftLabel: string;
+  } | null>(null);
+
+  useEffect(() => {
+    const t = tf(tfId);
+    if (!t) return;
+    const tick = () => {
+      const now = new Date();
+      const closeAt = nextClose(t.hours, now);
+      const settleAt = settleFor(closeAt, t.hours);
+      setTiming({
+        closeLabel: fmtTehran(closeAt),
+        settleLabel: fmtTehran(settleAt),
+        leftLabel: remaining(closeAt, now),
+      });
+    };
+    tick();
+    const id = setInterval(tick, 30_000);
+    return () => clearInterval(id);
+  }, [tfId]);
 
   const asset = data.asset;
   const marketOpen = isAssetOpen(asset);
@@ -165,9 +193,9 @@ export default function AssetCard({
       </div>
 
       <div className="mt-4 rounded-xl border border-line bg-ink/30 px-3 py-2">
-        <Spark series={data.series} />
+        <LiveChart asset={asset} interval={tfId} />
         <div className="flex justify-between font-mono text-[9px] text-muted" dir="ltr">
-          <span>24h</span>
+          <span>{tfId} candles</span>
           <span>
             vol {data.dailyVolPct == null ? "—" : `${data.dailyVolPct.toFixed(2)}%`} ·
             scale ×{volScale}
@@ -209,6 +237,26 @@ export default function AssetCard({
           );
         })}
       </div>
+
+      {/* زمان‌بندی راند این تایم‌فریم — همه به وقت تهران */}
+      {timing && (
+        <div className="mt-3 rounded-xl border border-line bg-ink/30 px-4 py-3">
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="text-muted">مهلت ثبت پیش‌بینی</span>
+            <span className="text-cream">
+              {timing.closeLabel}
+              <span className="ms-2 text-gold">({timing.leftLabel} مانده)</span>
+            </span>
+          </div>
+          <div className="mt-2 flex items-center justify-between text-[11px]">
+            <span className="text-muted">زمان تسویه</span>
+            <span className="text-cream">{timing.settleLabel}</span>
+          </div>
+          <p className="mt-2 text-[10px] leading-5 text-muted">
+            قیمتی که حدس می‌زنید، قیمت این دارایی در «زمان تسویه» است.
+          </p>
+        </div>
+      )}
 
       {player ? (
         isPredicted ? (
