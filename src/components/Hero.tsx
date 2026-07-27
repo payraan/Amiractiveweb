@@ -25,7 +25,7 @@ export default async function Hero() {
   const noWin = Math.max(1, Math.round(yes));
 
   return (
-    <section className="relative overflow-hidden px-6 pb-40 pt-24 md:pb-52 md:pt-28">
+    <section className="relative overflow-hidden px-6 pb-40 pt-24 md:flex md:h-[calc(100svh-2.75rem)] md:min-h-[640px] md:flex-col md:justify-center md:pb-[19vh] md:pt-[7vh]">
       <ProbabilityHorizon />
 
       <div className="relative mx-auto max-w-3xl text-center">
@@ -54,27 +54,27 @@ export default async function Hero() {
 
         {/* لوگو با هاله */}
         <div
-          className="rise relative mt-8 flex justify-center"
+          className="rise relative mt-6 flex justify-center"
           style={{ animationDelay: "80ms" }}
         >
           <span
             className="pointer-events-none absolute inset-0 -z-10 mx-auto my-auto h-20 w-20 rounded-full bg-gold/25 blur-3xl"
             aria-hidden="true"
           />
-          <Logo className="h-16 w-auto md:h-20" />
+          <Logo className="h-14 w-auto md:h-16" />
         </div>
 
+        {/* تیترِ تک‌خطی */}
         <h1
-          className="rise mt-8 font-display text-4xl font-black leading-[1.22] tracking-tight md:text-6xl"
+          className="rise mt-6 font-display text-4xl font-black leading-[1.15] tracking-tight md:text-6xl"
           style={{ animationDelay: "160ms" }}
         >
-          آینده را <span className="text-gold">پیش‌بینی</span> کن،
-          <br />
-          حساب <span className="text-gold">پراپ</span> بگیر.
+          آینده را <span className="text-gold">پیش‌بینی</span> کن،{" "}
+          <span className="text-gold">پراپ</span> بگیر
         </h1>
 
         <p
-          className="rise mx-auto mt-6 max-w-xl text-sm leading-8 text-muted md:text-base"
+          className="rise mx-auto mt-4 max-w-lg text-sm leading-7 text-muted md:text-base"
           style={{ animationDelay: "240ms" }}
         >
           بازار پیش‌بینی فارسی، با دیتای زنده. امتیاز فقط از مهارت می‌آید — نه
@@ -82,7 +82,7 @@ export default async function Hero() {
         </p>
 
         <div
-          className="rise mt-8 flex flex-wrap items-center justify-center gap-4"
+          className="rise mt-6 flex flex-wrap items-center justify-center gap-4"
           style={{ animationDelay: "330ms" }}
         >
           <Link
@@ -109,7 +109,7 @@ export default async function Hero() {
 
           <Link
             href="/arena#challenge"
-            className="rounded-full border border-line px-8 py-4 text-cream transition hover:border-gold/60 hover:text-gold"
+            className="rounded-full border border-line px-8 py-3.5 text-cream transition hover:border-gold/60 hover:text-gold"
           >
             چلنج پراپ
           </Link>
@@ -118,7 +118,7 @@ export default async function Hero() {
         {/* کارت بازار زنده — با فاصله بالای قله‌ی کره شناور است */}
         {market && (
           <div
-            className="rise relative mx-auto mt-10 max-w-md"
+            className="rise relative mx-auto mt-6 max-w-md"
             style={{ animationDelay: "430ms" }}
           >
             {/* هاله‌ی نزدیکِ کارت */}
@@ -128,15 +128,14 @@ export default async function Hero() {
             />
             {/* پدستالِ نور — کارت روی این می‌نشیند و شناور به‌نظر می‌رسد */}
             <span
-              className="pointer-events-none absolute inset-x-10 -bottom-20 -z-10 h-20 rounded-[50%] bg-gold/20 blur-2xl"
+              className="pointer-events-none absolute inset-x-10 -bottom-16 -z-10 h-16 rounded-[50%] bg-gold/20 blur-2xl"
               aria-hidden="true"
             />
             <Link
               href={`/trade?market=${market.id}`}
-              className="frame relative block p-6 text-start shadow-[0_28px_70px_-26px_rgba(0,0,0,0.9)] backdrop-blur-md"
+              className="frame relative block p-5 text-start shadow-[0_28px_70px_-26px_rgba(0,0,0,0.9)] backdrop-blur-md"
             >
-              {/* شیشه‌ی مات: پس‌زمینه‌ی مات که پرتوهای پشت را می‌پوشاند تا مثل
-                  دسکتاپ یکدست و خوانا بماند و روی موبایل هم مطمئن رندر شود */}
+              {/* شیشه‌ی مات: پس‌زمینه‌ی مات که پرتوهای پشت را می‌پوشاند */}
               <span
                 className="pointer-events-none absolute inset-0 rounded-[1.2rem] bg-surface/90"
                 aria-hidden="true"
@@ -158,11 +157,11 @@ export default async function Hero() {
                   </span>
                 </div>
 
-                <p className="mt-4 line-clamp-2 text-sm font-bold leading-7" dir="ltr">
+                <p className="mt-3 line-clamp-2 text-sm font-bold leading-6" dir="ltr">
                   {market.question}
                 </p>
 
-                <div className="mt-5">
+                <div className="mt-4">
                   <div className="flex justify-between font-mono text-[11px]" dir="ltr">
                     <span className="text-gain">Yes {yes}%</span>
                     <span className="text-loss">
@@ -177,7 +176,7 @@ export default async function Hero() {
                   </div>
                 </div>
 
-                <div className="mt-5 grid grid-cols-2 gap-2 font-mono text-[10px]">
+                <div className="mt-4 grid grid-cols-2 gap-2 font-mono text-[10px]">
                   <span className="rounded-lg border border-gain/40 py-2.5 text-center text-gain">
                     بله +{yesWin}
                   </span>
