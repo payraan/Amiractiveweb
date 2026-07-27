@@ -1,9 +1,9 @@
 /**
  * بادبزن احتمال با کره‌ی زمین — امضای بصری نارمون.
- * کره (رویدادهای جهان) مثل سیاره‌ای روی افق در پایین می‌نشیند و پرتوها
- * (آینده‌های ممکن) از قله‌ی آن به بالا باز می‌شوند. کارتِ بازارِ زنده
- * (در Hero) با فاصله بالای قله‌ی کره شناور است. تماماً SVG و CSS،
- * بدون کتابخانه و بدون هزینه‌ی جاوااسکریپت — امن برای مخاطب کندِ ایران.
+ * دو لایه‌ی SVG هم‌تراز: لایه‌ی پرتوها ماسک‌دار است (بالا محو می‌شود) و
+ * لایه‌ی کره/فریم/جرقه بدون ماسک تا فریمِ طلایی هرگز محو نشود. کارتِ
+ * بازارِ زنده (در Hero) با فاصله بالای قله‌ی کره شناور است. تماماً SVG و
+ * CSS، بدون کتابخانه و بدون هزینه‌ی جاوااسکریپت — امن برای مخاطب کندِ ایران.
  */
 
 type Ray = {
@@ -15,27 +15,31 @@ type Ray = {
   tone: "gold" | "gain";
 };
 
-// پرتوها بلندترند تا یا به بالای هیرو برسند یا از لبه‌ی کناری خارج شوند —
+// پرتوها یا به بالای کادر می‌رسند یا از لبه‌ی کناری خارج می‌شوند —
 // هیچ‌کدام وسطِ صفحه معلق تمام نمی‌شوند.
 const RAYS: Ray[] = [
   { dx: -1160, dy: -770, w: 1.0, o: 0.1, delay: "0s", tone: "gold" },
   { dx: -840, dy: -840, w: 1.3, o: 0.14, delay: "1.9s", tone: "gold" },
-  { dx: -540, dy: -890, w: 1.1, o: 0.12, delay: "3.6s", tone: "gain" },
-  { dx: -260, dy: -930, w: 1.7, o: 0.2, delay: "1.0s", tone: "gold" },
-  { dx: 0, dy: -950, w: 2.1, o: 0.28, delay: "2.6s", tone: "gold" },
-  { dx: 260, dy: -930, w: 1.7, o: 0.2, delay: "4.1s", tone: "gold" },
-  { dx: 540, dy: -890, w: 1.1, o: 0.12, delay: "1.4s", tone: "gain" },
+  { dx: -540, dy: -965, w: 1.1, o: 0.12, delay: "3.6s", tone: "gain" },
+  { dx: -260, dy: -965, w: 1.7, o: 0.2, delay: "1.0s", tone: "gold" },
+  { dx: 0, dy: -985, w: 2.1, o: 0.28, delay: "2.6s", tone: "gold" },
+  { dx: 260, dy: -965, w: 1.7, o: 0.2, delay: "4.1s", tone: "gold" },
+  { dx: 540, dy: -965, w: 1.1, o: 0.12, delay: "1.4s", tone: "gain" },
   { dx: 840, dy: -840, w: 1.3, o: 0.14, delay: "3.1s", tone: "gold" },
   { dx: 1160, dy: -770, w: 1.0, o: 0.1, delay: "4.8s", tone: "gold" },
 ];
 
 const OX = 600;
-const OY = 990; // مرکز کره پایین‌تر تا کره زیرِ کارتِ شناور بنشیند
+const OY = 990; // مرکز کره — دست‌نخورده نسبت به نسخه‌ی فعلی
 const R = 190;
 const CROWN_Y = OY - R; // قله‌ی کره؛ روی همین نقطه هم فریم و هم تلاقیِ پرتوها می‌نشیند
 
+// نقاطِ محلِ برخوردِ کره با لبه‌ی پایینِ viewBox (برای کشیدنِ فریمِ کاملِ قوسِ بالا)
+const EDGE_DX = Math.sqrt(R * R - (OY - 900) * (OY - 900)); // ~167
+const LX = OX - EDGE_DX;
+const RX = OX + EDGE_DX;
+
 function pathFor(r: Ray): string {
-  // همه‌ی پرتوها دقیقاً از قله‌ی کره (روی خطِ فریم) شروع می‌شوند
   const sx = OX;
   const sy = CROWN_Y;
   const cx = sx + r.dx * 0.26;
@@ -62,54 +66,12 @@ export default function ProbabilityHorizon() {
         }}
       />
 
+      {/* لایه‌ی ۱ — پرتوها (ماسک‌دار: بالا نرم محو می‌شود) */}
       <svg
         viewBox="0 0 1200 900"
         className="horizon-mask absolute inset-0 h-full w-full"
         preserveAspectRatio="xMidYMax slice"
       >
-        <defs>
-          <radialGradient id="nm-core" cx="50%" cy="100%" r="60%">
-            <stop offset="0%" stopColor="var(--color-gold)" stopOpacity="0.16" />
-            <stop offset="55%" stopColor="var(--color-gold)" stopOpacity="0.04" />
-            <stop offset="100%" stopColor="var(--color-gold)" stopOpacity="0" />
-          </radialGradient>
-          <radialGradient id="nm-globe" cx="36%" cy="26%" r="82%">
-            <stop offset="0%" stopColor="#2b2b36" />
-            <stop offset="55%" stopColor="#16161d" />
-            <stop offset="100%" stopColor="#0b0b10" />
-          </radialGradient>
-          <radialGradient id="nm-sheen" cx="34%" cy="22%" r="42%">
-            <stop offset="0%" stopColor="var(--color-cream)" stopOpacity="0.12" />
-            <stop offset="100%" stopColor="var(--color-cream)" stopOpacity="0" />
-          </radialGradient>
-          <radialGradient id="nm-atmos" cx="50%" cy="50%" r="50%">
-            <stop offset="72%" stopColor="var(--color-gold)" stopOpacity="0" />
-            <stop offset="90%" stopColor="var(--color-gold)" stopOpacity="0.14" />
-            <stop offset="100%" stopColor="var(--color-gold)" stopOpacity="0" />
-          </radialGradient>
-          {/* جرقه‌ی تلاقی — روی نقطه‌ی همگراییِ پرتوها، دقیقاً روی خطِ فریم */}
-          <radialGradient id="nm-spark" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="var(--color-cream)" stopOpacity="0.95" />
-            <stop offset="30%" stopColor="var(--color-gold)" stopOpacity="0.7" />
-            <stop offset="100%" stopColor="var(--color-gold)" stopOpacity="0" />
-          </radialGradient>
-          <clipPath id="nm-globe-clip">
-            <circle cx={OX} cy={OY} r={R} />
-          </clipPath>
-        </defs>
-
-        {/* هاله‌ی وسیع پشت کره */}
-        <ellipse
-          className="narmoon-glow"
-          cx={OX}
-          cy={OY}
-          rx="440"
-          ry="360"
-          fill="url(#nm-core)"
-          style={{ animation: "narmoon-glow 7s ease-in-out infinite" }}
-        />
-
-        {/* پرتوها — از قله‌ی کره، پشتِ کارت به بالا باز می‌شوند */}
         {RAYS.map((r, i) => {
           const d = pathFor(r);
           const color = r.tone === "gain" ? "var(--color-gain)" : "var(--color-gold)";
@@ -137,6 +99,54 @@ export default function ProbabilityHorizon() {
             </g>
           );
         })}
+      </svg>
+
+      {/* لایه‌ی ۲ — کره و فریم و جرقه (بدون ماسک: هرگز محو نمی‌شود) */}
+      <svg
+        viewBox="0 0 1200 900"
+        className="absolute inset-0 h-full w-full"
+        preserveAspectRatio="xMidYMax slice"
+      >
+        <defs>
+          <radialGradient id="nm-core" cx="50%" cy="100%" r="60%">
+            <stop offset="0%" stopColor="var(--color-gold)" stopOpacity="0.16" />
+            <stop offset="55%" stopColor="var(--color-gold)" stopOpacity="0.04" />
+            <stop offset="100%" stopColor="var(--color-gold)" stopOpacity="0" />
+          </radialGradient>
+          <radialGradient id="nm-globe" cx="36%" cy="26%" r="82%">
+            <stop offset="0%" stopColor="#2b2b36" />
+            <stop offset="55%" stopColor="#16161d" />
+            <stop offset="100%" stopColor="#0b0b10" />
+          </radialGradient>
+          <radialGradient id="nm-sheen" cx="34%" cy="22%" r="42%">
+            <stop offset="0%" stopColor="var(--color-cream)" stopOpacity="0.12" />
+            <stop offset="100%" stopColor="var(--color-cream)" stopOpacity="0" />
+          </radialGradient>
+          <radialGradient id="nm-atmos" cx="50%" cy="50%" r="50%">
+            <stop offset="72%" stopColor="var(--color-gold)" stopOpacity="0" />
+            <stop offset="90%" stopColor="var(--color-gold)" stopOpacity="0.14" />
+            <stop offset="100%" stopColor="var(--color-gold)" stopOpacity="0" />
+          </radialGradient>
+          <radialGradient id="nm-spark" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="var(--color-cream)" stopOpacity="0.95" />
+            <stop offset="30%" stopColor="var(--color-gold)" stopOpacity="0.7" />
+            <stop offset="100%" stopColor="var(--color-gold)" stopOpacity="0" />
+          </radialGradient>
+          <clipPath id="nm-globe-clip">
+            <circle cx={OX} cy={OY} r={R} />
+          </clipPath>
+        </defs>
+
+        {/* هاله‌ی وسیع پشت کره */}
+        <ellipse
+          className="narmoon-glow"
+          cx={OX}
+          cy={OY}
+          rx="440"
+          ry="360"
+          fill="url(#nm-core)"
+          style={{ animation: "narmoon-glow 7s ease-in-out infinite" }}
+        />
 
         {/* هاله‌ی اتمسفری بیرونِ کره */}
         <circle cx={OX} cy={OY} r={R + 16} fill="url(#nm-atmos)" />
@@ -182,28 +192,36 @@ export default function ProbabilityHorizon() {
           <circle cx={OX} cy={OY} r={R} fill="url(#nm-sheen)" />
         </g>
 
-        {/* فریمِ کاملِ کره — دورِ کلِ دایره (نه فقط قوسِ بالا) تا در دسکتاپ هم کامل باشد */}
+        {/* فریمِ کاملِ کره — دورِ کلِ دایره، روشن و یکدست (بخشِ زیرِ لبه‌ی پایین
+            به‌طور طبیعی بیرون از کادر است، مثل سیاره‌ای روی افق) */}
         <circle
           cx={OX}
           cy={OY}
           r={R}
           fill="none"
           stroke="var(--color-gold)"
-          strokeOpacity="0.55"
-          strokeWidth="1.4"
+          strokeOpacity="0.6"
+          strokeWidth="1.5"
         />
-        {/* برجستگیِ نور روی قوسِ بالا برای حسِ افقِ روشن */}
+        {/* قوسِ روشنِ افق — از یک لبه‌ی پایین، روی قله، تا لبه‌ی پایینِ دیگر:
+            کلِ نیم‌کره‌ی دیده‌شده را کامل می‌پوشاند */}
         <path
-          d={`M${OX - R * 0.86},${OY - R * 0.5} A${R},${R} 0 0 1 ${OX + R * 0.86},${OY - R * 0.5}`}
+          d={`M${LX.toFixed(1)},900 A${R},${R} 0 0 1 ${RX.toFixed(1)},900`}
           fill="none"
           stroke="var(--color-gold)"
-          strokeOpacity="0.8"
-          strokeWidth="1.6"
+          strokeOpacity="0.85"
+          strokeWidth="1.8"
           strokeLinecap="round"
         />
 
-        {/* جرقه‌ی تلاقیِ پرتوها — دقیقاً روی قله‌ی فریم تا نقطه‌ی همگرایی با خطِ کره یکی شود */}
-        <circle cx={OX} cy={CROWN_Y} r="46" fill="url(#nm-spark)" />
+        {/* جرقه‌ی تلاقیِ پرتوها — روی قله‌ی فریم، با چشمکِ نرم */}
+        <circle
+          className="narmoon-spark"
+          cx={OX}
+          cy={CROWN_Y}
+          r="46"
+          fill="url(#nm-spark)"
+        />
       </svg>
     </div>
   );

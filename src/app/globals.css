@@ -456,3 +456,17 @@ main .rounded-2xl.border-line:not(.no-lift):hover::after,
     transform: none;
   }
 }
+
+/* چشمکِ نرمِ جرقه‌ی تلاقیِ پرتوها روی قله‌ی کره */
+@keyframes narmoon-spark {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+.narmoon-spark {
+  animation: narmoon-spark 3s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .narmoon-spark {
+    animation: none !important;
+  }
+}

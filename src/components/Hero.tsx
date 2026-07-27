@@ -25,11 +25,11 @@ export default async function Hero() {
   const noWin = Math.max(1, Math.round(yes));
 
   return (
-    <section className="relative overflow-hidden px-6 pb-64 pt-36 md:pb-80 md:pt-44">
+    <section className="relative overflow-hidden px-6 pb-40 pt-24 md:pb-52 md:pt-28">
       <ProbabilityHorizon />
 
       <div className="relative mx-auto max-w-3xl text-center">
-        {/* نشان اعتماد با قاب نور چرخان */}
+        {/* نشان اعتماد با قاب نور */}
         <div className="rise flex justify-center">
           <div className="spin-frame">
           <div className="flex items-center gap-2.5 rounded-full border border-line bg-surface/70 px-4 py-1.5 backdrop-blur">
@@ -54,18 +54,18 @@ export default async function Hero() {
 
         {/* لوگو با هاله */}
         <div
-          className="rise relative mt-12 flex justify-center"
+          className="rise relative mt-8 flex justify-center"
           style={{ animationDelay: "80ms" }}
         >
           <span
-            className="pointer-events-none absolute inset-0 -z-10 mx-auto my-auto h-24 w-24 rounded-full bg-gold/25 blur-3xl"
+            className="pointer-events-none absolute inset-0 -z-10 mx-auto my-auto h-20 w-20 rounded-full bg-gold/25 blur-3xl"
             aria-hidden="true"
           />
-          <Logo className="h-20 w-auto md:h-24" />
+          <Logo className="h-16 w-auto md:h-20" />
         </div>
 
         <h1
-          className="rise mt-12 font-display text-5xl font-black leading-[1.28] tracking-tight md:text-7xl"
+          className="rise mt-8 font-display text-4xl font-black leading-[1.22] tracking-tight md:text-6xl"
           style={{ animationDelay: "160ms" }}
         >
           آینده را <span className="text-gold">پیش‌بینی</span> کن،
@@ -74,7 +74,7 @@ export default async function Hero() {
         </h1>
 
         <p
-          className="rise mx-auto mt-8 max-w-xl text-base leading-9 text-muted md:text-lg"
+          className="rise mx-auto mt-6 max-w-xl text-sm leading-8 text-muted md:text-base"
           style={{ animationDelay: "240ms" }}
         >
           بازار پیش‌بینی فارسی، با دیتای زنده. امتیاز فقط از مهارت می‌آید — نه
@@ -82,7 +82,7 @@ export default async function Hero() {
         </p>
 
         <div
-          className="rise mt-11 flex flex-wrap items-center justify-center gap-4"
+          className="rise mt-8 flex flex-wrap items-center justify-center gap-4"
           style={{ animationDelay: "330ms" }}
         >
           <Link
@@ -115,11 +115,10 @@ export default async function Hero() {
           </Link>
         </div>
 
-        {/* کارت بازار زنده — با فاصله بالای قله‌ی کره شناور است (پدستالِ نور زیرش
-            آن را از کره جدا نگه می‌دارد) */}
+        {/* کارت بازار زنده — با فاصله بالای قله‌ی کره شناور است */}
         {market && (
           <div
-            className="rise relative mx-auto mt-16 max-w-md"
+            className="rise relative mx-auto mt-10 max-w-md"
             style={{ animationDelay: "430ms" }}
           >
             {/* هاله‌ی نزدیکِ کارت */}
@@ -129,7 +128,7 @@ export default async function Hero() {
             />
             {/* پدستالِ نور — کارت روی این می‌نشیند و شناور به‌نظر می‌رسد */}
             <span
-              className="pointer-events-none absolute inset-x-10 -bottom-24 -z-10 h-24 rounded-[50%] bg-gold/20 blur-2xl"
+              className="pointer-events-none absolute inset-x-10 -bottom-20 -z-10 h-20 rounded-[50%] bg-gold/20 blur-2xl"
               aria-hidden="true"
             />
             <Link
