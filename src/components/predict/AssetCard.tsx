@@ -90,6 +90,10 @@ export default function AssetCard({
           daily_limit: "سقف مجاز امروز این تایم‌فریم پر شده است.",
           market_closed: "بازار این دارایی الان بسته است.",
           bad_guess: "قیمت واردشده معتبر نیست.",
+          bad_asset: "این دارایی معتبر نیست.",
+          bad_timeframe: "تایم‌فریم انتخابی معتبر نیست.",
+          round_closed: "مهلت این راند تمام شده است.",
+          no_round: "راند فعالی برای این دارایی وجود ندارد.",
         };
         setMsg({ text: map[j.error] ?? "خطایی رخ داد.", ok: false });
         return;

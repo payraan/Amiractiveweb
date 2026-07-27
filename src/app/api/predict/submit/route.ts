@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { verifySession, SESSION_COOKIE } from "@/lib/session";
 import { getOrCreateRound, isClosed } from "@/lib/rounds";
 import { tf, isAssetOpen, type Asset, type TimeframeId } from "@/lib/game";
+import { assetById } from "@/lib/assets";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "bad_request" }, { status: 400 });
   }
 
-  const asset = body.asset === "BTC" || body.asset === "XAU" ? (body.asset as Asset) : null;
+  // اعتبارسنجی در برابر کاتالوگ کامل دارایی‌ها (۴۲ دارایی).
+  // قبلاً فقط BTC و XAU پذیرفته می‌شد و بقیه‌ی دارایی‌ها bad_asset می‌گرفتند.
+  const rawAsset = String(body.asset ?? "").trim().toUpperCase();
+  const asset: Asset | null = assetById(rawAsset) ? rawAsset : null;
   const t = body.timeframe ? tf(body.timeframe) : undefined;
   const guess = Number(body.guess);
 
