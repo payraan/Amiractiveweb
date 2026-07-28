@@ -45,6 +45,8 @@ type State = {
 
 const START_ERRORS: Record<string, string> = {
   active_exists: "یک چلنج فعال دارید؛ ابتدا آن را کامل کنید.",
+  entry_limit:
+    "سقف ورود به چلنج حساب پیش‌بینی ۳ بار در ۳۰ روز است. کمی صبر کنید یا مسیر حساب معاملاتی را انتخاب کنید.",
   insufficient_credits: "کردیت کافی برای این چلنج ندارید.",
   not_authed: "برای شروع چلنج وارد شوید.",
 };

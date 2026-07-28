@@ -33,8 +33,19 @@ export const CONSISTENCY_PCT = 35;
 // فقط پیش‌بینی‌هایی که در این بازه‌ی احتمال ثبت شده‌اند در ارزیابی چلنج
 // حساب می‌شوند. گزینه‌های خیلی بعید (زیر ۱۵٪) قمارند و گزینه‌های خیلی
 // محتمل (بالای ۸۵٪) مهارتی نشان نمی‌دهند. مرجع: استاندارد صنعت.
-export const ELIGIBLE_PROB_MIN = 0.15;
-export const ELIGIBLE_PROB_MAX = 0.85;
+export const ELIGIBLE_PROB_MIN = 0.25;
+export const ELIGIBLE_PROB_MAX = 0.75;
+
+// فقط این تعداد از اولین پیش‌بینی‌های تسویه‌شده در ارزیابی حساب می‌شوند.
+// بدون این سقف، بازیکنی که حتی مزیت کوچکی دارد می‌تواند با حجم بالا
+// مزیتش را تجمیع کند و عملا همیشه به هدف برسد — یعنی نتیجه به «چقدر
+// بازی کردی» گره می‌خورد نه «چقدر خوب پیش‌بینی کردی».
+export const MAX_COUNTED_PREDS = 50;
+
+// سقف تعداد ورود به چلنج در ۳۰ روز گذشته (فقط مسیر حساب پیش‌بینی).
+// مسیر فارکس محدود نیست چون جایزه‌اش حساب مارکتینگی بروکر است و
+// هزینه‌ای برای ما ندارد.
+export const MAX_ENTRIES_PER_30D = 3;
 
 export const CHALLENGES: ChallengeTier[] = [
   // ── مسیر الف: حساب معاملاتی واقعی نزد بروکر همکار ───────────
@@ -44,11 +55,11 @@ export const CHALLENGES: ChallengeTier[] = [
     label: "$250",
     size: 250,
     fee: 600,
-    target: 200,
-    maxDrawdown: 100,
-    dailyLoss: 50,
-    minPreds: 20,
-    minDays: 5,
+    target: 300,
+    maxDrawdown: 150,
+    dailyLoss: 60,
+    minPreds: 25,
+    minDays: 7,
     days: 30,
     prize: "حساب معاملاتی ۲۵۰ دلاری",
     payoutNote: "حساب واقعی نزد بروکر همکار — سود قابل برداشت",
@@ -61,9 +72,9 @@ export const CHALLENGES: ChallengeTier[] = [
     fee: 1000,
     target: 300,
     maxDrawdown: 150,
-    dailyLoss: 70,
+    dailyLoss: 60,
     minPreds: 25,
-    minDays: 5,
+    minDays: 7,
     days: 30,
     prize: "حساب معاملاتی ۵۰۰ دلاری",
     payoutNote: "حساب واقعی نزد بروکر همکار — سود قابل برداشت",
@@ -75,10 +86,10 @@ export const CHALLENGES: ChallengeTier[] = [
     label: "$1,000",
     size: 1000,
     fee: 1800,
-    target: 450,
-    maxDrawdown: 225,
-    dailyLoss: 100,
-    minPreds: 30,
+    target: 300,
+    maxDrawdown: 150,
+    dailyLoss: 60,
+    minPreds: 25,
     minDays: 7,
     days: 30,
     prize: "حساب معاملاتی ۱,۰۰۰ دلاری",
@@ -92,14 +103,14 @@ export const CHALLENGES: ChallengeTier[] = [
     label: "$5,000",
     size: 5000,
     fee: 400,
-    target: 250,
-    maxDrawdown: 125,
+    target: 300,
+    maxDrawdown: 150,
     dailyLoss: 60,
-    minPreds: 20,
-    minDays: 5,
+    minPreds: 25,
+    minDays: 7,
     days: 30,
     prize: "حساب پیش‌بینی ۵,۰۰۰ دلاری",
-    payoutNote: "پرداخت کریپتویی پس از بررسی، تا سقف ۲۵۰ دلار",
+    payoutNote: "پرداخت کریپتویی پس از بررسی، تا سقف ۱۵۰ دلار",
   },
   {
     id: "pr10k",
@@ -107,14 +118,14 @@ export const CHALLENGES: ChallengeTier[] = [
     label: "$10,000",
     size: 10000,
     fee: 700,
-    target: 350,
-    maxDrawdown: 175,
-    dailyLoss: 85,
+    target: 300,
+    maxDrawdown: 150,
+    dailyLoss: 60,
     minPreds: 25,
-    minDays: 5,
+    minDays: 7,
     days: 30,
     prize: "حساب پیش‌بینی ۱۰,۰۰۰ دلاری",
-    payoutNote: "پرداخت کریپتویی پس از بررسی، تا سقف ۵۰۰ دلار",
+    payoutNote: "پرداخت کریپتویی پس از بررسی، تا سقف ۳۰۰ دلار",
   },
   {
     id: "pr25k",
@@ -122,14 +133,14 @@ export const CHALLENGES: ChallengeTier[] = [
     label: "$25,000",
     size: 25000,
     fee: 1600,
-    target: 500,
-    maxDrawdown: 250,
-    dailyLoss: 120,
-    minPreds: 30,
+    target: 300,
+    maxDrawdown: 150,
+    dailyLoss: 60,
+    minPreds: 25,
     minDays: 7,
     days: 30,
     prize: "حساب پیش‌بینی ۲۵,۰۰۰ دلاری",
-    payoutNote: "پرداخت کریپتویی پس از بررسی، تا سقف ۱,۲۵۰ دلار",
+    payoutNote: "پرداخت کریپتویی پس از بررسی، تا سقف ۷۵۰ دلار",
   },
   {
     id: "pr50k",
@@ -137,14 +148,14 @@ export const CHALLENGES: ChallengeTier[] = [
     label: "$50,000",
     size: 50000,
     fee: 2800,
-    target: 700,
-    maxDrawdown: 350,
-    dailyLoss: 160,
-    minPreds: 35,
+    target: 300,
+    maxDrawdown: 150,
+    dailyLoss: 60,
+    minPreds: 25,
     minDays: 7,
     days: 30,
     prize: "حساب پیش‌بینی ۵۰,۰۰۰ دلاری",
-    payoutNote: "پرداخت کریپتویی پس از بررسی، تا سقف ۲,۵۰۰ دلار",
+    payoutNote: "پرداخت کریپتویی پس از بررسی، تا سقف ۱,۵۰۰ دلار",
   },
 ];
 
@@ -203,6 +214,25 @@ export async function startChallenge(
     if (active.rowCount) {
       await client.query("ROLLBACK");
       return { ok: false, error: "active_exists" };
+    }
+
+    // سقف ورود مجدد — فقط مسیر حساب پیش‌بینی. سمت سرور اعمال می‌شود،
+    // نه فقط در UI، وگرنه با درخواست مستقیم به API دور زده می‌شود.
+    if (tier.track === "predict") {
+      const predictIds = CHALLENGES.filter((c) => c.track === "predict").map(
+        (c) => c.id
+      );
+      const recent = await client.query(
+        `SELECT count(*)::int AS n FROM player_challenges
+          WHERE player_id=$1
+            AND tier_id = ANY($2::text[])
+            AND started_at > now() - interval '30 days'`,
+        [playerId, predictIds]
+      );
+      if ((recent.rows[0]?.n ?? 0) >= MAX_ENTRIES_PER_30D) {
+        await client.query("ROLLBACK");
+        return { ok: false, error: "entry_limit" };
+      }
     }
 
     const pl = await client.query(
@@ -291,8 +321,9 @@ export async function getChallengeState(
         AND created_at >= $2
         AND settled_at IS NOT NULL AND settled_at <= $3
         AND prob >= $4 AND prob <= $5
-      ORDER BY settled_at ASC`,
-    [playerId, row.started_at, row.deadline, ELIGIBLE_PROB_MIN, ELIGIBLE_PROB_MAX]
+      ORDER BY settled_at ASC
+      LIMIT $6`,
+    [playerId, row.started_at, row.deadline, ELIGIBLE_PROB_MIN, ELIGIBLE_PROB_MAX, MAX_COUNTED_PREDS]
   );
 
   let total = 0;

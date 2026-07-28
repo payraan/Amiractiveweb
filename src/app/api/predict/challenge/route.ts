@@ -46,6 +46,7 @@ export async function POST(req: Request) {
     const codes: Record<string, number> = {
       bad_tier: 400,
       active_exists: 409,
+      entry_limit: 429,
       insufficient_credits: 402,
       not_authed: 401,
     };
