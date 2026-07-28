@@ -31,8 +31,10 @@ export type ChallengeTier = {
 export const CONSISTENCY_PCT = 35;
 
 // فقط پیش‌بینی‌هایی که در این بازه‌ی احتمال ثبت شده‌اند در ارزیابی چلنج
-// حساب می‌شوند. گزینه‌های خیلی بعید (زیر ۱۵٪) قمارند و گزینه‌های خیلی
-// محتمل (بالای ۸۵٪) مهارتی نشان نمی‌دهند. مرجع: استاندارد صنعت.
+// حساب می‌شوند. گزینه‌های خیلی بعید (زیر ۲۵٪) قمار بلیت‌بخت‌آزمایی‌اند:
+// باخت‌های کوچک و بردهای نادرِ بزرگ. گزینه‌های خیلی محتمل (بالای ۷۵٪)
+// قمار معکوس‌اند: بردهای کوچکِ مکرر که قانون ثبات را دور می‌زنند.
+// شبیه‌سازی نشان داد هر دو سر طیف نرخ قبولی را مصنوعی بالا می‌برند.
 export const ELIGIBLE_PROB_MIN = 0.25;
 export const ELIGIBLE_PROB_MAX = 0.75;
 
@@ -207,6 +209,18 @@ export async function startChallenge(
   try {
     await client.query("BEGIN");
 
+    // ردیف بازیکن را همین اول قفل می‌کنیم. هر بررسیِ بعدی (چلنج فعال و
+    // سقف ورود) پشت این قفل سریالی می‌شود، پس دو درخواست همزمان نمی‌توانند
+    // هر دو شمارش را زیر سقف ببینند و چهارمین ورود را ثبت کنند.
+    const pl = await client.query(
+      "SELECT credits FROM players WHERE id=$1 FOR UPDATE",
+      [playerId]
+    );
+    if (!pl.rowCount) {
+      await client.query("ROLLBACK");
+      return { ok: false, error: "not_authed" };
+    }
+
     const active = await client.query(
       `SELECT id FROM player_challenges WHERE player_id=$1 AND status='active'`,
       [playerId]
@@ -235,14 +249,6 @@ export async function startChallenge(
       }
     }
 
-    const pl = await client.query(
-      "SELECT credits FROM players WHERE id=$1 FOR UPDATE",
-      [playerId]
-    );
-    if (!pl.rowCount) {
-      await client.query("ROLLBACK");
-      return { ok: false, error: "not_authed" };
-    }
     if (pl.rows[0].credits < tier.fee) {
       await client.query("ROLLBACK");
       return { ok: false, error: "insufficient_credits" };
