@@ -51,7 +51,7 @@ export const CHALLENGES: ChallengeTier[] = [
     minDays: 5,
     days: 30,
     prize: "حساب معاملاتی ۲۵۰ دلاری",
-    payoutNote: "سود قابل برداشت، نزد بروکر همکار",
+    payoutNote: "حساب واقعی نزد بروکر همکار — سود قابل برداشت",
   },
   {
     id: "fx500",
@@ -66,7 +66,7 @@ export const CHALLENGES: ChallengeTier[] = [
     minDays: 5,
     days: 30,
     prize: "حساب معاملاتی ۵۰۰ دلاری",
-    payoutNote: "سود قابل برداشت، نزد بروکر همکار",
+    payoutNote: "حساب واقعی نزد بروکر همکار — سود قابل برداشت",
     popular: true,
   },
   {
@@ -82,7 +82,7 @@ export const CHALLENGES: ChallengeTier[] = [
     minDays: 7,
     days: 30,
     prize: "حساب معاملاتی ۱,۰۰۰ دلاری",
-    payoutNote: "سود قابل برداشت، نزد بروکر همکار",
+    payoutNote: "حساب واقعی نزد بروکر همکار — سود قابل برداشت",
   },
 
   // ── مسیر ب: حساب پیش‌بینی با پرداخت کریپتویی سقف‌دار ─────────
@@ -99,7 +99,7 @@ export const CHALLENGES: ChallengeTier[] = [
     minDays: 5,
     days: 30,
     prize: "حساب پیش‌بینی ۵,۰۰۰ دلاری",
-    payoutNote: "پرداخت هفتگی کریپتو تا سقف ۲۵۰ دلار",
+    payoutNote: "پرداخت کریپتویی پس از بررسی، تا سقف ۲۵۰ دلار",
   },
   {
     id: "pr10k",
@@ -114,7 +114,7 @@ export const CHALLENGES: ChallengeTier[] = [
     minDays: 5,
     days: 30,
     prize: "حساب پیش‌بینی ۱۰,۰۰۰ دلاری",
-    payoutNote: "پرداخت هفتگی کریپتو تا سقف ۵۰۰ دلار",
+    payoutNote: "پرداخت کریپتویی پس از بررسی، تا سقف ۵۰۰ دلار",
   },
   {
     id: "pr25k",
@@ -129,7 +129,7 @@ export const CHALLENGES: ChallengeTier[] = [
     minDays: 7,
     days: 30,
     prize: "حساب پیش‌بینی ۲۵,۰۰۰ دلاری",
-    payoutNote: "پرداخت هفتگی کریپتو تا سقف ۱,۲۵۰ دلار",
+    payoutNote: "پرداخت کریپتویی پس از بررسی، تا سقف ۱,۲۵۰ دلار",
   },
   {
     id: "pr50k",
@@ -144,7 +144,7 @@ export const CHALLENGES: ChallengeTier[] = [
     minDays: 7,
     days: 30,
     prize: "حساب پیش‌بینی ۵۰,۰۰۰ دلاری",
-    payoutNote: "پرداخت هفتگی کریپتو تا سقف ۲,۵۰۰ دلار",
+    payoutNote: "پرداخت کریپتویی پس از بررسی، تا سقف ۲,۵۰۰ دلار",
   },
 ];
 
