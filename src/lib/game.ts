@@ -191,11 +191,17 @@ export type CreditPack = {
   badge?: string; // مثلا "محبوب"
 };
 
+// نردبان قیمت طوری چیده شده که هر پک بزرگ‌تر، هر کردیت را ارزان‌تر بدهد
+// (از ۰.۱۰ دلار در پک شروع تا ۰.۰۴۲ دلار در بزرگ‌ترین پک). دو پک آخر
+// اضافه شدند چون چلنج‌های بزرگ تا ۲۸۰۰ کردیت ورودی دارند و کاربر نباید
+// مجبور شود چند بار خرید کند.
 export const CREDIT_PACKS: CreditPack[] = [
   { id: "starter", credits: 50, priceUsdt: 5 },
   { id: "popular", credits: 200, priceUsdt: 15, badge: "محبوب" },
   { id: "pro", credits: 500, priceUsdt: 30 },
   { id: "arena", credits: 1000, priceUsdt: 50 },
+  { id: "elite", credits: 2000, priceUsdt: 90, badge: "بهترین ارزش" },
+  { id: "prime", credits: 3000, priceUsdt: 125 },
 ];
 
 export const SUPPORT_TG = "https://t.me/Amiractive_support";

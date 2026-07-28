@@ -5,14 +5,17 @@ import { usePlayer } from "@/components/predict/usePlayer";
 
 type Tier = {
   id: string;
+  track: "forex" | "predict";
   label: string;
   fee: number;
   target: number;
   maxDrawdown: number;
   dailyLoss: number;
   minPreds: number;
+  minDays: number;
   days: number;
   prize: string;
+  payoutNote: string | null;
   popular: boolean;
 };
 
@@ -29,6 +32,13 @@ type State = {
   dailyLoss: number;
   settledCount: number;
   minPreds: number;
+  activeDays: number;
+  minDays: number;
+  bestDayPct: number;
+  consistencyPct: number;
+  consistencyOk: boolean;
+  track: "forex" | "predict";
+  payoutNote: string | null;
   daysLeft: number;
   prize: string;
 } | null;
@@ -72,6 +82,7 @@ export default function ChallengePanel() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [track, setTrack] = useState<"forex" | "predict">("forex");
 
   const load = useCallback(() => {
     fetch("/api/predict/challenge", { cache: "no-store" })
@@ -204,6 +215,43 @@ export default function ChallengePanel() {
               </div>
               <Bar value={state.settledCount} max={state.minPreds} tone="gold" />
             </div>
+
+            <div>
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-muted">روزهای فعال (حداقل {state.minDays})</span>
+                <span className="font-mono text-cream" dir="ltr">
+                  {state.activeDays}
+                </span>
+              </div>
+              <Bar value={state.activeDays} max={state.minDays} tone="gold" />
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-muted">
+                  ثبات — سهم بهترین روز (حد {state.consistencyPct}٪)
+                </span>
+                <span
+                  className={`font-mono ${
+                    state.consistencyOk ? "text-gain" : "text-loss"
+                  }`}
+                  dir="ltr"
+                >
+                  {state.bestDayPct}%
+                </span>
+              </div>
+              <Bar
+                value={state.bestDayPct}
+                max={state.consistencyPct}
+                tone={state.consistencyOk ? "gold" : "loss"}
+              />
+              {!state.consistencyOk && state.points > 0 && (
+                <p className="mt-1.5 text-[10px] leading-5 text-muted">
+                  سود شما بیش از حد روی یک روز متمرکز است. برای قبولی، سود باید
+                  در چند روز پخش شود.
+                </p>
+              )}
+            </div>
           </div>
         )}
         {active && (
@@ -228,8 +276,34 @@ export default function ChallengePanel() {
         </div>
       )}
 
+      {/* تب دو مسیر پراپ */}
+      <div className="mb-5 flex flex-wrap items-center gap-2">
+        {(
+          [
+            { id: "forex" as const, title: "حساب معاملاتی واقعی", sub: "فارکس نزد بروکر همکار" },
+            { id: "predict" as const, title: "حساب پیش‌بینی", sub: "پرداخت کریپتویی سقف‌دار" },
+          ]
+        ).map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setTrack(t.id)}
+            className={`no-zoom flex flex-col items-start rounded-xl border px-4 py-2.5 text-start transition ${
+              track === t.id
+                ? "border-gold/60 bg-gold/10 text-gold shadow-[0_0_18px_rgba(232,196,106,0.15)]"
+                : "border-line text-muted hover:border-gold/30 hover:text-cream"
+            }`}
+          >
+            <span className="text-xs font-bold">{t.title}</span>
+            <span className="mt-0.5 text-[10px] opacity-80">{t.sub}</span>
+          </button>
+        ))}
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {tiers.map((t) => (
+        {tiers
+          .filter((t) => t.track === track)
+          .map((t) => (
           <div
             key={t.id}
             className={`relative flex flex-col rounded-2xl border p-5 transition-all duration-300 hover:scale-[1.02] hover:border-gold/60 hover:shadow-[0_0_24px_rgba(232,196,106,0.12)] ${
@@ -244,7 +318,9 @@ export default function ChallengePanel() {
             <span className="font-mono text-2xl font-extrabold text-cream" dir="ltr">
               {t.label}
             </span>
-            <span className="mt-1 text-[10px] text-muted">حساب پراپ پیش‌بینی</span>
+            <span className="mt-1 text-[10px] text-muted">
+              {t.track === "forex" ? "حساب معاملاتی واقعی" : "حساب پیش‌بینی"}
+            </span>
 
             <div className="mt-3 flex items-baseline gap-1.5">
               <span className="font-mono text-xl font-bold text-gold" dir="ltr">
@@ -257,9 +333,13 @@ export default function ChallengePanel() {
               <li>— هدف: <b className="font-mono text-gain" dir="ltr">+{t.target}</b> پوینت</li>
               <li>— حداکثر افت از سقف: <b className="font-mono text-loss" dir="ltr">{t.maxDrawdown}</b></li>
               <li>— سقف ضرر روزانه: <b className="font-mono text-loss" dir="ltr">{t.dailyLoss}</b></li>
-              <li>— حداقل {t.minPreds} پیش‌بینی تسویه‌شده</li>
+              <li>— حداقل {t.minPreds} پیش‌بینی در {t.minDays} روز مختلف</li>
+              <li>— قانون ثبات: هیچ روزی بیش از ۳۵٪ سود نباشد</li>
               <li>— مهلت {t.days} روزه</li>
               <li className="text-cream">🏆 {t.prize}</li>
+              {t.payoutNote && (
+                <li className="text-[10px] text-gold/80">{t.payoutNote}</li>
+              )}
             </ul>
 
             <button
@@ -277,6 +357,12 @@ export default function ChallengePanel() {
           </div>
         ))}
       </div>
+
+      <p className="mt-4 text-[10px] leading-5 text-muted">
+        فقط پیش‌بینی‌هایی که در بازه‌ی احتمال ۱۵٪ تا ۸۵٪ ثبت شده باشند در ارزیابی
+        چلنج محاسبه می‌شوند. شرط‌بندی روی گزینه‌های خیلی بعید یا خیلی محتمل
+        مهارت را نشان نمی‌دهد و در نتیجه‌ی چلنج اثری ندارد.
+      </p>
 
       {!player && (
         <p className="mt-4 text-[11px] text-muted">

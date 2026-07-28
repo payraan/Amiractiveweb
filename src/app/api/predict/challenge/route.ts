@@ -10,14 +10,17 @@ export async function GET() {
   const playerId = verifySession(jar.get(SESSION_COOKIE)?.value);
   const tiers = CHALLENGES.map((c) => ({
     id: c.id,
+    track: c.track,
     label: c.label,
     fee: c.fee,
     target: c.target,
     maxDrawdown: c.maxDrawdown,
     dailyLoss: c.dailyLoss,
     minPreds: c.minPreds,
+    minDays: c.minDays,
     days: c.days,
     prize: c.prize,
+    payoutNote: c.payoutNote ?? null,
     popular: c.popular ?? false,
   }));
   if (!playerId) return NextResponse.json({ ok: true, authed: false, tiers, state: null });
