@@ -161,8 +161,24 @@ export const REF_VOL_PCT = 2.0;
 const VOL_SCALE_MIN = 0.2;
 const VOL_SCALE_MAX = 4.0;
 
-export function volScaleFor(dailyVolPct: number | null | undefined): number {
-  if (!dailyVolPct || !Number.isFinite(dailyVolPct) || dailyVolPct <= 0) return 1;
+// وقتی نوسان واقعی اندازه‌گیری نشده (داده‌ی ناقص یاهو)، برگرداندن ۱ یعنی
+// آستانه‌های بیت‌کوین روی یک جفت‌ارز آرام اعمال شود — و آن راند تبدیل به
+// مزرعه‌ی امتیاز مفت می‌شود. پس به‌جای ۱، یک پیش‌فرض محافظه‌کارانه بر اساس
+// کلاس دارایی می‌دهیم که به نوسان معمول همان کلاس نزدیک است.
+const FALLBACK_SCALE: Record<string, number> = {
+  forex: 0.25, // نوسان روزانه معمول ~۰.۵٪
+  metal: 0.5, // ~۱٪
+  crypto: 1, // ~۲٪ (مرجع)
+  stock: 1.5, // ~۳٪
+};
+
+export function volScaleFor(
+  dailyVolPct: number | null | undefined,
+  category?: string
+): number {
+  if (!dailyVolPct || !Number.isFinite(dailyVolPct) || dailyVolPct <= 0) {
+    return category ? (FALLBACK_SCALE[category] ?? 1) : 1;
+  }
   const raw = dailyVolPct / REF_VOL_PCT;
   const clamped = Math.min(VOL_SCALE_MAX, Math.max(VOL_SCALE_MIN, raw));
   return Math.round(clamped * 1000) / 1000;

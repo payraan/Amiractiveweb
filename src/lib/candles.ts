@@ -2,6 +2,7 @@
 // Fetched by our server so Iranian visitors never hit the upstream directly.
 
 import type { Asset } from "@/lib/game";
+import { assetById } from "@/lib/assets";
 
 export type Candle = {
   time: number; // unix seconds
@@ -11,7 +12,9 @@ export type Candle = {
   close: number;
 };
 
-const YF: Record<Asset, string> = { BTC: "BTC-USD", XAU: "GC=F" };
+// نماد یاهو از کاتالوگ کامل دارایی‌ها می‌آید (همان منبعی که market.ts
+// استفاده می‌کند). قبلا اینجا فقط BTC و XAU هارد‌کد شده بودند و برای بقیه
+// undefined به URL می‌رفت، پس چارت ۴۰ دارایی از ۴۲ تا خالی می‌ماند.
 
 // interval → yahoo range+interval params
 const PARAMS: Record<string, { range: string; interval: string }> = {
@@ -33,7 +36,9 @@ export async function getCandles(
   const hit = cache.get(key);
   if (hit && Date.now() - hit.ts < TTL_MS) return hit.data;
 
-  const sym = encodeURIComponent(YF[asset]);
+  const def = assetById(asset);
+  if (!def) return [];
+  const sym = encodeURIComponent(def.symbol);
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?range=${p.range}&interval=${p.interval}`;
 
   try {

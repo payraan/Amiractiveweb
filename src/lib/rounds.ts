@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { getMarket } from "@/lib/market";
+import { assetById } from "@/lib/assets";
 import {
   nextClose,
   settleFor,
@@ -52,7 +53,7 @@ export async function getOrCreateRound(
 
   // ضریب نوسان در لحظه‌ی ساخت راند قفل می‌شود و تا تسویه عوض نمی‌شود.
   const m = await getMarket(asset);
-  const volScale = volScaleFor(m.dailyVolPct);
+  const volScale = volScaleFor(m.dailyVolPct, assetById(asset)?.category);
 
   await pool.query(
     `INSERT INTO rounds (asset, timeframe, round_date, close_at, settle_at, status, vol_scale)
