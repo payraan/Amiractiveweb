@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePlayer } from "@/components/predict/usePlayer";
 import AuthPanel from "@/components/predict/AuthPanel";
+import { dualDate } from "@/lib/dates";
 
 type Market = {
   id: string;
@@ -43,18 +44,6 @@ const ERRORS: Record<string, string> = {
   insufficient_credits: "سهم رایگان امروز تمام شده و کردیت کافی ندارید.",
   market_not_found: "این بازار دیگر فعال نیست.",
 };
-
-function faDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString("fa-IR", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return "";
-  }
-}
 
 function Spark({ points }: { points: PricePoint[] }) {
   if (points.length < 2) {
@@ -380,7 +369,7 @@ export default function ArenaBoard() {
                 )}
 
                 <div className="mt-2 text-[10px] text-muted">
-                  بسته‌شدن بازار: {faDate(m.endDate)} · <span className="font-mono" dir="ltr">{m.eventTitle}</span>
+                  بسته‌شدن بازار: {dualDate(m.endDate)} · <span className="font-mono" dir="ltr">{m.eventTitle}</span>
                 </div>
 
                 {my ? (

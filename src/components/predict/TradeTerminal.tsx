@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePlayer } from "@/components/predict/usePlayer";
 import AuthPanel from "@/components/predict/AuthPanel";
+import { dualDate } from "@/lib/dates";
 
 type Market = {
   id: string;
@@ -57,18 +58,6 @@ function closesIn(iso: string): string {
   const h = Math.floor(ms / 3_600_000);
   if (h >= 1) return `${h}h ${Math.floor((ms % 3_600_000) / 60_000)}m`;
   return `${Math.max(1, Math.floor(ms / 60_000))}m`;
-}
-
-function faDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString("fa-IR", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return "";
-  }
 }
 
 /* ── نمودار ─────────────────────────────────────────── */
@@ -360,7 +349,7 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
               <span className="rounded border border-line px-1.5 py-px">
                 {market?.categoryLabel ?? "—"}
               </span>
-              <span dir="ltr">RESOLVES {market ? faDate(market.endDate) : "—"}</span>
+              <span dir="ltr">RESOLVES {market ? dualDate(market.endDate) : "—"}</span>
             </div>
           </div>
         </div>

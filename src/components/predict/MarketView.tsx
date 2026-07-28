@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { dualDate } from "@/lib/dates";
 
 type Market = {
   id: string;
@@ -14,18 +15,6 @@ type Market = {
 };
 
 type PricePoint = { t: number; p: number };
-
-function faDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString("fa-IR", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return "";
-  }
-}
 
 function BigSpark({ points }: { points: PricePoint[] }) {
   if (points.length < 2) {
@@ -163,7 +152,7 @@ export default function MarketView({ id }: { id: string }) {
       </div>
 
       <div className="mt-3 text-[11px] text-muted">
-        بسته‌شدن بازار: {faDate(market.endDate)}
+        بسته‌شدن بازار: {dualDate(market.endDate)}
       </div>
 
       <div className="mt-6 flex flex-wrap gap-3">
