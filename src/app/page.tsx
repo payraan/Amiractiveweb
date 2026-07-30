@@ -7,9 +7,6 @@ import TradeSection from "@/components/TradeSection";
 import ArenaSection from "@/components/ArenaSection";
 import MarketPulseSection from "@/components/MarketPulseSection";
 import ComboSection from "@/components/ComboSection";
-import Bot from "@/components/Bot";
-import Results from "@/components/Results";
-import Broker from "@/components/Broker";
 import Faq from "@/components/Faq";
 import Legal from "@/components/Legal";
 import Footer from "@/components/Footer";
@@ -28,9 +25,6 @@ export default function Home() {
         <MarketPulseSection />
         <ComboSection />
         <Ticker />
-        <Bot />
-        <Results />
-        <Broker />
         <Faq />
         <Legal />
       </main>

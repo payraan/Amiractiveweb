@@ -30,11 +30,11 @@ const NAV: NavItem[] = [
   {
     label: "ربات معامله‌گر",
     children: [
-      { href: "/#bot", label: "ربات معامله‌گر", desc: "اکسپرت اسکلپر متاتریدر ۵" },
-      { href: "/#results", label: "نتایج زنده", desc: "کارنامه‌ی مستقل در Myfxbook" },
+      { href: "/bot", label: "ربات معامله‌گر", desc: "اکسپرت اسکلپر متاتریدر ۵" },
+      { href: "/results", label: "نتایج زنده", desc: "کارنامه‌ی مستقل در Myfxbook" },
     ],
   },
-  { href: "/#broker", label: "بروکر (کارگزاری)" },
+  { href: "/broker", label: "بروکر (کارگزاری)" },
   {
     label: "بیشتر",
     children: [
