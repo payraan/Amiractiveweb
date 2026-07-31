@@ -2,17 +2,24 @@ import { createHmac, timingSafeEqual, scrypt, randomBytes } from "crypto";
 import { db } from "@/lib/db";
 
 // ── Admin session (separate from player sessions) ──────────────
-const SECRET =
-  process.env.ADMIN_SECRET ||
-  process.env.SESSION_SECRET ||
-  process.env.DATABASE_URL?.slice(-40) ||
-  "amiractive-admin-dev-secret";
+// جعل نشست ادمین یعنی قدرت شارژ کردیت، پس هیچ fallback حدس‌زدنی نداریم.
+// قبلا به دنباله‌ی DATABASE_URL و یک رشته‌ی ثابت برمی‌گشت؛ هر دو حذف شدند.
+// اگر هیچ کلیدی ست نباشد، همه‌ی نشست‌های ادمین رد می‌شوند.
+const SECRET = process.env.ADMIN_SECRET || process.env.SESSION_SECRET || "";
+
+if (!SECRET) {
+  console.error(
+    "[admin] neither ADMIN_SECRET nor SESSION_SECRET is set — " +
+      "all admin sessions are rejected."
+  );
+}
 
 const MAX_AGE_S = 60 * 60 * 12; // 12h admin sessions
 export const ADMIN_COOKIE = "amir_admin";
 export const ADMIN_MAX_AGE = MAX_AGE_S;
 
 export function signAdmin(): string {
+  if (!SECRET) throw new Error("ADMIN_SECRET is not configured");
   const exp = Math.floor(Date.now() / 1000) + MAX_AGE_S;
   const body = `admin.${exp}`;
   const sig = createHmac("sha256", SECRET).update(body).digest("hex");
@@ -20,6 +27,7 @@ export function signAdmin(): string {
 }
 
 export function verifyAdmin(token: string | undefined): boolean {
+  if (!SECRET) return false; // fail closed
   if (!token) return false;
   const parts = token.split(".");
   if (parts.length !== 3) return false;

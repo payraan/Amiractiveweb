@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { db } from "@/lib/db";
+import { db, touchActivity } from "@/lib/db";
 import { verifySession, SESSION_COOKIE } from "@/lib/session";
 import { getOrCreateRound, isClosed } from "@/lib/rounds";
 import { tf, isAssetOpen, type Asset, type TimeframeId } from "@/lib/game";
@@ -125,6 +125,7 @@ export async function POST(req: Request) {
       remaining = upd.rows[0].credits;
     }
 
+    await touchActivity(client, playerId);
     await client.query("COMMIT");
     return NextResponse.json({ ok: true, roundId: round.id, charged: cost, credits: remaining });
   } catch (err) {

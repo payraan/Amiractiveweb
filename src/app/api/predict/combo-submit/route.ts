@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { db } from "@/lib/db";
+import { db, touchActivity } from "@/lib/db";
 import { verifySession, SESSION_COOKIE } from "@/lib/session";
 import { getCuratedMarkets, findMarket } from "@/lib/poly";
 import {
@@ -152,6 +152,7 @@ export async function POST(req: Request) {
       );
     }
 
+    await touchActivity(client, playerId);
     await client.query("COMMIT");
     return NextResponse.json({ ok: true, charged: cost, prob });
   } catch (err) {

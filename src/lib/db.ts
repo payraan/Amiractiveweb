@@ -98,3 +98,28 @@ export function db(): Promise<Pool> {
   }
   return ready.then(() => pool);
 }
+
+/**
+ * ثبت فعالیت روزانه‌ی بازیکن: به‌روزرسانی streak و last_played.
+ *
+ * این ستون‌ها از ابتدا در اسکیمای players بودند و پنل ادمین با
+ * last_played آمار «کاربران فعال هفته» را گزارش می‌کرد، ولی هیچ‌جای کد
+ * آن‌ها را نمی‌نوشت — پس آن آمار همیشه صفر بود و استریک هرگز ساخته نمی‌شد.
+ *
+ * قابل فراخوانی داخل ترنزاکشن موجود است (client را پاس بده) یا مستقل.
+ * فراخوانی چندباره در یک روز استریک را دستکاری نمی‌کند.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function touchActivity(client: any, playerId: number): Promise<void> {
+  await client.query(
+    `UPDATE players
+        SET streak = CASE
+              WHEN last_played = (now() AT TIME ZONE 'Asia/Tehran')::date THEN streak
+              WHEN last_played = (now() AT TIME ZONE 'Asia/Tehran')::date - 1 THEN streak + 1
+              ELSE 1
+            END,
+            last_played = (now() AT TIME ZONE 'Asia/Tehran')::date
+      WHERE id = $1`,
+    [playerId]
+  );
+}

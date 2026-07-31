@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { settleDueRounds } from "@/lib/settle";
+import { settlePolyDue } from "@/lib/poly";
+import { settleCombosDue } from "@/lib/combos";
 
 export const dynamic = "force-dynamic";
 
@@ -11,9 +13,28 @@ export async function POST(req: Request) {
   if (!key || provided !== key) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
+  // هر سه بازی تسویه می‌شوند. قبلا فقط نبض بازار اینجا بود، پس آرنا و کمبو
+  // حتی با کرون هم تسویه نمی‌شدند و فقط به بازدید صفحه وابسته بودند.
+  // هر بخش جدا هندل می‌شود تا خطای یکی بقیه را متوقف نکند.
+  const out: Record<string, unknown> = {};
   try {
-    const result = await settleDueRounds();
-    return NextResponse.json({ ok: true, ...result });
+    out.pulse = await settleDueRounds();
+  } catch (err) {
+    out.pulseError = err instanceof Error ? err.message : "error";
+  }
+  try {
+    out.arena = await settlePolyDue();
+  } catch (err) {
+    out.arenaError = err instanceof Error ? err.message : "error";
+  }
+  try {
+    out.combos = await settleCombosDue();
+  } catch (err) {
+    out.combosError = err instanceof Error ? err.message : "error";
+  }
+
+  try {
+    return NextResponse.json({ ok: true, ...out });
   } catch (err) {
     return NextResponse.json(
       { ok: false, error: err instanceof Error ? err.message : "server_error" },
