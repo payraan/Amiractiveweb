@@ -46,6 +46,106 @@ export default function PredictBoard() {
 
   return (
     <>
+      {/* حساب کاربری — بالای صفحه و تمام‌عرض، هم‌اندازه‌ی بقیه‌ی بخش‌ها */}
+      {!loading && (
+        <div className="mb-8">
+          {player ? (
+            <div className="rounded-2xl border border-line bg-surface/60 p-6 backdrop-blur md:p-7">
+              <div className="flex flex-wrap items-center justify-between gap-6">
+                <div>
+                  <div className="text-xs text-muted">حساب شما</div>
+                  <div className="font-display text-xl font-extrabold">
+                    {player.displayName}
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-8">
+                  <div>
+                    <div className="text-xs text-muted">کردیت</div>
+                    <div
+                      className="font-mono text-3xl font-bold text-cream"
+                      dir="ltr"
+                    >
+                      {player.credits}◆
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted">امتیاز</div>
+                    <div
+                      className="font-mono text-3xl font-bold text-gold"
+                      dir="ltr"
+                    >
+                      {player.totalPoints}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-5">
+                  <a
+                    href="#credits"
+                    className="rounded-xl border border-gold/40 px-5 py-2.5 text-xs text-gold transition hover:bg-gold hover:text-ink"
+                  >
+                    خرید کردیت
+                  </a>
+                  <button
+                    type="button"
+                    onClick={logout}
+                    className="no-zoom text-xs text-muted transition hover:text-loss"
+                  >
+                    خروج از حساب
+                  </button>
+                </div>
+              </div>
+
+              <p className="mt-5 border-t border-line pt-4 text-[11px] leading-6 text-muted">
+                امتیاز از دقت پیش‌بینی می‌آید و خرید و فروش نمی‌شود. کردیت فقط
+                تایم‌فریم‌های کوتاه‌تر و پیش‌بینی بیشتر را باز می‌کند.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-line bg-surface/60 p-6 backdrop-blur md:p-8">
+              <div className="grid items-center gap-8 md:grid-cols-2 md:gap-12">
+                {/* چرا حساب بسازم */}
+                <div>
+                  <span className="font-mono text-[11px] tracking-[0.25em] text-gold-deep">
+                    START FREE
+                  </span>
+                  <h3 className="mt-3 font-display text-2xl font-black leading-snug md:text-3xl">
+                    برای شروع، <span className="text-gold">حساب بساز</span>
+                  </h3>
+                  <p className="mt-3 text-[13px] leading-7 text-muted">
+                    ثبت‌نام رایگان است و فقط چند ثانیه طول می‌کشد. برای شروع هیچ
+                    پرداختی لازم نیست.
+                  </p>
+
+                  <ul className="mt-5 flex flex-col gap-3">
+                    {[
+                      "هر روز پیش‌بینی رایگان روی ۴۲ دارایی",
+                      "امتیاز از دقت شما می‌آید، نه از شانس یا پول",
+                      "رقابت در لیدربورد و ورود به چلنج پراپ",
+                      "۱۰ کردیت هدیه‌ی خوش‌آمد",
+                    ].map((t) => (
+                      <li
+                        key={t}
+                        className="flex items-start gap-2.5 text-[13px] leading-6 text-cream"
+                      >
+                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" />
+                        {t}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* فرم */}
+                <div className="rounded-2xl border border-line bg-raised/30 p-5 md:p-6">
+                  <AuthPanel bare onAuthed={() => refresh()} />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* کتگوری‌ها */}
       <div className="flex flex-wrap gap-2">
         {CATEGORIES.map((c) => (
@@ -187,54 +287,6 @@ export default function PredictBoard() {
           </div>
         </div>
       )}
-
-      {/* حساب کاربری */}
-      <div className="mt-8 max-w-md">
-        {loading ? null : player ? (
-          <div className="rounded-2xl border border-line bg-surface/60 p-6 backdrop-blur">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-xs text-muted">حساب شما</div>
-                <div className="font-display text-lg font-extrabold">
-                  {player.displayName}
-                </div>
-              </div>
-              <div className="flex gap-6 text-end">
-                <div>
-                  <div className="text-xs text-muted">کردیت</div>
-                  <div className="font-mono text-2xl font-bold text-cream" dir="ltr">
-                    {player.credits}◆
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs text-muted">امتیاز</div>
-                  <div className="font-mono text-2xl font-bold text-gold" dir="ltr">
-                    {player.totalPoints}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <p className="mt-4 text-[11px] leading-6 text-muted">
-              امتیاز از دقت پیش‌بینی می‌آید و خرید و فروش نمی‌شود. کردیت فقط
-              تایم‌فریم‌های کوتاه‌تر و پیش‌بینی بیشتر را باز می‌کند.
-            </p>
-            <div className="mt-5 flex items-center justify-between border-t border-line pt-4">
-              <a href="#credits" className="text-xs text-muted transition hover:text-gold">
-                خرید کردیت
-              </a>
-              <button
-                type="button"
-                onClick={logout}
-                className="no-zoom text-xs text-muted transition hover:text-loss"
-              >
-                خروج از حساب
-              </button>
-            </div>
-          </div>
-        ) : (
-          <AuthPanel onAuthed={() => refresh()} />
-        )}
-      </div>
 
       {player && results.length > 0 && (
         <div className="mt-8 max-w-2xl">

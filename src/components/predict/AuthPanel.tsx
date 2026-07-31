@@ -20,8 +20,12 @@ function readRef(): string | undefined {
 
 export default function AuthPanel({
   onAuthed,
+  bare = false,
 }: {
   onAuthed: () => void;
+  /** وقتی داخل یک قاب بزرگ‌تر نشسته، قاب و پس‌زمینه‌ی خودش را نمی‌کشد
+      تا قاب تودرتو نشود. */
+  bare?: boolean;
 }) {
   const [mode, setMode] = useState<"register" | "login">("register");
   const [username, setUsername] = useState("");
@@ -59,7 +63,13 @@ export default function AuthPanel({
   }
 
   return (
-    <div className="rounded-2xl border border-line bg-surface/60 p-6 backdrop-blur md:p-7">
+    <div
+      className={
+        bare
+          ? ""
+          : "rounded-2xl border border-line bg-surface/60 p-6 backdrop-blur md:p-7"
+      }
+    >
       <div className="mb-5 flex gap-2 rounded-xl border border-line bg-raised/50 p-1">
         <button
           type="button"
