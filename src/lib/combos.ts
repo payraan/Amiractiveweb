@@ -9,14 +9,39 @@ export const COMBO_COST = 2; // کردیت برای کمبوهای مازاد
 export const COMBO_MIN_LEGS = 2;
 export const COMBO_MAX_LEGS = 5;
 
+// ── اهرم ────────────────────────────────────────────────────────
+//
+// اهرم هر دو سوی تیکت را به یک نسبت بزرگ می‌کند، پس امتیازدهی
+// همچنان صفر-انتظار می‌ماند: با اهرم L، برد L برابر و باخت هم L برابر
+// می‌شود. یعنی اهرم «مزیت» نمی‌خرد، فقط نوسان می‌خرد — و چون کردیت
+// هزینه دارد، خریدنش از نظر کردیتی منفی است. این عمدی است.
+//
+// به همین دلیل اهرم فقط در کمبو وجود دارد: کمبو از ارزیابی چلنج پراپ
+// مستثناست و لیدربورد جدا دارد، پس عدالت مسیر پراپ و رتبه‌بندی اصلی
+// دست‌نخورده می‌ماند.
+export type LeverageTier = { x: number; cost: number; label: string };
+
+export const LEVERAGE_TIERS: LeverageTier[] = [
+  { x: 1, cost: 0, label: "بدون اهرم" },
+  { x: 2, cost: 4, label: "۲ برابر" },
+  { x: 3, cost: 9, label: "۳ برابر" },
+  { x: 5, cost: 20, label: "۵ برابر" },
+];
+
+/** اهرم معتبر یا ۱. هزینه‌ی همان پله را هم برمی‌گرداند. */
+export function leverageFor(x: unknown): LeverageTier {
+  const n = Number(x);
+  return LEVERAGE_TIERS.find((t) => t.x === n) ?? LEVERAGE_TIERS[0];
+}
+
 const UA = { "User-Agent": "Mozilla/5.0" };
 const GAMMA = "https://gamma-api.polymarket.com";
 
-export function comboWin(n: number, prob: number): number {
-  return Math.max(1, Math.round(100 * n * (1 - prob)));
+export function comboWin(n: number, prob: number, lev = 1): number {
+  return Math.max(1, Math.round(100 * n * (1 - prob))) * lev;
 }
-export function comboLose(n: number, prob: number): number {
-  return -Math.max(1, Math.round(100 * n * prob));
+export function comboLose(n: number, prob: number, lev = 1): number {
+  return -Math.max(1, Math.round(100 * n * prob)) * lev;
 }
 
 // ── tables ─────────────────────────────────────────────────────
@@ -36,6 +61,9 @@ export async function ensureComboTables(): Promise<void> {
            created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
            settled_at TIMESTAMPTZ
          )`
+      );
+      await pool.query(
+        "ALTER TABLE combo_tickets ADD COLUMN IF NOT EXISTS leverage INTEGER NOT NULL DEFAULT 1"
       );
       await pool.query(
         `CREATE TABLE IF NOT EXISTS combo_legs (
@@ -102,11 +130,12 @@ export async function settleCombosDue(): Promise<{ settled: number }> {
     id: number;
     player_id: number;
     prob: string;
+    leverage: number;
     legs_count: number;
     any_lost: boolean;
     all_won: boolean;
   }>(
-    `SELECT t.id, t.player_id, t.prob, t.legs_count,
+    `SELECT t.id, t.player_id, t.prob, t.legs_count, t.leverage,
             bool_or(l.result = 'lost') AS any_lost,
             bool_and(l.result = 'won') AS all_won
        FROM combo_tickets t
@@ -120,9 +149,10 @@ export async function settleCombosDue(): Promise<{ settled: number }> {
   for (const t of tickets.rows) {
     if (!t.any_lost && !t.all_won) continue; // هنوز پای باز دارد
     const prob = Number(t.prob);
+    const lev = Number(t.leverage) || 1;
     const points = t.any_lost
-      ? comboLose(t.legs_count, prob)
-      : comboWin(t.legs_count, prob);
+      ? comboLose(t.legs_count, prob, lev)
+      : comboWin(t.legs_count, prob, lev);
 
     const client = await pool.connect();
     try {

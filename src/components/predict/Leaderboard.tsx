@@ -21,6 +21,7 @@ export default function Leaderboard({
   limit?: number;
 }) {
   const [range, setRange] = useState(defaultRange);
+  const [game, setGame] = useState<"main" | "combo">("main");
   const [entries, setEntries] = useState<Entry[]>([]);
   const [maxCounted, setMaxCounted] = useState<number | null>(null);
   const [totalPlayers, setTotalPlayers] = useState(0);
@@ -29,7 +30,9 @@ export default function Leaderboard({
   useEffect(() => {
     let alive = true;
     setLoading(true);
-    fetch(`/api/predict/leaderboard?range=${range}`, { cache: "no-store" })
+    fetch(`/api/predict/leaderboard?range=${range}&game=${game}`, {
+      cache: "no-store",
+    })
       .then((r) => r.json())
       .then((j) => {
         if (!alive) return;
@@ -42,12 +45,36 @@ export default function Leaderboard({
     return () => {
       alive = false;
     };
-  }, [range]);
+  }, [range, game]);
 
   const shown = limit ? entries.slice(0, limit) : entries;
 
   return (
     <div>
+      {/* دو رتبه‌بندی جدا: اصلی بدون اهرم، کمبو با اهرم */}
+      <div className="mb-3 flex gap-2">
+        {(
+          [
+            { id: "main" as const, label: "رتبه‌بندی اصلی", hint: "نبض بازار + آرنا" },
+            { id: "combo" as const, label: "صدر کمبوها", hint: "با اهرم" },
+          ]
+        ).map((g) => (
+          <button
+            key={g.id}
+            type="button"
+            onClick={() => setGame(g.id)}
+            className={`no-zoom flex flex-col items-start rounded-xl border px-4 py-2 text-start transition ${
+              game === g.id
+                ? "border-gold/60 bg-gold/10 text-gold"
+                : "border-line text-muted hover:border-gold/30 hover:text-cream"
+            }`}
+          >
+            <span className="text-xs font-bold">{g.label}</span>
+            <span className="mt-0.5 text-[10px] opacity-80">{g.hint}</span>
+          </button>
+        ))}
+      </div>
+
       <div className="mb-5 flex gap-2 rounded-xl border border-line bg-raised/40 p-1">
         {TABS.map((t) => (
           <button
@@ -113,12 +140,16 @@ export default function Leaderboard({
 
       {maxCounted !== null && (
         <p className="mt-4 text-[10px] leading-6 text-muted">
-          امتیاز از هر سه بازی (نبض بازار، آرنا و کمبو) جمع می‌شود و فقط{" "}
+          {game === "combo"
+            ? "این رتبه‌بندی فقط کمبوهاست و اهرم در آن آزاد است. فقط "
+            : "امتیاز از نبض بازار و آرنا جمع می‌شود و فقط "}
           <b className="font-mono text-cream" dir="ltr">
             {maxCounted}
           </b>{" "}
-          پیش‌بینیِ نخستِ هر بازه در رتبه‌بندی محاسبه می‌شود. پس همه در هر دوره
-          فرصت برابر دارند و خرید کردیت رتبه نمی‌خرد.
+          {game === "combo" ? "تیکتِ" : "پیش‌بینیِ"} نخستِ هر بازه محاسبه می‌شود.
+          {game === "combo"
+            ? " کمبو از رتبه‌بندی اصلی و ارزیابی چلنج پراپ جداست."
+            : " پس همه در هر دوره فرصت برابر دارند و خرید کردیت رتبه نمی‌خرد."}
           {totalPlayers > 0 && (
             <>
               {" "}

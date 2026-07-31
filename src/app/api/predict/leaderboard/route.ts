@@ -36,11 +36,28 @@ const MAX_COUNTED: Record<string, number> = {
   all: 60,
 };
 
+/** سقف تیکت کمبو. کمتر است چون کمبو اهرم دارد و هر تیکت وزن بیشتری می‌گیرد. */
+const MAX_COMBO: Record<string, number> = {
+  daily: 5,
+  weekly: 10,
+  monthly: 20,
+  all: 20,
+};
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const range = searchParams.get("range") ?? "monthly";
   const win = WINDOWS[range] ?? WINDOWS.monthly;
-  const cap = MAX_COUNTED[range] ?? MAX_COUNTED.monthly;
+  // دو رتبه‌بندی جدا:
+  //   main  = نبض بازار + آرنا، بدون اهرم، سقف‌دار → پایه‌ی پاداش و اعتبار
+  //   combo = فقط کمبو، با اهرم آزاد → حالت پرریسکِ سرگرمی
+  // اگر کمبو در رتبه‌بندی اصلی می‌ماند، اهرمِ خریدنی دوباره پول را به رتبه
+  // وصل می‌کرد؛ جداکردنش همان چیزی است که هر دو را سالم نگه می‌دارد.
+  const game = searchParams.get("game") === "combo" ? "combo" : "main";
+  const cap =
+    game === "combo"
+      ? MAX_COMBO[range] ?? MAX_COMBO.monthly
+      : MAX_COUNTED[range] ?? MAX_COUNTED.monthly;
   const limit = Math.min(
     100,
     Math.max(1, Number(searchParams.get("limit") ?? 50) || 50)
@@ -52,35 +69,33 @@ export async function GET(req: Request) {
   const cut = (col: string) =>
     range === "all" ? "TRUE" : `${col} >= now() - interval '${win}'`;
 
+  const sources =
+    game === "combo"
+      ? `SELECT ct.player_id, ct.points, ct.settled_at
+           FROM combo_tickets ct
+          WHERE ct.status = 'settled'
+            AND ct.points IS NOT NULL
+            AND ct.settled_at IS NOT NULL
+            AND ${cut("ct.settled_at")}`
+      : `SELECT p.player_id, p.points, r.settle_at AS settled_at
+           FROM predictions p
+           JOIN rounds r ON r.id = p.round_id
+          WHERE r.status = 'settled'
+            AND p.points IS NOT NULL
+            AND ${cut("r.settle_at")}
+
+         UNION ALL
+
+         SELECT pp.player_id, pp.points, pp.settled_at
+           FROM poly_predictions pp
+          WHERE pp.status = 'settled'
+            AND pp.points IS NOT NULL
+            AND pp.settled_at IS NOT NULL
+            AND ${cut("pp.settled_at")}`;
+
   const { rows } = await pool.query(
     `WITH unified AS (
-        -- نبض بازار: زمان تسویه روی خود راند است
-        SELECT p.player_id, p.points, r.settle_at AS settled_at
-          FROM predictions p
-          JOIN rounds r ON r.id = p.round_id
-         WHERE r.status = 'settled'
-           AND p.points IS NOT NULL
-           AND ${cut("r.settle_at")}
-
-        UNION ALL
-
-        -- آرنا
-        SELECT pp.player_id, pp.points, pp.settled_at
-          FROM poly_predictions pp
-         WHERE pp.status = 'settled'
-           AND pp.points IS NOT NULL
-           AND pp.settled_at IS NOT NULL
-           AND ${cut("pp.settled_at")}
-
-        UNION ALL
-
-        -- کمبو
-        SELECT ct.player_id, ct.points, ct.settled_at
-          FROM combo_tickets ct
-         WHERE ct.status = 'settled'
-           AND ct.points IS NOT NULL
-           AND ct.settled_at IS NOT NULL
-           AND ${cut("ct.settled_at")}
+        ${sources}
      ),
      ranked AS (
         SELECT player_id,
@@ -110,18 +125,7 @@ export async function GET(req: Request) {
   // پاداش بر پایه‌ی همین درصد بنا می‌شود، نه بر پایه‌ی رتبه‌ی خام.
   const totalRes = await pool.query<{ n: string }>(
     `WITH unified AS (
-        SELECT p.player_id, r.settle_at AS settled_at
-          FROM predictions p JOIN rounds r ON r.id = p.round_id
-         WHERE r.status = 'settled' AND p.points IS NOT NULL
-           AND ${cut("r.settle_at")}
-        UNION ALL
-        SELECT pp.player_id, pp.settled_at FROM poly_predictions pp
-         WHERE pp.status = 'settled' AND pp.points IS NOT NULL
-           AND pp.settled_at IS NOT NULL AND ${cut("pp.settled_at")}
-        UNION ALL
-        SELECT ct.player_id, ct.settled_at FROM combo_tickets ct
-         WHERE ct.status = 'settled' AND ct.points IS NOT NULL
-           AND ct.settled_at IS NOT NULL AND ${cut("ct.settled_at")}
+        ${sources}
      )
      SELECT count(DISTINCT player_id) AS n FROM unified`
   );
@@ -130,6 +134,7 @@ export async function GET(req: Request) {
   return NextResponse.json({
     ok: true,
     range,
+    game,
     maxCounted: cap,
     totalPlayers: total,
     entries: rows.map((r, i) => ({

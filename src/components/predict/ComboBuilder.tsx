@@ -36,6 +36,15 @@ const MIN_LEGS = 2;
 const MAX_LEGS = 5;
 const COMBO_COST = 2;
 
+// همان پله‌های سرور. اهرم هر دو سو را بزرگ می‌کند، پس صفر-انتظار می‌ماند
+// و فقط نوسان می‌خرد — نه مزیت.
+const LEVERAGE_TIERS = [
+  { x: 1, cost: 0, label: "بدون اهرم" },
+  { x: 2, cost: 4, label: "۲×" },
+  { x: 3, cost: 9, label: "۳×" },
+  { x: 5, cost: 20, label: "۵×" },
+];
+
 const ERRORS: Record<string, string> = {
   not_authed: "برای ثبت کمبو وارد حساب شوید.",
   too_few_legs: `کمبو حداقل به ${MIN_LEGS} انتخاب نیاز دارد.`,
@@ -149,6 +158,7 @@ export default function ComboBuilder() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           legs: legs.map((l) => ({ marketId: l.marketId, choice: l.choice })),
+          leverage: lev,
         }),
       });
       const j = await res.json();
@@ -183,8 +193,10 @@ export default function ComboBuilder() {
   const paged = sorted.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const prob = legs.reduce((acc, l) => acc * (l.probPct / 100), 1);
-  const win = legs.length ? winPoints(legs.length, prob) : 0;
-  const lose = legs.length ? losePoints(legs.length, prob) : 0;
+  const [lev, setLev] = useState(1);
+  const levTier = LEVERAGE_TIERS.find((t) => t.x === lev) ?? LEVERAGE_TIERS[0];
+  const win = legs.length ? winPoints(legs.length, prob) * lev : 0;
+  const lose = legs.length ? losePoints(legs.length, prob) * lev : 0;
   const chosen = (id: string): "yes" | "no" | null =>
     legs.find((l) => l.marketId === id)?.choice ?? null;
 
@@ -514,14 +526,36 @@ export default function ComboBuilder() {
                   </span>
                   <span className="text-muted">
                     هزینه:{" "}
-                    {freeLeft > 0 ? (
+                    {freeLeft > 0 && levTier.cost === 0 ? (
                       <b className="text-gain">رایگان</b>
                     ) : (
                       <b className="font-mono text-cream" dir="ltr">
-                        {COMBO_COST}◆
+                        {(freeLeft > 0 ? 0 : COMBO_COST) + levTier.cost}◆
                       </b>
                     )}
                   </span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[11px] text-muted">اهرم:</span>
+                  {LEVERAGE_TIERS.map((t) => (
+                    <button
+                      key={t.x}
+                      type="button"
+                      onClick={() => setLev(t.x)}
+                      className={`no-zoom rounded-lg border px-3 py-1.5 font-mono text-[11px] transition ${
+                        lev === t.x
+                          ? "border-gold bg-gold/10 text-gold"
+                          : "border-line text-muted hover:border-gold/40 hover:text-cream"
+                      }`}
+                      title={t.cost ? `${t.cost} کردیت` : "رایگان"}
+                    >
+                      {t.label}
+                      {t.cost > 0 && (
+                        <span className="ms-1.5 opacity-70">+{t.cost}◆</span>
+                      )}
+                    </button>
+                  ))}
                 </div>
 
                 <div className="flex items-center gap-3">

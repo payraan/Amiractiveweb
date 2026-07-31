@@ -9,6 +9,7 @@ import {
   COMBO_COST,
   COMBO_MIN_LEGS,
   COMBO_MAX_LEGS,
+  leverageFor,
 } from "@/lib/combos";
 
 export const dynamic = "force-dynamic";
@@ -24,12 +25,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "not_authed" }, { status: 401 });
   }
 
-  let body: { legs?: Leg[] };
+  let body: { legs?: Leg[]; leverage?: number };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ ok: false, error: "bad_request" }, { status: 400 });
   }
+
+  // اهرم فقط از پله‌های مجاز پذیرفته می‌شود؛ هر مقدار دیگری به ۱ برمی‌گردد.
+  const lev = leverageFor(body.leverage);
 
   const rawLegs = Array.isArray(body.legs) ? body.legs : [];
   const seen = new Set<string>();
@@ -116,7 +120,8 @@ export async function POST(req: Request) {
             = (now() AT TIME ZONE 'Asia/Tehran')::date`,
       [playerId]
     );
-    const cost = cnt.rows[0].n < COMBO_FREE_PER_DAY ? 0 : COMBO_COST;
+    const base = cnt.rows[0].n < COMBO_FREE_PER_DAY ? 0 : COMBO_COST;
+    const cost = base + lev.cost;
 
     if (cost > 0 && pl.rows[0].credits < cost) {
       await client.query("ROLLBACK");
@@ -133,9 +138,9 @@ export async function POST(req: Request) {
     }
 
     const ticket = await client.query(
-      `INSERT INTO combo_tickets (player_id, prob, legs_count, charged)
-       VALUES ($1, $2, $3, $4) RETURNING id`,
-      [playerId, prob, resolved.length, cost]
+      `INSERT INTO combo_tickets (player_id, prob, legs_count, charged, leverage)
+       VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+      [playerId, prob, resolved.length, cost, lev.x]
     );
     const ticketId = ticket.rows[0].id;
 
