@@ -7,15 +7,38 @@ declare global {
 
 const conn = process.env.DATABASE_URL;
 
+/**
+ * SSL فقط برای دیتابیس‌های راه‌دور لازم است.
+ *
+ * قاعده‌ی قبلی «هرچه railway.internal نیست، SSL بگیرد» بود و روی توسعه‌ی
+ * لوکال می‌شکست: Postgres لوکال SSL ندارد و کل اتصال با خطای
+ * "The server does not support SSL connections" از کار می‌افتاد — یعنی
+ * ثبت‌نام، ورود و لیدربورد هیچ‌کدام کار نمی‌کردند.
+ */
+function needsSsl(url: string | undefined): boolean {
+  if (!url) return false;
+  if (process.env.PGSSL === "off") return false; // فرار اضطراری
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    const isLocal =
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host === "::1" ||
+      host.endsWith(".local") ||
+      host.endsWith(".internal"); // شامل railway.internal
+    return !isLocal;
+  } catch {
+    // اگر رشته‌ی اتصال قابل تجزیه نبود، به رفتار قبلی برگرد
+    return !url.includes("railway.internal");
+  }
+}
+
 const pool =
   global.__pgPool ??
   new Pool({
     connectionString: conn,
     max: 5,
-    ssl:
-      conn && !conn.includes("railway.internal")
-        ? { rejectUnauthorized: false }
-        : undefined,
+    ssl: needsSsl(conn) ? { rejectUnauthorized: false } : undefined,
   });
 
 if (process.env.NODE_ENV !== "production") global.__pgPool = pool;
