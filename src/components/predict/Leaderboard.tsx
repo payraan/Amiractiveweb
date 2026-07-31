@@ -22,6 +22,8 @@ export default function Leaderboard({
 }) {
   const [range, setRange] = useState(defaultRange);
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [maxCounted, setMaxCounted] = useState<number | null>(null);
+  const [totalPlayers, setTotalPlayers] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -32,6 +34,8 @@ export default function Leaderboard({
       .then((j) => {
         if (!alive) return;
         setEntries(j.entries ?? []);
+        setMaxCounted(typeof j.maxCounted === "number" ? j.maxCounted : null);
+        setTotalPlayers(Number(j.totalPlayers ?? 0));
         setLoading(false);
       })
       .catch(() => alive && setLoading(false));
@@ -105,6 +109,27 @@ export default function Leaderboard({
             );
           })}
         </div>
+      )}
+
+      {maxCounted !== null && (
+        <p className="mt-4 text-[10px] leading-6 text-muted">
+          امتیاز از هر سه بازی (نبض بازار، آرنا و کمبو) جمع می‌شود و فقط{" "}
+          <b className="font-mono text-cream" dir="ltr">
+            {maxCounted}
+          </b>{" "}
+          پیش‌بینیِ نخستِ هر بازه در رتبه‌بندی محاسبه می‌شود. پس همه در هر دوره
+          فرصت برابر دارند و خرید کردیت رتبه نمی‌خرد.
+          {totalPlayers > 0 && (
+            <>
+              {" "}
+              این دوره{" "}
+              <b className="font-mono text-cream" dir="ltr">
+                {totalPlayers}
+              </b>{" "}
+              بازیکن واجد شرایط دارد.
+            </>
+          )}
+        </p>
       )}
     </div>
   );
