@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { usePlayer } from "@/components/predict/usePlayer";
-import AuthPanel from "@/components/predict/AuthPanel";
 import { dualDate } from "@/lib/dates";
+import AuthCallout from "@/components/predict/AuthCallout";
 
 type Market = {
   id: string;
@@ -192,8 +192,14 @@ export default function ArenaBoard() {
   return (
     <>
       {!loading && !player && (
-        <div className="mb-8 max-w-md">
-          <AuthPanel
+        <div className="mb-8">
+          <AuthCallout
+            benefits={[
+              "۵ پیش‌بینی رایگان در روز روی بازارهای واقعی",
+              "امتیاز = ۱۰۰ منهای احتمال؛ گزینه‌ی کم‌شانس‌تر، پاداش بزرگ‌تر",
+              "رقابت در لیدربورد و ورود به چلنج پراپ",
+              "۱۰ کردیت هدیه‌ی خوش‌آمد",
+            ]}
             onAuthed={() => {
               refresh();
               window.dispatchEvent(new Event("amir:authed"));
@@ -203,42 +209,51 @@ export default function ArenaBoard() {
       )}
 
       {player && (
-        <div className="mb-8 max-w-md rounded-2xl border border-line bg-surface/60 p-6 backdrop-blur transition-all duration-300 hover:scale-[1.01] hover:border-gold/50 hover:shadow-[0_0_24px_rgba(232,196,106,0.10)]">
-          <div className="flex items-center justify-between">
+        <div className="mb-8 rounded-2xl border border-line bg-surface/60 p-6 backdrop-blur md:p-7">
+          <div className="flex flex-wrap items-center justify-between gap-6">
             <div>
               <div className="text-xs text-muted">حساب شما</div>
-              <div className="font-display text-lg font-extrabold">{player.displayName}</div>
+              <div className="font-display text-xl font-extrabold">
+                {player.displayName}
+              </div>
+              <div className="mt-1.5 text-[11px] text-muted">
+                پیش‌بینی رایگان امروز:{" "}
+                <b className="font-mono text-gain" dir="ltr">
+                  {freeLeft}
+                </b>
+              </div>
             </div>
-            <div className="flex gap-6 text-end">
+
+            <div className="flex flex-wrap gap-8">
               <div>
                 <div className="text-xs text-muted">کردیت</div>
-                <div className="font-mono text-2xl font-bold text-cream" dir="ltr">
+                <div className="font-mono text-3xl font-bold text-cream" dir="ltr">
                   {player.credits}◆
                 </div>
               </div>
               <div>
                 <div className="text-xs text-muted">امتیاز</div>
-                <div className="font-mono text-2xl font-bold text-gold" dir="ltr">
+                <div className="font-mono text-3xl font-bold text-gold" dir="ltr">
                   {player.totalPoints}
                 </div>
               </div>
             </div>
-          </div>
-          <div className="mt-3 text-[11px] text-muted">
-            پیش‌بینی رایگان امروز:{" "}
-            <b className="font-mono text-gain" dir="ltr">{freeLeft}</b>
-          </div>
-          <div className="mt-4 flex items-center justify-between border-t border-line pt-4">
-            <a href="/predict#credits" className="text-xs text-muted transition hover:text-gold">
-              خرید کردیت
-            </a>
-            <button
-              type="button"
-              onClick={logout}
-              className="no-zoom text-xs text-muted transition hover:text-loss"
-            >
-              خروج از حساب
-            </button>
+
+            <div className="flex items-center gap-5">
+              <a
+                href="/predict#credits"
+                className="rounded-xl border border-gold/40 px-5 py-2.5 text-xs text-gold transition hover:bg-gold hover:text-ink"
+              >
+                خرید کردیت
+              </a>
+              <button
+                type="button"
+                onClick={logout}
+                className="no-zoom text-xs text-muted transition hover:text-loss"
+              >
+                خروج از حساب
+              </button>
+            </div>
           </div>
         </div>
       )}

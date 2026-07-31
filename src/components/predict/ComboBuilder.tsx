@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePlayer } from "@/components/predict/usePlayer";
-import AuthPanel from "@/components/predict/AuthPanel";
+import AuthCallout from "@/components/predict/AuthCallout";
 
 type Market = {
   id: string;
@@ -233,8 +233,16 @@ export default function ComboBuilder() {
       </div>
 
       {!loading && !player && (
-        <div className="mt-8 max-w-md">
-          <AuthPanel onAuthed={() => refresh()} />
+        <div className="mt-8">
+          <AuthCallout
+            benefits={[
+              "هر روز ۱ کمبوی رایگان",
+              "هرچه ترکیب سخت‌تر، پاداش بزرگ‌تر",
+              "امتیاز کمبو در لیدربورد ثبت می‌شود",
+              "۱۰ کردیت هدیه‌ی خوش‌آمد",
+            ]}
+            onAuthed={() => refresh()}
+          />
         </div>
       )}
 

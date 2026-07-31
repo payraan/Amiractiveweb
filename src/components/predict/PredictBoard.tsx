@@ -6,9 +6,9 @@ import { CATEGORIES, type AssetCategory } from "@/lib/assets";
 import { TIMEFRAMES, thresholdsFor, volScaleFor } from "@/lib/game";
 import { usePlayer } from "@/components/predict/usePlayer";
 import AssetCard from "@/components/predict/AssetCard";
-import AuthPanel from "@/components/predict/AuthPanel";
 import ShareCard from "@/components/predict/ShareCard";
 import type { GameResult } from "@/components/predict/usePlayer";
+import AuthCallout from "@/components/predict/AuthCallout";
 
 export default function PredictBoard() {
   const { player, predicted, freeRemaining, results, loading, refresh, logout } =
@@ -103,45 +103,15 @@ export default function PredictBoard() {
               </p>
             </div>
           ) : (
-            <div className="rounded-2xl border border-line bg-surface/60 p-6 backdrop-blur md:p-8">
-              <div className="grid items-center gap-8 md:grid-cols-2 md:gap-12">
-                {/* چرا حساب بسازم */}
-                <div>
-                  <span className="font-mono text-[11px] tracking-[0.25em] text-gold-deep">
-                    START FREE
-                  </span>
-                  <h3 className="mt-3 font-display text-2xl font-black leading-snug md:text-3xl">
-                    برای شروع، <span className="text-gold">حساب بساز</span>
-                  </h3>
-                  <p className="mt-3 text-[13px] leading-7 text-muted">
-                    ثبت‌نام رایگان است و فقط چند ثانیه طول می‌کشد. برای شروع هیچ
-                    پرداختی لازم نیست.
-                  </p>
-
-                  <ul className="mt-5 flex flex-col gap-3">
-                    {[
-                      "هر روز پیش‌بینی رایگان روی ۴۲ دارایی",
-                      "امتیاز از دقت شما می‌آید، نه از شانس یا پول",
-                      "رقابت در لیدربورد و ورود به چلنج پراپ",
-                      "۱۰ کردیت هدیه‌ی خوش‌آمد",
-                    ].map((t) => (
-                      <li
-                        key={t}
-                        className="flex items-start gap-2.5 text-[13px] leading-6 text-cream"
-                      >
-                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" />
-                        {t}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* فرم */}
-                <div className="rounded-2xl border border-line bg-raised/30 p-5 md:p-6">
-                  <AuthPanel bare onAuthed={() => refresh()} />
-                </div>
-              </div>
-            </div>
+            <AuthCallout
+              benefits={[
+                "هر روز پیش‌بینی رایگان روی ۴۲ دارایی",
+                "آستانه‌ها با نوسان هر دارایی تنظیم می‌شوند",
+                "رقابت در لیدربورد و ورود به چلنج پراپ",
+                "۱۰ کردیت هدیه‌ی خوش‌آمد",
+              ]}
+              onAuthed={() => refresh()}
+            />
           )}
         </div>
       )}
