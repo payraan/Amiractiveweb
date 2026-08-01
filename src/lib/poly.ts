@@ -58,7 +58,43 @@ export function losePoints(probPct: number): number {
 let marketsCache: { data: PolyMarket[]; ts: number } | null = null;
 const MARKETS_TTL = 5 * 60 * 1000;
 
+// ── حالت توسعه ──────────────────────────────────────────────
+//
+// پالی‌مارکت از شبکه‌ی داخل ایران در دسترس نیست، پس روی لوکال هر درخواست
+// تا تایم‌اوت پیش می‌رود (~۱۰ ثانیه) و لیست خالی برمی‌گردد — کار روی رابط
+// کاربری را عملا غیرممکن می‌کند.
+//
+// با NEXT_PUBLIC_DEV_FIXTURES=1 در .env.local، به‌جای درخواست شبکه
+// داده‌ی نمونه برگردانده می‌شود. در تولید هرگز فعال نیست چون متغیر ست نمی‌شود.
+const USE_FIXTURES = process.env.NEXT_PUBLIC_DEV_FIXTURES === "1";
+
+const FIXTURE_MARKETS: PolyMarket[] = [
+  ["نمونه: بیت‌کوین تا پایان سال بالای ۱۰۰ هزار دلار؟", "Crypto Milestones", 42.9, 12_400_000, "crypto"],
+  ["نمونه: فدرال رزرو در نشست بعدی نرخ را کاهش می‌دهد؟", "Fed Decisions", 63.1, 8_900_000, "economy"],
+  ["نمونه: اتریوم تا پایان فصل از ۵ هزار دلار عبور می‌کند؟", "Crypto Milestones", 28.4, 5_600_000, "crypto"],
+  ["نمونه: قهرمان جام جهانی از اروپا خواهد بود؟", "World Cup", 71.2, 24_000_000, "sports"],
+  ["نمونه: طلا تا پایان ماه رکورد جدید می‌زند؟", "Commodities", 35.8, 3_200_000, "economy"],
+  ["نمونه: توافق تجاری تا پایان سال امضا می‌شود؟", "Geopolitics", 47.5, 6_100_000, "politics"],
+  ["نمونه: سولانا وارد سه رمزارز برتر می‌شود؟", "Crypto Rankings", 18.9, 2_800_000, "crypto"],
+  ["نمونه: نرخ تورم آمریکا زیر ۳ درصد بسته می‌شود؟", "Inflation", 55.3, 4_700_000, "economy"],
+].map(([q, ev, yes, vol, cat], i) => {
+  const end = new Date(Date.now() + (30 + i * 15) * 86400000).toISOString();
+  return {
+    id: `fixture-${i + 1}`,
+    question: q as string,
+    eventTitle: ev as string,
+    endDate: end,
+    yesPct: yes as number,
+    volume: vol as number,
+    category: cat as string,
+    categoryLabel: CATS.find((c) => c.id === cat)?.label ?? "سایر",
+    startDate: new Date(Date.now() - 20 * 86400000).toISOString(),
+    yesToken: "",
+  };
+});
+
 export async function getCuratedMarkets(): Promise<PolyMarket[]> {
+  if (USE_FIXTURES) return FIXTURE_MARKETS;
   if (marketsCache && Date.now() - marketsCache.ts < MARKETS_TTL) {
     return marketsCache.data;
   }
@@ -88,7 +124,7 @@ export async function getCuratedMarkets(): Promise<PolyMarket[]> {
       sources.map((src) =>
         fetch(
           `${GAMMA}/events?limit=${src.limit}&active=true&closed=false&order=${src.order ?? "volume"}&ascending=false${src.slug ? `&tag_slug=${src.slug}` : ""}`,
-          { headers: UA, cache: "no-store" }
+          { headers: UA, cache: "no-store", signal: AbortSignal.timeout(8000) }
         )
           .then((r) => (r.ok ? r.json() : []))
           .catch(() => [])

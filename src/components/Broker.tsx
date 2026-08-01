@@ -3,14 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 
+// بروکر معرفی‌شده در صفحه‌ی عمومی، طبق تعهد سفیر برند: فقط Otet Markets.
+//
+// GTC عمداً اینجا نیست. تنها استثنای قرارداد این است که GTC فقط در مسیر
+// خرید ربات اسکلپر معرفی شود — برای کاربرانی که به‌دلیل نیاز فنی اسپرد
+// ثابت می‌خواهند. آن مسیر جداست و از این فهرست عمومی نمی‌گذرد.
 const BROKERS = [
-  {
-    id: "gtc",
-    name: "GTC FX",
-    tag: "TRUSTED · REGULATED · GLOBAL",
-    logo: "/brokers/gtc.webp",
-    href: "https://web.mygtc.app/login/register?ref=AZ6AM62S",
-  },
   {
     id: "otet",
     name: "Otet Markets",
@@ -66,18 +64,19 @@ export default function Broker() {
           className={rv("mt-4 font-display text-3xl font-black md:text-4xl")}
           style={{ transitionDelay: "80ms" }}
         >
-          بروکر خود را انتخاب کنید
+          بروکر همکار
         </h2>
 
         <p
           className={rv("mt-4 max-w-2xl leading-8 text-muted")}
           style={{ transitionDelay: "160ms" }}
         >
-          برای فعال‌سازی ربات با شرایط ویژه، از طریق یکی از بروکرهای معرفی ما
-          ثبت‌نام کنید.
+          برای فعال‌سازی ربات با شرایط ویژه و دریافت حساب جایزه‌ی مسیر معاملاتی
+          چلنج، از طریق بروکر همکار ما ثبت‌نام کنید. شرایط معاملاتی، اسپرد و
+          روش برداشت تابع قوانین همان بروکر است.
         </p>
 
-        <div className="mt-10 grid gap-6 md:grid-cols-2">
+        <div className="mt-10 grid gap-6 md:mx-auto md:max-w-xl">
           {BROKERS.map((b, i) => (
             <a
               key={b.id}
@@ -91,13 +90,7 @@ export default function Broker() {
                 {/* ambient gold sweep on hover */}
                 <div className="pointer-events-none absolute -inset-x-10 -top-24 h-40 rotate-12 bg-gradient-to-r from-transparent via-gold/10 to-transparent opacity-0 blur-2xl transition-opacity duration-700 group-hover:opacity-100" />
 
-                {/* index number watermark */}
-                <span
-                  className="pointer-events-none absolute left-6 top-4 font-mono text-6xl font-black text-line/60"
-                  dir="ltr"
-                >
-                  0{i + 1}
-                </span>
+
 
                 {/* logo on a clean light plate */}
                 <div className="relative flex h-28 items-center justify-center rounded-xl bg-cream/95 px-8 shadow-inner transition-transform duration-500 group-hover:scale-[1.02]">
