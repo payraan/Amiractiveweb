@@ -17,27 +17,20 @@ function isGroup(i: NavItem): i is Group {
 }
 
 // ۵ آیتم اصلیِ بالا: چهار موردِ اینجا + «ورود» (دکمه سمت راست). تلگرام CTA است.
+// سه بازیِ اصلی مستقیم و بدون زیرمنو می‌آیند تا هویت پلتفرم روی خودِ
+// پیش‌بینی بماند. ربات و بروکر و بقیه به «بیشتر» منتقل شده‌اند چون
+// محصولات جانبی‌اند، نه پیام اصلی.
 const NAV: NavItem[] = [
-  {
-    label: "بازی و پیش‌بینی",
-    children: [
-      { href: "/trade", label: "ترید", desc: "ترمینال معامله‌گونه‌ی بازارها" },
-      { href: "/arena", label: "پیش‌بینی", desc: "بازار بله/خیرِ رویدادها" },
-      { href: "/predict", label: "نبض بازار", desc: "حدسِ قیمتِ دارایی‌ها" },
-      { href: "/combos", label: "کمبو", desc: "چند پیش‌بینی در یک تیکت" },
-    ],
-  },
-  {
-    label: "ربات معامله‌گر",
-    children: [
-      { href: "/bot", label: "ربات معامله‌گر", desc: "اکسپرت اسکلپر متاتریدر ۵" },
-      { href: "/results", label: "نتایج زنده", desc: "کارنامه‌ی مستقل در Myfxbook" },
-    ],
-  },
-  { href: "/broker", label: "بروکر (کارگزاری)" },
+  { href: "/trade", label: "ترید" },
+  { href: "/predict", label: "نبض بازار" },
+  { href: "/iran", label: "بازار ایران" },
   {
     label: "بیشتر",
     children: [
+      { href: "/challenge", label: "چلنج پراپ", desc: "قوانین و مسیر دریافت حساب" },
+      { href: "/bot", label: "ربات معامله‌گر", desc: "اکسپرت اسکلپر متاتریدر ۵" },
+      { href: "/results", label: "نتایج زنده", desc: "کارنامه‌ی مستقل در Myfxbook" },
+      { href: "/broker", label: "بروکر (کارگزاری)", desc: "بروکر همکار" },
       { href: "/#academy", label: "آکادمی", desc: "مقالات و آموزش" },
       { href: "/referral", label: "دعوت دوستان", desc: "کد دعوت و پاداش کردیتی" },
     ],

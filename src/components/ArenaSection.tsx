@@ -56,7 +56,7 @@ export default function ArenaSection() {
               ورود به آرنای پیش‌بینی
             </Link>
             <Link
-              href="/arena#challenge"
+              href="/challenge"
               className="rounded-xl border border-line px-7 py-3.5 text-cream transition hover:border-gold hover:text-gold"
             >
               چلنج پراپ

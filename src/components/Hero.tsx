@@ -99,7 +99,7 @@ export default async function Hero() {
           </Link>
 
           <Link
-            href="/arena#challenge"
+            href="/challenge"
             className="rounded-full border border-line px-8 py-4 text-cream transition hover:border-gold/60 hover:text-gold"
           >
             چلنج پراپ

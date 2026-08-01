@@ -816,7 +816,7 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
         <Link href="/combos" className="ms-auto transition hover:text-gold">
           کمبو
         </Link>
-        <Link href="/arena#challenge" className="transition hover:text-gold">
+        <Link href="/challenge" className="transition hover:text-gold">
           چلنج پراپ
         </Link>
         <a
