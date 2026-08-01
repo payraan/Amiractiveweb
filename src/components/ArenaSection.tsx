@@ -50,13 +50,13 @@ export default function ArenaSection() {
 
           <div className="mt-8 flex flex-wrap gap-4">
             <Link
-              href="/arena"
+              href="/trade"
               className="rounded-xl bg-gold px-7 py-3.5 font-display font-extrabold text-ink transition hover:bg-gold-deep"
             >
               ورود به آرنای پیش‌بینی
             </Link>
             <Link
-              href="/challenge"
+              href="/arena#challenge"
               className="rounded-xl border border-line px-7 py-3.5 text-cream transition hover:border-gold hover:text-gold"
             >
               چلنج پراپ

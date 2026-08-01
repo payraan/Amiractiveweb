@@ -594,7 +594,7 @@ export default function ComboBuilder() {
       {legs.length === 0 && (
         <p className="mt-8 text-[11px] text-muted">
           پس از انتخاب اولین بازار، نوار تیکت در پایین صفحه ظاهر می‌شود.{" "}
-          <Link href="/arena" className="text-gold transition hover:text-gold-deep">
+          <Link href="/trade" className="text-gold transition hover:text-gold-deep">
             بازگشت به آرنای پیش‌بینی
           </Link>
         </p>

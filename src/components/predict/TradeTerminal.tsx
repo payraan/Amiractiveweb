@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePlayer } from "@/components/predict/usePlayer";
 import AuthPanel from "@/components/predict/AuthPanel";
+import ComboBuilder from "@/components/predict/ComboBuilder";
 import { dualDate } from "@/lib/dates";
 
 type Market = {
@@ -211,7 +212,19 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
   const [freeLeft, setFreeLeft] = useState(0);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("all");
-  const [tab, setTab] = useState<"positions" | "history" | "markets">("markets");
+  // کمبو تب چهارمِ همین ترمینال است، نه یک بازی جدا. زیرساختش یکی است
+  // (همان بازارهای آرنا)، فقط نوع سفارش فرق می‌کند.
+  const [tab, setTab] = useState<
+    "positions" | "history" | "markets" | "combo"
+  >("markets");
+
+  // ریدایرکت /combos به ?tab=combo می‌آید، پس تب اولیه از URL خوانده شود.
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get("tab");
+    if (t === "combo" || t === "positions" || t === "history" || t === "markets") {
+      setTab(t);
+    }
+  }, []);
   const [side, setSide] = useState<"yes" | "no">("yes");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -649,6 +662,7 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
               { id: "markets", label: "همه بازارها", n: list.length },
               { id: "positions", label: "پوزیشن‌های باز", n: positions.length },
               { id: "history", label: "تاریخچه", n: history.length },
+              { id: "combo", label: "کمبو", n: 0 },
             ] as const
           ).map((t) => (
             <button
@@ -662,9 +676,11 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
               }`}
             >
               {t.label}
-              <span className="ms-1.5 font-mono text-[9px] opacity-70" dir="ltr">
-                {t.n}
-              </span>
+              {t.id !== "combo" && (
+                <span className="ms-1.5 font-mono text-[9px] opacity-70" dir="ltr">
+                  {t.n}
+                </span>
+              )}
             </button>
           ))}
 
@@ -802,6 +818,12 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
                 </div>
               ))
             ))}
+
+          {tab === "combo" && (
+            <div className="p-4">
+              <ComboBuilder />
+            </div>
+          )}
         </div>
       </div>
 
@@ -813,9 +835,6 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
         </span>
         <span dir="ltr">{markets.length} MARKETS</span>
         <span dir="ltr">DATA · POLYMARKET</span>
-        <Link href="/combos" className="ms-auto transition hover:text-gold">
-          کمبو
-        </Link>
         <Link href="/challenge" className="transition hover:text-gold">
           چلنج پراپ
         </Link>

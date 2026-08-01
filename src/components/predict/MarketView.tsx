@@ -103,7 +103,7 @@ export default function MarketView({ id }: { id: string }) {
           این بازار در حال حاضر در فهرست فعال آرنا نیست.
         </p>
         <Link
-          href="/arena"
+          href="/trade"
           className="mt-5 inline-block rounded-xl bg-gold px-6 py-3 font-display text-sm font-extrabold text-ink transition hover:bg-gold-deep"
         >
           مشاهده‌ی بازارهای فعال
@@ -157,7 +157,7 @@ export default function MarketView({ id }: { id: string }) {
 
       <div className="mt-6 flex flex-wrap gap-3">
         <Link
-          href="/arena"
+          href="/trade"
           className="rounded-xl bg-gold px-6 py-3 font-display text-sm font-extrabold text-ink transition hover:bg-gold-deep"
         >
           ثبت پیش‌بینی در آرنا

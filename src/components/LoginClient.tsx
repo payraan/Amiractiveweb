@@ -24,7 +24,7 @@ export default function LoginClient() {
         </div>
         <div className="mt-6 flex flex-wrap gap-3">
           <Link
-            href="/arena"
+            href="/trade"
             className="rounded-xl bg-gold px-6 py-3 font-display text-sm font-extrabold text-ink transition hover:bg-gold-deep"
           >
             آرنای پیش‌بینی

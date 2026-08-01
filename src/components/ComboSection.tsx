@@ -77,7 +77,7 @@ export default function ComboSection() {
 
           <div className="mt-8">
             <Link
-              href="/combos"
+              href="/trade?tab=combo"
               className="inline-block rounded-xl bg-gold px-7 py-3.5 font-display font-extrabold text-ink transition hover:bg-gold-deep"
             >
               ساخت کمبو
