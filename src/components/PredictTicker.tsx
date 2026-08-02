@@ -65,7 +65,7 @@ export default async function PredictTicker({
 
   return (
     <div
-      className="relative overflow-hidden border-y border-line bg-surface/30 py-3"
+      className="narmoon-ticker relative overflow-hidden border-y border-line bg-surface/30 py-3"
       dir="ltr"
     >
       <style>{`
@@ -77,6 +77,11 @@ export default async function PredictTicker({
           from { transform: translate3d(-50%, 0, 0); }
           to { transform: translate3d(0, 0, 0); }
         }
+        /* توقف روی هاور — قاعده‌ی قبلی به کلاس دیگری بسته بود و
+           هرگز روی این نوار اعمال نمی‌شد. */
+        .narmoon-ticker:hover .narmoon-track {
+          animation-play-state: paused;
+        }
         @media (prefers-reduced-motion: reduce) {
           .narmoon-track { animation: none !important; }
         }
@@ -84,7 +89,7 @@ export default async function PredictTicker({
 
       <div
         className="narmoon-track flex w-max"
-        style={{ animation: `${anim} 80s linear infinite` }}
+        style={{ animation: `${anim} 150s linear infinite` }}
       >
         <Copy tag="a" />
         <Copy tag="b" />
