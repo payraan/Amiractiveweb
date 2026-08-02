@@ -350,8 +350,66 @@ export default function IranTerminal() {
             </div>
           </>
         ) : (
-          <div className="py-16 text-center text-xs text-muted">
-            {load ? "در حال بارگذاری…" : "هنوز بازاری در این دسته باز نیست."}
+          /* اسکلت پنل — تا بازاری نیست، ساختار پنل دیده شود که کاربر بفهمد
+             این صفحه چه شکلی می‌شود و چرا الان خالی است. */
+          <div className="grid gap-5 p-5 lg:grid-cols-[1fr_340px]">
+            <div>
+              <div className="rounded-xl border border-dashed border-line/70 px-6 py-12 text-center">
+                <p className="text-sm font-bold text-cream">
+                  {load ? "در حال بارگذاری…" : "هنوز بازاری منتشر نشده"}
+                </p>
+                {!load && (
+                  <p className="mx-auto mt-3 max-w-md text-[12px] leading-7 text-muted">
+                    بازارهای این بخش را خود کاربران پیشنهاد می‌دهند و پس از بررسی
+                    انسانی منتشر می‌شوند. اولین نفری باش که یک بازار می‌سازد.
+                  </p>
+                )}
+                {!load && (
+                  <Link
+                    href="/iran/propose"
+                    className="mt-5 inline-block rounded-xl bg-gold px-6 py-2.5 font-display text-sm font-extrabold text-ink transition hover:bg-gold-deep"
+                  >
+                    پیشنهاد بازار جدید
+                  </Link>
+                )}
+              </div>
+
+              <div className="mt-4 rounded-xl border border-line bg-ink/30 p-4">
+                <h3 className="text-[11px] font-bold text-cream">چطور محاسبه می‌شود</h3>
+                <p className="mt-2 text-[11px] leading-7 text-muted">
+                  همه‌ی شرط‌ها در یک استخر جمع می‌شوند. پس از کسر{" "}
+                  {Math.round(cfg.commission * 100)}٪ کارمزد، باقی بین برنده‌ها به
+                  نسبت سهمشان تقسیم می‌شود. هرچه طرفدار یک گزینه کمتر باشد، ضریب
+                  آن بزرگ‌تر است. اگر بازار چنان یک‌طرفه شود که ضریب برنده زیر حد
+                  مجاز بیفتد، بازار باطل و کل پول بدون کسر کارمزد برگردانده می‌شود.
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-line bg-raised/30 p-4 opacity-50">
+              <div className="font-mono text-[10px] tracking-wider text-muted">
+                PLACE PREDICTION
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <div className="rounded-xl border border-line py-3 text-center text-sm font-bold text-muted">
+                  بله
+                </div>
+                <div className="rounded-xl border border-line py-3 text-center text-sm font-bold text-muted">
+                  خیر
+                </div>
+              </div>
+              <div className="mt-3 h-11 rounded-xl border border-line bg-ink/50" />
+              <div className="mt-3 rounded-xl border border-line bg-ink/40 p-3 font-mono text-[11px]">
+                <Row k="Odds" v="—" />
+                <Row k="To win" v="—" />
+                <Row k="Profit" v="—" />
+                <Row k="Fee" v={`${Math.round(cfg.commission * 100)}%`} />
+              </div>
+              <div className="mt-3 h-11 rounded-xl bg-line/40" />
+              <p className="mt-3 text-center text-[10px] text-muted">
+                با انتخاب یک بازار فعال می‌شود
+              </p>
+            </div>
           </div>
         )}
       </div>

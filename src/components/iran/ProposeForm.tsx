@@ -59,10 +59,23 @@ export default function ProposeForm() {
     }
   }
 
-  const ok =
-    question.trim().length >= 15 &&
-    sourceNote.trim().length >= 10 &&
-    closesAt.length > 0;
+  // اعتبارسنجی زنده — کاربر باید بداند دقیقا چه چیزی کم است، نه اینکه
+  // با دکمه‌ی خاکستریِ بی‌توضیح روبه‌رو شود.
+  const issues: string[] = [];
+  if (question.trim().length < 15) {
+    issues.push(`سؤال باید حداقل ۱۵ کاراکتر باشد (الان ${question.trim().length})`);
+  }
+  if (sourceNote.trim().length < 10) {
+    issues.push(
+      `منبع تسویه باید حداقل ۱۰ کاراکتر و دقیق باشد (الان ${sourceNote.trim().length})`
+    );
+  }
+  if (!closesAt) {
+    issues.push("زمان بسته‌شدن را انتخاب کنید");
+  } else if (new Date(closesAt).getTime() <= Date.now()) {
+    issues.push("زمان بسته‌شدن باید در آینده باشد");
+  }
+  const ok = issues.length === 0;
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -123,7 +136,7 @@ export default function ProposeForm() {
             value={sourceNote}
             onChange={(e) => setSourceNote(e.target.value)}
             rows={2}
-            placeholder="مثال: قیمت پایانی دلار آزاد در سایت TGJU، ساعت ۱۸ روز ۳۰ آذر"
+            placeholder="مثال: قیمت پایانی دلار آزاد در سایت tgju.org، ساعت ۱۸ روز ۳۰ آذر ۱۴۰۵"
             className="mt-1.5 w-full rounded-xl border border-line bg-ink/50 px-4 py-3 text-sm leading-7 text-cream focus:border-gold focus:outline-none"
           />
 
@@ -150,17 +163,29 @@ export default function ProposeForm() {
           </label>
           <input
             type="datetime-local"
+            min={new Date(Date.now() + 3600000).toISOString().slice(0, 16)}
             value={closesAt}
             onChange={(e) => setClosesAt(e.target.value)}
             dir="ltr"
             className="mt-1.5 w-full rounded-xl border border-line bg-ink/50 px-4 py-2.5 font-mono text-sm text-cream focus:border-gold focus:outline-none"
           />
 
+          {issues.length > 0 && (
+            <ul className="mt-4 flex flex-col gap-1.5 rounded-xl border border-line bg-ink/30 px-4 py-3">
+              {issues.map((t) => (
+                <li key={t} className="flex items-start gap-2 text-[11px] leading-6 text-muted">
+                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-loss" />
+                  {t}
+                </li>
+              ))}
+            </ul>
+          )}
+
           <button
             type="button"
             disabled={busy || !ok}
             onClick={submit}
-            className="mt-5 w-full rounded-xl bg-gold py-3 font-display text-sm font-extrabold text-ink transition hover:bg-gold-deep disabled:opacity-40"
+            className="mt-4 w-full rounded-xl bg-gold py-3 font-display text-sm font-extrabold text-ink transition hover:bg-gold-deep disabled:opacity-40"
           >
             {busy ? "…" : "ثبت پیشنهاد (۱۰۰ کردیت)"}
           </button>
