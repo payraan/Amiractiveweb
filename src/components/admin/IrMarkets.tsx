@@ -1,0 +1,270 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+
+type M = {
+  id: number;
+  question: string;
+  category: string;
+  sourceNote: string;
+  closesAt: string;
+  status: string;
+  outcome: string | null;
+  creator: string | null;
+  creatorTg: string | null;
+  yesTotal: number;
+  noTotal: number;
+  volume: number;
+  bettors: number;
+  yesPct: number;
+  yesOdds: number;
+  noOdds: number;
+  wouldVoidYes: boolean;
+  wouldVoidNo: boolean;
+  disputeEndsAt: string | null;
+  canFinalize: boolean;
+  createdAt: string;
+};
+
+const TABS = [
+  { id: "pending", label: "در انتظار تأیید" },
+  { id: "open", label: "باز" },
+  { id: "locked", label: "بسته" },
+  { id: "settling", label: "در پنجره اعتراض" },
+  { id: "settled", label: "تسویه‌شده" },
+  { id: "void", label: "باطل" },
+] as const;
+
+const fa = (iso: string) =>
+  new Date(iso).toLocaleString("fa-IR", {
+    timeZone: "Asia/Tehran",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+export default function IrMarkets() {
+  const [status, setStatus] = useState<string>("pending");
+  const [rows, setRows] = useState<M[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<number | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const r = await fetch(`/api/admin/ir?status=${status}`, { cache: "no-store" });
+      const j = await r.json();
+      setRows(j.ok ? j.markets : []);
+    } finally {
+      setLoading(false);
+    }
+  }, [status]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function act(id: number, action: string, extra?: Record<string, unknown>) {
+    setBusy(id);
+    setMsg(null);
+    try {
+      const r = await fetch("/api/admin/ir", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, action, ...extra }),
+      });
+      const j = await r.json();
+      setMsg(j.ok ? "انجام شد." : `خطا: ${j.error ?? "نامشخص"}`);
+      await load();
+    } catch {
+      setMsg("ارتباط با سرور برقرار نشد.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap gap-2">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setStatus(t.id)}
+            className={`rounded-lg border px-3 py-1.5 text-xs transition ${
+              status === t.id
+                ? "border-gold bg-gold/10 text-gold"
+                : "border-line text-muted hover:text-cream"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {msg && <p className="mb-3 text-xs text-gold">{msg}</p>}
+
+      {loading ? (
+        <p className="py-8 text-center text-xs text-muted">در حال بارگذاری…</p>
+      ) : rows.length === 0 ? (
+        <p className="py-8 text-center text-xs text-muted">موردی نیست.</p>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {rows.map((m) => (
+            <div
+              key={m.id}
+              className="rounded-2xl border border-line bg-surface/40 p-4"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13px] font-bold text-cream">{m.question}</p>
+                  <p className="mt-1.5 text-[11px] leading-6 text-muted">
+                    <b className="text-gold">منبع تسویه:</b> {m.sourceNote}
+                  </p>
+                  <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[10px] text-muted">
+                    <span dir="ltr">#{m.id}</span>
+                    <span>{m.category}</span>
+                    <span>بسته‌شدن: {fa(m.closesAt)}</span>
+                    {m.creator && <span>سازنده: {m.creator}</span>}
+                    {m.creatorTg && <span dir="ltr">@{m.creatorTg}</span>}
+                  </div>
+                </div>
+
+                <div className="shrink-0 text-end">
+                  <div className="font-mono text-lg font-bold text-cream" dir="ltr">
+                    ${m.volume.toFixed(2)}
+                  </div>
+                  <div className="text-[10px] text-muted">{m.bettors} شرکت‌کننده</div>
+                </div>
+              </div>
+
+              {m.volume > 0 && (
+                <div className="mt-3 grid grid-cols-2 gap-2 font-mono text-[11px]">
+                  <div className="rounded-lg border border-gain/30 px-3 py-2">
+                    <span className="text-gain">بله {m.yesPct}%</span>
+                    <span className="ms-2 text-muted" dir="ltr">
+                      ${m.yesTotal.toFixed(2)} · ×{m.yesOdds}
+                    </span>
+                  </div>
+                  <div className="rounded-lg border border-loss/30 px-3 py-2">
+                    <span className="text-loss">
+                      خیر {Math.round((100 - m.yesPct) * 10) / 10}%
+                    </span>
+                    <span className="ms-2 text-muted" dir="ltr">
+                      ${m.noTotal.toFixed(2)} · ×{m.noOdds}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* هشدار باطل‌شدن — پیش از ثبت نتیجه */}
+              {(m.wouldVoidYes || m.wouldVoidNo) && (
+                <p className="mt-2.5 rounded-lg border border-loss/40 bg-loss/5 px-3 py-2 text-[11px] leading-6 text-loss">
+                  هشدار: اگر نتیجه{" "}
+                  {m.wouldVoidYes && m.wouldVoidNo
+                    ? "هر کدام"
+                    : m.wouldVoidYes
+                      ? "«بله»"
+                      : "«خیر»"}{" "}
+                  باشد، ضریب برد زیر حد مجاز است و بازار خودکار باطل و پول
+                  برگردانده می‌شود.
+                </p>
+              )}
+
+              {m.disputeEndsAt && (
+                <p className="mt-2.5 text-[11px] text-muted">
+                  نتیجه: <b className="text-cream">{m.outcome}</b> · پایان پنجره
+                  اعتراض: {fa(m.disputeEndsAt)}
+                  {m.canFinalize && (
+                    <b className="ms-2 text-gain">آماده‌ی تسویه‌ی نهایی</b>
+                  )}
+                </p>
+              )}
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                {m.status === "pending" && (
+                  <>
+                    <Btn tone="ok" busy={busy === m.id} onClick={() => act(m.id, "approve")}>
+                      تأیید و انتشار
+                    </Btn>
+                    <Btn
+                      tone="bad"
+                      busy={busy === m.id}
+                      onClick={() => {
+                        const reason = prompt("دلیل رد؟") ?? "rejected";
+                        act(m.id, "reject", { reason });
+                      }}
+                    >
+                      رد
+                    </Btn>
+                  </>
+                )}
+                {m.status === "open" && (
+                  <Btn busy={busy === m.id} onClick={() => act(m.id, "lock")}>
+                    بستن دستی
+                  </Btn>
+                )}
+                {(m.status === "open" || m.status === "locked") && (
+                  <>
+                    <Btn tone="ok" busy={busy === m.id} onClick={() => act(m.id, "resolve", { outcome: "yes" })}>
+                      نتیجه: بله
+                    </Btn>
+                    <Btn tone="bad" busy={busy === m.id} onClick={() => act(m.id, "resolve", { outcome: "no" })}>
+                      نتیجه: خیر
+                    </Btn>
+                    <Btn busy={busy === m.id} onClick={() => act(m.id, "resolve", { outcome: "void" })}>
+                      باطل
+                    </Btn>
+                  </>
+                )}
+                {m.status === "settling" && (
+                  <Btn
+                    tone="ok"
+                    busy={busy === m.id}
+                    disabled={!m.canFinalize}
+                    onClick={() => act(m.id, "finalize")}
+                  >
+                    {m.canFinalize ? "تسویه‌ی نهایی و پرداخت" : "پنجره اعتراض باز است"}
+                  </Btn>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Btn({
+  children,
+  onClick,
+  busy,
+  disabled,
+  tone,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  busy?: boolean;
+  disabled?: boolean;
+  tone?: "ok" | "bad";
+}) {
+  const c =
+    tone === "ok"
+      ? "border-gain/50 text-gain hover:bg-gain/10"
+      : tone === "bad"
+        ? "border-loss/50 text-loss hover:bg-loss/10"
+        : "border-line text-muted hover:text-cream";
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={busy || disabled}
+      className={`rounded-lg border px-3 py-1.5 text-[11px] transition disabled:opacity-40 ${c}`}
+    >
+      {busy ? "…" : children}
+    </button>
+  );
+}

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import IrMarkets from "@/components/admin/IrMarkets";
+import UsersTable from "@/components/admin/UsersTable";
 
 type Found = {
   username: string;
@@ -67,7 +69,44 @@ export default function AdminPanel() {
     );
   }
 
-  return <AdminHome />;
+  return <AdminShell />;
+}
+
+/** پوسته‌ی تب‌دار — بخش‌های موجود حفظ شده‌اند و دو بخش تازه اضافه شده. */
+function AdminShell() {
+  const [tab, setTab] = useState<"home" | "ir" | "users">("home");
+  const TABS = [
+    { id: "home" as const, label: "شارژ و آمار" },
+    { id: "ir" as const, label: "بازار ایران" },
+    { id: "users" as const, label: "کاربران" },
+  ];
+  return (
+    <div className="mx-auto max-w-7xl px-5 py-8">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <h1 className="font-display text-2xl font-black">پنل مدیریت نارمون</h1>
+        <div className="flex gap-2">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setTab(t.id)}
+              className={`rounded-xl border px-4 py-2 text-xs font-bold transition ${
+                tab === t.id
+                  ? "border-gold bg-gold/10 text-gold"
+                  : "border-line text-muted hover:text-cream"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {tab === "home" && <AdminHome />}
+      {tab === "ir" && <IrMarkets />}
+      {tab === "users" && <UsersTable />}
+    </div>
+  );
 }
 
 type Overview = {
