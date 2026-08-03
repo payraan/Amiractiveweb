@@ -27,6 +27,7 @@ const NAV: NavItem[] = [
   {
     label: "بیشتر",
     children: [
+      { href: "/wallet", label: "کیف پول", desc: "واریز، برداشت و تاریخچه" },
       { href: "/challenge", label: "چلنج پراپ", desc: "قوانین و مسیر دریافت حساب" },
       { href: "/bot", label: "ربات معامله‌گر", desc: "اکسپرت اسکلپر متاتریدر ۵" },
       { href: "/results", label: "نتایج زنده", desc: "کارنامه‌ی مستقل در Myfxbook" },
