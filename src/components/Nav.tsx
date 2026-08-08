@@ -24,10 +24,13 @@ const NAV: NavItem[] = [
   { href: "/trade", label: "ترید" },
   { href: "/predict", label: "نبض بازار" },
   { href: "/iran", label: "بازار ایران" },
+  // کیف پول از زیرمنو به سطح اول آمد: حالا که پول واقعی در جریان است، دسترسی
+  // به موجودی نباید پشت یک منوی کشویی پنهان باشد.
+  { href: "/wallet", label: "کیف پول" },
   {
     label: "بیشتر",
     children: [
-      { href: "/wallet", label: "کیف پول", desc: "واریز، برداشت و تاریخچه" },
+      { href: "/profile", label: "پنل کاربری", desc: "کارنامه، سود و زیان و نشان‌ها" },
       { href: "/challenge", label: "چلنج پراپ", desc: "قوانین و مسیر دریافت حساب" },
       { href: "/bot", label: "ربات معامله‌گر", desc: "اکسپرت اسکلپر متاتریدر ۵" },
       { href: "/results", label: "نتایج زنده", desc: "کارنامه‌ی مستقل در Myfxbook" },

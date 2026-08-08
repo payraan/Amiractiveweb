@@ -19,14 +19,14 @@ type Ray = {
 // هیچ‌کدام وسطِ صفحه معلق تمام نمی‌شوند.
 const RAYS: Ray[] = [
   { dx: -1160, dy: -770, w: 1.0, o: 0.1, delay: "0s", tone: "gold" },
-  { dx: -840, dy: -840, w: 1.3, o: 0.14, delay: "1.9s", tone: "gold" },
-  { dx: -540, dy: -965, w: 1.1, o: 0.12, delay: "3.6s", tone: "gain" },
-  { dx: -260, dy: -965, w: 1.7, o: 0.2, delay: "1.0s", tone: "gold" },
-  { dx: 0, dy: -985, w: 2.1, o: 0.28, delay: "2.6s", tone: "gold" },
-  { dx: 260, dy: -965, w: 1.7, o: 0.2, delay: "4.1s", tone: "gold" },
-  { dx: 540, dy: -965, w: 1.1, o: 0.12, delay: "1.4s", tone: "gain" },
-  { dx: 840, dy: -840, w: 1.3, o: 0.14, delay: "3.1s", tone: "gold" },
-  { dx: 1160, dy: -770, w: 1.0, o: 0.1, delay: "4.8s", tone: "gold" },
+  { dx: -840, dy: -840, w: 1.3, o: 0.14, delay: "-1.9s", tone: "gold" },
+  { dx: -540, dy: -965, w: 1.1, o: 0.12, delay: "-3.6s", tone: "gain" },
+  { dx: -260, dy: -965, w: 1.7, o: 0.2, delay: "-1.0s", tone: "gold" },
+  { dx: 0, dy: -985, w: 2.1, o: 0.28, delay: "-2.6s", tone: "gold" },
+  { dx: 260, dy: -965, w: 1.7, o: 0.2, delay: "-4.1s", tone: "gold" },
+  { dx: 540, dy: -965, w: 1.1, o: 0.12, delay: "-1.4s", tone: "gain" },
+  { dx: 840, dy: -840, w: 1.3, o: 0.14, delay: "-3.1s", tone: "gold" },
+  { dx: 1160, dy: -770, w: 1.0, o: 0.1, delay: "-4.8s", tone: "gold" },
 ];
 
 const OX = 600;
@@ -47,6 +47,11 @@ function pathFor(r: Ray): string {
   return `M${sx},${sy} Q${cx.toFixed(0)},${cy.toFixed(0)} ${OX + r.dx},${OY + r.dy}`;
 }
 
+// تاخیرها عمدا منفی‌اند. با تاخیر مثبت، پرتو تا رسیدن نوبتش انیمیشن را شروع
+// نمی‌کند و چون fill-mode ندارد با stroke-dashoffset پیش‌فرض (صفر) رندر می‌شود
+// — یعنی یک تکه خطِ ساکن چند ثانیه وسط صفحه می‌ماند و بعد ناگهان راه می‌افتد.
+// تاخیر منفی یعنی «انگار این‌قدر از انیمیشن گذشته»، پس همه از فریم اول در حال
+// حرکت‌اند و پلکانی هم می‌مانند.
 const MERIDIAN_DELAYS = ["0s", "-6s", "-12s"];
 const PARALLELS = [-0.5, -0.25, 0, 0.25, 0.5];
 

@@ -52,6 +52,18 @@ const ERR: Record<string, string> = {
 const catLabel = (id: string) =>
   IR_CATEGORIES.find((c) => c.id === id)?.label ?? id;
 
+/** فقط بازار بازِ به‌موعدنرسیده قابل شرط است. */
+const isBettable = (x: { status: string; closesAt: string }) =>
+  x.status === "open" && new Date(x.closesAt).getTime() > Date.now();
+
+const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
+  open: { label: "باز", cls: "border-gain/40 text-gain" },
+  locked: { label: "بسته — منتظر نتیجه", cls: "border-line text-muted" },
+  settling: { label: "در پنجره اعتراض", cls: "border-gold/40 text-gold" },
+  settled: { label: "تسویه‌شده", cls: "border-line text-muted" },
+  void: { label: "باطل", cls: "border-loss/40 text-loss" },
+};
+
 const fa = (iso: string) =>
   new Date(iso).toLocaleString("fa-IR", {
     timeZone: "Asia/Tehran",
@@ -92,9 +104,12 @@ export default function IranTerminal() {
         setMarkets(j.markets);
         setBalance(j.balance ?? 0);
         if (j.config) setCfg(j.config);
-        setSel((s) =>
-          s && j.markets.some((m: M) => m.id === s) ? s : (j.markets[0]?.id ?? null)
-        );
+        // پیش‌فرض روی بازاری که واقعا می‌شود رویش شرط بست، نه صرفا اولین بازار
+        setSel((s) => {
+          if (s && j.markets.some((m: M) => m.id === s)) return s;
+          const bettable = j.markets.find((m: M) => isBettable(m));
+          return bettable?.id ?? j.markets[0]?.id ?? null;
+        });
       }
     } finally {
       setLoad(false);
@@ -150,23 +165,26 @@ export default function IranTerminal() {
 
   const noPct = m ? Math.round((100 - m.yesPct) * 10) / 10 : 0;
 
-  // فقط بازارهای بازِ قابل شرط در اکسپلور دیده می‌شوند — بازار بسته یا در حال
-  // تسویه اینجا نمی‌آید چون کاربر کاری با آن نمی‌تواند بکند.
+  // همه‌ی بازارها در اکسپلور دیده می‌شوند، نه فقط بازها. قبلا فقط status=open
+  // نشان داده می‌شد و کاربری که سه بازار ساخته بود فقط یکی را می‌دید — چون
+  // بقیه locked یا settling بودند. حالا همه می‌آیند و وضعیتشان روی کارت
+  // برچسب می‌خورد؛ بازارِ غیرقابل‌شرط کم‌رنگ‌تر است ولی همچنان قابل دیدن.
   const explore = useMemo(() => {
-    const open = markets.filter(
-      (x) => x.status === "open" && new Date(x.closesAt).getTime() > Date.now()
-    );
     const byClose = (x: M) => new Date(x.closesAt).getTime();
-    const arr = [...open];
+    // بازارهای قابل شرط همیشه بالاتر از بسته‌ها می‌آیند
+    const rank = (x: M) => (isBettable(x) ? 0 : 1);
+    const arr = [...markets];
     switch (sort) {
       case "volume":
-        return arr.sort((a, b) => b.volume - a.volume);
+        return arr.sort((a, b) => rank(a) - rank(b) || b.volume - a.volume);
       case "bettors":
-        return arr.sort((a, b) => b.bettors - a.bettors || b.volume - a.volume);
+        return arr.sort(
+          (a, b) => rank(a) - rank(b) || b.bettors - a.bettors || b.volume - a.volume
+        );
       case "closing":
-        return arr.sort((a, b) => byClose(a) - byClose(b));
+        return arr.sort((a, b) => rank(a) - rank(b) || byClose(a) - byClose(b));
       case "new":
-        return arr.sort((a, b) => b.id - a.id);
+        return arr.sort((a, b) => rank(a) - rank(b) || b.id - a.id);
       case "hot":
       default:
         // شتاب مشارکت: حجم تقسیم بر ساعت‌های باقی‌مانده تا بسته‌شدن. بازاری که
@@ -176,7 +194,7 @@ export default function IranTerminal() {
             const hoursLeft = Math.max(1, (byClose(x) - Date.now()) / 3600000);
             return (x.volume + x.bettors * 2) / Math.sqrt(hoursLeft);
           };
-          return heat(b) - heat(a);
+          return rank(a) - rank(b) || heat(b) - heat(a);
         });
     }
   }, [markets, sort]);
@@ -409,6 +427,27 @@ export default function IranTerminal() {
                   <AuthPanel onAuthed={() => refresh()} />
                 </div>
               </>
+            ) : m && !isBettable(m) ? (
+              // بازار انتخاب‌شده دیگر شرط نمی‌پذیرد — فرم را نشان نده، دلیلش را بگو
+              <div className="rounded-lg border border-line bg-ink/30 p-4 text-center">
+                <p className="text-[12px] font-bold text-cream">
+                  {STATUS_BADGE[m.status]?.label ?? "بسته"}
+                </p>
+                <p className="mt-2 text-[11px] leading-6 text-muted">
+                  {m.status === "locked"
+                    ? "شرط‌بندی روی این بازار تمام شده و منتظر اعلام نتیجه است."
+                    : m.status === "settling"
+                      ? "نتیجه ثبت شده و در پنجره‌ی ۲۴ ساعته‌ی اعتراض است. پس از آن پرداخت انجام می‌شود."
+                      : m.status === "settled"
+                        ? "این بازار تسویه شده و پرداخت برنده‌ها انجام شده است."
+                        : m.status === "void"
+                          ? "این بازار باطل شده و پول شرکت‌کننده‌ها برگشته است."
+                          : "زمان این بازار به پایان رسیده است."}
+                </p>
+                <p className="mt-3 text-[10px] text-muted">
+                  از فهرست پایین یک بازار باز انتخاب کن.
+                </p>
+              </div>
             ) : (
               <>
                 <div className="grid grid-cols-2 gap-2">
@@ -591,13 +630,22 @@ export default function IranTerminal() {
                   }}
                   className={`no-zoom min-w-0 border-b border-line p-4 text-start transition md:border-e ${
                     active ? "bg-gold/10" : "hover:bg-raised/40"
-                  }`}
+                  } ${isBettable(x) ? "" : "opacity-60"}`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="shrink-0 rounded-full border border-line px-2 py-0.5 text-[10px] text-muted">
-                      {catLabel(x.category)}
+                    <span className="flex min-w-0 shrink items-center gap-1.5">
+                      <span className="shrink-0 rounded-full border border-line px-2 py-0.5 text-[10px] text-muted">
+                        {catLabel(x.category)}
+                      </span>
+                      <span
+                        className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] ${
+                          STATUS_BADGE[x.status]?.cls ?? "border-line text-muted"
+                        }`}
+                      >
+                        {STATUS_BADGE[x.status]?.label ?? x.status}
+                      </span>
                     </span>
-                    <span className="font-mono text-[10px] text-muted" dir="ltr">
+                    <span className="shrink-0 font-mono text-[10px] text-muted" dir="ltr">
                       ${x.volume.toFixed(0)} · {x.bettors} نفر
                     </span>
                   </div>
@@ -615,7 +663,11 @@ export default function IranTerminal() {
                   </div>
                   <div className="mt-2.5 flex items-center justify-between text-[10px] text-muted">
                     <span>بسته‌شدن: {fa(x.closesAt)}</span>
-                    <span className="text-gold">{remain(x.closesAt)}</span>
+                    {isBettable(x) ? (
+                      <span className="text-gold">{remain(x.closesAt)}</span>
+                    ) : (
+                      <span>شرط‌بندی بسته است</span>
+                    )}
                   </div>
                 </button>
               );

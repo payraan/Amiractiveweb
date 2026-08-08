@@ -211,13 +211,22 @@ export type CreditPack = {
 // (از ۰.۱۰ دلار در پک شروع تا ۰.۰۴۲ دلار در بزرگ‌ترین پک). دو پک آخر
 // اضافه شدند چون چلنج‌های بزرگ تا ۲۸۰۰ کردیت ورودی دارند و کاربر نباید
 // مجبور شود چند بار خرید کند.
+// هشت بسته تا شبکه‌ی ۴ستونی دقیقا دو ردیف کامل شود (۶ تا یک ردیف ناقص
+// می‌ساخت). پله‌ها یکنواخت‌اند: هرچه بسته بزرگ‌تر، هر کردیت ارزان‌تر.
 export const CREDIT_PACKS: CreditPack[] = [
+  { id: "mini", credits: 20, priceUsdt: 2.5 },
   { id: "starter", credits: 50, priceUsdt: 5 },
+  { id: "plus", credits: 100, priceUsdt: 9 },
   { id: "popular", credits: 200, priceUsdt: 15, badge: "محبوب" },
   { id: "pro", credits: 500, priceUsdt: 30 },
   { id: "arena", credits: 1000, priceUsdt: 50 },
   { id: "elite", credits: 2000, priceUsdt: 90, badge: "بهترین ارزش" },
   { id: "prime", credits: 3000, priceUsdt: 125 },
 ];
+
+/** بسته را با شناسه پیدا کن — سرور هرگز به قیمتِ ارسالی کلاینت اعتماد نمی‌کند. */
+export function creditPack(id: string): CreditPack | undefined {
+  return CREDIT_PACKS.find((p) => p.id === id);
+}
 
 export const SUPPORT_TG = "https://t.me/Amiractive_support";

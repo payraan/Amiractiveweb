@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePlayer } from "@/components/predict/usePlayer";
 import AuthPanel from "@/components/predict/AuthPanel";
 import ComboBuilder from "@/components/predict/ComboBuilder";
+import CreditStore from "@/components/predict/CreditStore";
 import { dualDate } from "@/lib/dates";
 
 type Market = {
@@ -215,13 +216,19 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
   // کمبو تب چهارمِ همین ترمینال است، نه یک بازی جدا. زیرساختش یکی است
   // (همان بازارهای آرنا)، فقط نوع سفارش فرق می‌کند.
   const [tab, setTab] = useState<
-    "positions" | "history" | "markets" | "combo"
+    "positions" | "history" | "markets" | "combo" | "credits"
   >("markets");
 
   // ریدایرکت /combos به ?tab=combo می‌آید، پس تب اولیه از URL خوانده شود.
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
-    if (t === "combo" || t === "positions" || t === "history" || t === "markets") {
+    if (
+      t === "combo" ||
+      t === "positions" ||
+      t === "history" ||
+      t === "markets" ||
+      t === "credits"
+    ) {
       setTab(t);
     }
   }, []);
@@ -653,6 +660,7 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
               { id: "positions", label: "پوزیشن‌های باز", n: positions.length },
               { id: "history", label: "تاریخچه", n: history.length },
               { id: "combo", label: "کمبو", n: 0 },
+              { id: "credits", label: "خرید کردیت", n: 0 },
             ] as const
           ).map((t) => (
             <button
@@ -812,6 +820,14 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
           {tab === "combo" && (
             <div className="p-4">
               <ComboBuilder />
+            </div>
+          )}
+
+          {/* ترید بیشتر از همه کردیت مصرف می‌کند، پس خرید باید همین‌جا باشد
+              نه فقط در نبض بازار. */}
+          {tab === "credits" && (
+            <div className="p-4">
+              <CreditStore compact />
             </div>
           )}
         </div>

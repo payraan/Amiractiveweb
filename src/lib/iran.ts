@@ -225,13 +225,15 @@ export type RevenueKind =
   | "ir_propose_fee" // هزینه‌ی ساخت بازار
   | "ir_propose_refund" // برگشت هزینه‌ی ساخت (بازار رد شد) — منفی
   | "ir_commission" // کمیسیون تسویه‌ی عادی
-  | "ir_commission_void"; // کمیسیون بازار بدون برنده
+  | "ir_commission_void" // کمیسیون بازار بدون برنده
+  | "credit_sale"; // فروش کردیت از موجودی کیف پول
 
 export const REVENUE_LABEL: Record<RevenueKind, string> = {
   ir_propose_fee: "هزینه‌ی ساخت بازار",
   ir_propose_refund: "برگشت هزینه‌ی ساخت",
   ir_commission: "کمیسیون تسویه",
   ir_commission_void: "کمیسیون بازار بدون برنده",
+  credit_sale: "فروش کردیت",
 };
 
 /**
