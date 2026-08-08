@@ -24,8 +24,9 @@ import { db } from "@/lib/db";
 export const COMMISSION = 0.03; // ۳٪ — از حجم، نه از سود
 export const MIN_STAKE_USDT = 3; // بر اساس فی شبکه‌ی تتر
 export const MIN_ODDS = 1.05; // زیر این، بازار باطل می‌شود
-export const MIN_PARTICIPANTS = 10; // تا این تعداد، بازار «در حال شکل‌گیری»
 export const DISPUTE_HOURS = 24; // پنجره‌ی اعتراض پس از تسویه
+/** هزینه‌ی ساخت بازار — از کیف پول تتر. اگر بازار رد شود کامل برمی‌گردد. */
+export const PROPOSE_FEE_USDT = 1;
 
 export type IrMarketStatus =
   | "pending" // منتظر تأیید انسانی
@@ -82,6 +83,11 @@ export async function ensureIrTables(): Promise<void> {
       );
       await pool.query(
         "CREATE INDEX IF NOT EXISTS irm_status_idx ON ir_markets(status, closes_at)"
+      );
+      // هزینه‌ی پرداختی سازنده (تتر) — برای برگشت دقیق هنگام رد شدن.
+      // بازارهای قدیمی که با کردیت ساخته شده‌اند صفر می‌مانند و برگشتی ندارند.
+      await pool.query(
+        "ALTER TABLE ir_markets ADD COLUMN IF NOT EXISTS fee_usdt NUMERIC(18,6) NOT NULL DEFAULT 0"
       );
 
       await pool.query(
@@ -221,6 +227,29 @@ export async function settleIrMarket(
       }
       await client.query(
         "UPDATE ir_markets SET status='void', void_reason=COALESCE(void_reason,'low_odds') WHERE id=$1",
+        [marketId]
+      );
+      await client.query("COMMIT");
+      return { ok: true, voided: true };
+    }
+
+    // ── بازار یک‌طرفه: طرف برنده هیچ شرطی ندارد ──
+    // اگر همه یک طرف بسته باشند و طرف مقابل درست دربیاید، «برنده‌ای» وجود
+    // ندارد که استخر را بگیرد. بدون این شاخه، کل استخر بی‌سروصدا نصیب
+    // پلتفرم می‌شد. تصمیم مالک (۲۰۲۶/۰۸/۰۸): کمیسیون کسر و باقی به همه
+    // برگردانده می‌شود.
+    const winnerTotal = outcome === "yes" ? yes : no;
+    if (winnerTotal <= 0) {
+      for (const b of bets.rows) {
+        const back = Number(b.stake) * (1 - COMMISSION);
+        await moveFunds(client, b.player_id, back, "ir_refund", `m${marketId}`);
+        await client.query(
+          "UPDATE ir_bets SET status='refunded', payout=$1 WHERE id=$2",
+          [back, b.id]
+        );
+      }
+      await client.query(
+        "UPDATE ir_markets SET status='void', void_reason='no_winners' WHERE id=$1",
         [marketId]
       );
       await client.query("COMMIT");

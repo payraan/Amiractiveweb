@@ -6,7 +6,6 @@ import {
   ensureIrTables,
   oddsFor,
   impliedPct,
-  MIN_PARTICIPANTS,
   MIN_STAKE_USDT,
   COMMISSION,
 } from "@/lib/iran";
@@ -52,9 +51,6 @@ export async function GET(req: Request) {
       yesPct: impliedPct(yes, no),
       yesOdds: Math.round(oddsFor(yes, no, "yes") * 100) / 100,
       noOdds: Math.round(oddsFor(yes, no, "no") * 100) / 100,
-      // تا رسیدن به حداقل مشارکت، بازار «در حال شکل‌گیری» است تا نفرات
-      // اول نتوانند با شرط کوچک ضریب را دستکاری کنند.
-      forming: r.bettors < MIN_PARTICIPANTS,
     };
   });
 
@@ -86,7 +82,6 @@ export async function GET(req: Request) {
     config: {
       minStake: MIN_STAKE_USDT,
       commission: COMMISSION,
-      minParticipants: MIN_PARTICIPANTS,
     },
   });
 }

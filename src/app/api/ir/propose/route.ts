@@ -2,12 +2,15 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { verifySession, SESSION_COOKIE } from "@/lib/session";
-import { ensureIrTables } from "@/lib/iran";
+import { ensureIrTables, moveFunds, PROPOSE_FEE_USDT } from "@/lib/iran";
+import { isIrCategory } from "@/lib/ir-categories";
 
 export const dynamic = "force-dynamic";
 
-/** هزینه‌ی پیشنهاد بازار — ضد اسپم. از کردیت کسر می‌شود نه از کیف پول. */
-const PROPOSE_COST = 100;
+// هزینه‌ی پیشنهاد بازار (ضد اسپم) از کیف پول تتر کسر می‌شود — بازار ایران
+// هیچ کردیتی ندارد؛ کردیت فقط مال بازار خارجی است. اگر ادمین رد کند،
+// همین مبلغ کامل برمی‌گردد (روت ادمین).
+
 /** حداکثر بازار در انتظار تأیید برای هر کاربر */
 const MAX_PENDING = 3;
 
@@ -45,6 +48,11 @@ export async function POST(req: Request) {
   if (Number.isNaN(closesAt.getTime()) || closesAt.getTime() <= Date.now()) {
     return NextResponse.json({ ok: false, error: "bad_date" }, { status: 400 });
   }
+  // بدون این چک، هر رشته‌ای در ستون category می‌نشست و فیلتر دسته‌ها
+  // بازارهایی را نشان نمی‌داد که دسته‌ی نامعتبر داشتند.
+  if (!isIrCategory(category)) {
+    return NextResponse.json({ ok: false, error: "bad_category" }, { status: 400 });
+  }
 
   await ensureIrTables();
   const pool = await db();
@@ -53,7 +61,7 @@ export async function POST(req: Request) {
     await client.query("BEGIN");
 
     const pl = await client.query(
-      "SELECT credits FROM players WHERE id=$1 FOR UPDATE",
+      "SELECT usdt_balance FROM players WHERE id=$1 FOR UPDATE",
       [playerId]
     );
     if (!pl.rowCount) {
@@ -70,26 +78,29 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: "too_many_pending" }, { status: 429 });
     }
 
-    if (Number(pl.rows[0].credits) < PROPOSE_COST) {
+    if (Number(pl.rows[0].usdt_balance) < PROPOSE_FEE_USDT) {
       await client.query("ROLLBACK");
       return NextResponse.json(
-        { ok: false, error: "insufficient_credits" },
+        { ok: false, error: "insufficient_funds" },
         { status: 402 }
       );
     }
 
-    await client.query("UPDATE players SET credits = credits - $1 WHERE id=$2", [
-      PROPOSE_COST,
+    const ins = await client.query(
+      `INSERT INTO ir_markets (creator_id, question, category, source_note, closes_at, status, fee_usdt)
+       VALUES ($1,$2,$3,$4,$5,'pending',$6) RETURNING id`,
+      [playerId, question, category, sourceNote, closesAt.toISOString(), PROPOSE_FEE_USDT]
+    );
+    await moveFunds(
+      client,
       playerId,
-    ]);
-    await client.query(
-      `INSERT INTO ir_markets (creator_id, question, category, source_note, closes_at, status)
-       VALUES ($1,$2,$3,$4,$5,'pending')`,
-      [playerId, question, category, sourceNote, closesAt.toISOString()]
+      -PROPOSE_FEE_USDT,
+      "ir_propose_fee",
+      `m${ins.rows[0].id}`
     );
 
     await client.query("COMMIT");
-    return NextResponse.json({ ok: true, cost: PROPOSE_COST });
+    return NextResponse.json({ ok: true, cost: PROPOSE_FEE_USDT });
   } catch {
     await client.query("ROLLBACK").catch(() => {});
     return NextResponse.json({ ok: false, error: "server_error" }, { status: 500 });

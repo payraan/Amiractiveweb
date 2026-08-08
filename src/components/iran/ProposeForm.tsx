@@ -3,22 +3,16 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePlayer } from "@/components/predict/usePlayer";
-
-const CATS = [
-  { id: "economy", label: "اقتصاد" },
-  { id: "sports", label: "ورزش" },
-  { id: "crypto", label: "کریپتو" },
-  { id: "social", label: "اجتماعی" },
-  { id: "other", label: "سایر" },
-];
+import { IR_CATEGORIES as CATS } from "@/lib/ir-categories";
 
 const ERR: Record<string, string> = {
   not_authed: "برای پیشنهاد بازار وارد شوید.",
   bad_question: "سؤال باید بین ۱۵ تا ۲۰۰ کاراکتر باشد.",
   source_required: "منبع تسویه اجباری است و باید دقیق باشد.",
   bad_date: "تاریخ بسته‌شدن باید در آینده باشد.",
+  bad_category: "دسته‌بندی نامعتبر است.",
   too_many_pending: "بیش از ۳ پیشنهاد در انتظار تأیید دارید.",
-  insufficient_credits: "کردیت کافی ندارید.",
+  insufficient_funds: "موجودی تتر کیف پول کافی نیست.",
 };
 
 export default function ProposeForm() {
@@ -46,7 +40,7 @@ export default function ProposeForm() {
       }
       setMsg({
         ok: true,
-        text: `پیشنهاد ثبت شد و در صف بررسی است. ${j.cost} کردیت کسر شد.`,
+        text: `پیشنهاد ثبت شد و در صف بررسی است. ${j.cost} تتر از کیف پول کسر شد.`,
       });
       setQuestion("");
       setSourceNote("");
@@ -94,8 +88,9 @@ export default function ProposeForm() {
             نتیجه از کجا خوانده می‌شود: یک سایت مشخص، یک عدد مشخص، یک ساعت مشخص.
           </li>
           <li>
-            — هر پیشنهاد <b className="text-cream">۱۰۰ کردیت</b> هزینه دارد و پس
-            از بررسی انسانی منتشر می‌شود. این هزینه برای جلوگیری از اسپم است.
+            — هر پیشنهاد <b className="text-cream">۱ تتر</b> از کیف پول هزینه
+            دارد و پس از بررسی انسانی منتشر می‌شود. این هزینه برای جلوگیری از
+            اسپم است و اگر بازار رد شود، کامل برمی‌گردد.
           </li>
           <li>
             — بازارهای مبهم، یا موضوعاتی که نتیجه‌شان قابل اثبات عمومی نیست، رد
@@ -187,7 +182,7 @@ export default function ProposeForm() {
             onClick={submit}
             className="mt-4 w-full rounded-xl bg-gold py-3 font-display text-sm font-extrabold text-ink transition hover:bg-gold-deep disabled:opacity-40"
           >
-            {busy ? "…" : "ثبت پیشنهاد (۱۰۰ کردیت)"}
+            {busy ? "…" : "ثبت پیشنهاد (۱ تتر)"}
           </button>
 
           {msg && (

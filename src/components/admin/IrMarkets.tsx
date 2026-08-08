@@ -197,7 +197,7 @@ export default function IrMarkets() {
                         act(m.id, "reject", { reason });
                       }}
                     >
-                      رد
+                      رد و برگشت هزینه
                     </Btn>
                   </>
                 )}

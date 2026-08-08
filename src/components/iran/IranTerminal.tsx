@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePlayer } from "@/components/predict/usePlayer";
 import AuthCallout from "@/components/predict/AuthCallout";
+import { IR_CATEGORIES } from "@/lib/ir-categories";
 
 type M = {
   id: number;
@@ -19,20 +20,12 @@ type M = {
   yesPct: number;
   yesOdds: number;
   noOdds: number;
-  forming: boolean;
   creator: string | null;
 };
 
-type Cfg = { minStake: number; commission: number; minParticipants: number };
+type Cfg = { minStake: number; commission: number };
 
-const CATS = [
-  { id: "all", label: "همه" },
-  { id: "economy", label: "اقتصاد" },
-  { id: "sports", label: "ورزش" },
-  { id: "crypto", label: "کریپتو" },
-  { id: "social", label: "اجتماعی" },
-  { id: "other", label: "سایر" },
-];
+const CATS = [{ id: "all", label: "همه" }, ...IR_CATEGORIES];
 
 const ERR: Record<string, string> = {
   not_authed: "برای ثبت پیش‌بینی وارد شوید.",
@@ -66,7 +59,6 @@ export default function IranTerminal() {
   const [cfg, setCfg] = useState<Cfg>({
     minStake: 3,
     commission: 0.03,
-    minParticipants: 10,
   });
   const [balance, setBalance] = useState(0);
   const [cat, setCat] = useState("all");
@@ -211,22 +203,15 @@ export default function IranTerminal() {
                   <span>${m.noTotal.toFixed(2)}</span>
                 </div>
 
-                {m.forming && (
-                  <p className="mt-4 rounded-xl border border-gold/30 bg-gold/5 px-4 py-3 text-[11px] leading-6 text-muted">
-                    این بازار هنوز <b className="text-gold">در حال شکل‌گیری</b> است.
-                    تا رسیدن به {cfg.minParticipants} شرکت‌کننده، ضریب‌ها ناپایدارند
-                    چون شرط‌های اولیه می‌توانند آن‌ها را جابه‌جا کنند.
-                  </p>
-                )}
-
                 <div className="mt-4 rounded-xl border border-line bg-ink/30 p-4">
                   <h3 className="text-[11px] font-bold text-cream">چطور محاسبه می‌شود</h3>
                   <p className="mt-2 text-[11px] leading-7 text-muted">
                     همه‌ی شرط‌ها در یک استخر جمع می‌شوند. پس از کسر{" "}
                     {Math.round(cfg.commission * 100)}٪ کارمزد، باقی بین برنده‌ها به
                     نسبت سهمشان تقسیم می‌شود. هرچه طرفدار یک گزینه کمتر باشد، ضریب آن
-                    بزرگ‌تر است. اگر بازار چنان یک‌طرفه شود که ضریب برنده زیر حد مجاز
-                    بیفتد، بازار باطل و کل پول بدون کسر کارمزد برگردانده می‌شود.
+                    بزرگ‌تر است. اگر ضریب برنده زیر حد مجاز بیفتد، بازار باطل و کل
+                    پول بدون کسر کارمزد برگردانده می‌شود؛ و اگر هیچ‌کس روی گزینه‌ی
+                    برنده شرط نبسته باشد، پول همه پس از کسر کارمزد برمی‌گردد.
                   </p>
                 </div>
               </div>
@@ -380,8 +365,9 @@ export default function IranTerminal() {
                   همه‌ی شرط‌ها در یک استخر جمع می‌شوند. پس از کسر{" "}
                   {Math.round(cfg.commission * 100)}٪ کارمزد، باقی بین برنده‌ها به
                   نسبت سهمشان تقسیم می‌شود. هرچه طرفدار یک گزینه کمتر باشد، ضریب
-                  آن بزرگ‌تر است. اگر بازار چنان یک‌طرفه شود که ضریب برنده زیر حد
-                  مجاز بیفتد، بازار باطل و کل پول بدون کسر کارمزد برگردانده می‌شود.
+                  آن بزرگ‌تر است. اگر ضریب برنده زیر حد مجاز بیفتد، بازار باطل و
+                  کل پول بدون کسر کارمزد برگردانده می‌شود؛ و اگر هیچ‌کس روی
+                  گزینه‌ی برنده شرط نبسته باشد، پول همه پس از کسر کارمزد برمی‌گردد.
                 </p>
               </div>
             </div>
@@ -476,7 +462,6 @@ export default function IranTerminal() {
               </div>
               <div className="mt-2.5 flex items-center justify-between text-[10px] text-muted">
                 <span>بسته‌شدن: {fa(x.closesAt)}</span>
-                {x.forming && <span className="text-gold">در حال شکل‌گیری</span>}
               </div>
             </button>
           ))}

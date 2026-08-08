@@ -8,6 +8,7 @@ import {
   impliedPct,
   settleIrMarket,
   wouldBeVoid,
+  moveFunds,
   DISPUTE_HOURS,
 } from "@/lib/iran";
 
@@ -104,12 +105,37 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true });
   }
 
-  // رد کردن پیشنهاد
+  // رد کردن پیشنهاد — هزینه‌ی ساخت (تتر) کامل به سازنده برمی‌گردد
   if (action === "reject") {
-    await pool.query(
-      "UPDATE ir_markets SET status='void', void_reason=$2 WHERE id=$1 AND status='pending'",
-      [id, String(body.reason ?? "rejected")]
-    );
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      const upd = await client.query(
+        `UPDATE ir_markets SET status='void', void_reason=$2
+          WHERE id=$1 AND status='pending'
+          RETURNING creator_id, fee_usdt`,
+        [id, String(body.reason ?? "rejected")]
+      );
+      const row = upd.rows[0];
+      if (row?.creator_id && Number(row.fee_usdt) > 0) {
+        await client.query("SELECT id FROM players WHERE id=$1 FOR UPDATE", [
+          row.creator_id,
+        ]);
+        await moveFunds(
+          client,
+          row.creator_id,
+          Number(row.fee_usdt),
+          "ir_propose_refund",
+          `m${id}`
+        );
+      }
+      await client.query("COMMIT");
+    } catch {
+      await client.query("ROLLBACK").catch(() => {});
+      return NextResponse.json({ ok: false, error: "server_error" }, { status: 500 });
+    } finally {
+      client.release();
+    }
     return NextResponse.json({ ok: true });
   }
 
