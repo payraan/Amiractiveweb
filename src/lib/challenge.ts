@@ -298,6 +298,14 @@ export type ChallengeState = {
   payoutNote: string | null;
   daysLeft: number;
   prize: string;
+  /** کارنامه‌ی برد و باخت داخل همین چلنج */
+  wins: number;
+  losses: number;
+  winRate: number | null;
+  bestDay: number;
+  /** سود/زیان روزانه، قدیم به جدید — برای نمودار و جدول */
+  dailyPnl: { day: string; points: number }[];
+  peak: number;
 };
 
 export async function getChallengeState(
@@ -335,9 +343,13 @@ export async function getChallengeState(
   let total = 0;
   let peak = 0;
   let maxDD = 0;
+  let wins = 0;
+  let losses = 0;
   const daily = new Map<string, number>();
   for (const p of preds.rows) {
     const pts = Number(p.points) || 0;
+    if (pts > 0) wins += 1;
+    else if (pts < 0) losses += 1;
     total += pts;
     if (total > peak) peak = total;
     if (peak - total > maxDD) maxDD = peak - total;
@@ -413,5 +425,11 @@ export async function getChallengeState(
     payoutNote: tier.payoutNote ?? null,
     daysLeft,
     prize: tier.prize,
+    wins,
+    losses,
+    winRate: wins + losses > 0 ? Math.round((wins / (wins + losses)) * 1000) / 10 : null,
+    bestDay,
+    dailyPnl: [...daily.entries()].map(([day, points]) => ({ day, points })),
+    peak,
   };
 }

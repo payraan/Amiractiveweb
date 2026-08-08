@@ -1,5 +1,9 @@
 "use client";
 
+import ChallengeDashboard, {
+  type ChallengeStateView,
+} from "@/components/predict/ChallengeDashboard";
+
 import { useCallback, useEffect, useState } from "react";
 import { usePlayer } from "@/components/predict/usePlayer";
 
@@ -19,29 +23,7 @@ type Tier = {
   popular: boolean;
 };
 
-type State = {
-  tierId: string;
-  label: string;
-  status: string;
-  failReason: string | null;
-  points: number;
-  target: number;
-  drawdown: number;
-  maxDrawdown: number;
-  worstDay: number;
-  dailyLoss: number;
-  settledCount: number;
-  minPreds: number;
-  activeDays: number;
-  minDays: number;
-  bestDayPct: number;
-  consistencyPct: number;
-  consistencyOk: boolean;
-  track: "forex" | "predict";
-  payoutNote: string | null;
-  daysLeft: number;
-  prize: string;
-} | null;
+type State = ChallengeStateView | null;
 
 const START_ERRORS: Record<string, string> = {
   active_exists: "یک چلنج فعال دارید؛ ابتدا آن را کامل کنید.",
@@ -137,34 +119,15 @@ export default function ChallengePanel() {
   }
 
   // ── چلنج فعال / نتیجه ──
+  // جزئیات به ChallengeDashboard منتقل شد: نوارهای قبلی فقط عدد نشان می‌دادند و
+  // نمی‌گفتند «قبول شدی یا نه». حالا جدول شرط‌ها + کارنامه‌ی برد و باخت هست.
   if (state && state.status !== "failed") {
-    const active = state.status === "active";
     return (
-      <div
-        className={`rounded-2xl border p-6 transition-all duration-300 hover:scale-[1.01] hover:border-gold hover:shadow-[0_0_24px_rgba(232,196,106,0.15)] ${
-          state.status === "passed"
-            ? "border-gold bg-gold/10"
-            : "border-gold/30 bg-surface/50"
-        }`}
-      >
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <span className="font-mono text-[10px] tracking-widest text-muted" dir="ltr">
-              CHALLENGE {state.label}
-            </span>
-            <h3 className="mt-1 font-display text-lg font-extrabold">
-              {state.status === "passed" ? "🎉 چلنج با موفقیت پاس شد!" : "چلنج فعال شما"}
-            </h3>
-          </div>
-          {active && (
-            <span className="rounded-full border border-line px-3 py-1 font-mono text-[11px] text-muted" dir="ltr">
-              {state.daysLeft}d left
-            </span>
-          )}
-        </div>
+      <div className="flex flex-col gap-5">
+        <ChallengeDashboard s={state} />
 
-        {state.status === "passed" ? (
-          <div className="mt-4">
+        {state.status === "passed" && (
+          <div className="no-lift rounded-2xl border border-gain/40 bg-gain/5 p-5">
             <p className="text-sm leading-7">
               جایزه‌ی شما: <b className="text-gold">{state.prize}</b>
             </p>
@@ -179,85 +142,10 @@ export default function ChallengePanel() {
               دریافت جایزه از پشتیبانی
             </a>
           </div>
-        ) : (
-          <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
-            <div>
-              <div className="flex justify-between text-[11px]">
-                <span className="text-muted">پیشرفت به هدف</span>
-                <span className="font-mono" dir="ltr">
-                  {state.points} / {state.target}
-                </span>
-              </div>
-              <Bar value={Math.max(0, state.points)} max={state.target} tone="gold" />
-            </div>
-            <div>
-              <div className="flex justify-between text-[11px]">
-                <span className="text-muted">افت از سقف (حد {state.maxDrawdown})</span>
-                <span className="font-mono text-loss" dir="ltr">
-                  {state.drawdown}
-                </span>
-              </div>
-              <Bar value={state.drawdown} max={state.maxDrawdown} tone="loss" />
-            </div>
-            <div>
-              <div className="flex justify-between text-[11px]">
-                <span className="text-muted">بدترین روز (حد −{state.dailyLoss})</span>
-                <span className="font-mono" dir="ltr">
-                  {state.worstDay}
-                </span>
-              </div>
-              <Bar value={Math.abs(state.worstDay)} max={state.dailyLoss} tone="loss" />
-            </div>
-            <div>
-              <div className="flex justify-between text-[11px]">
-                <span className="text-muted">پیش‌بینی تسویه‌شده (حداقل {state.minPreds})</span>
-                <span className="font-mono" dir="ltr">
-                  {state.settledCount}
-                </span>
-              </div>
-              <Bar value={state.settledCount} max={state.minPreds} tone="gold" />
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-muted">روزهای فعال (حداقل {state.minDays})</span>
-                <span className="font-mono text-cream" dir="ltr">
-                  {state.activeDays}
-                </span>
-              </div>
-              <Bar value={state.activeDays} max={state.minDays} tone="gold" />
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-muted">
-                  ثبات — سهم بهترین روز (حد {state.consistencyPct}٪)
-                </span>
-                <span
-                  className={`font-mono ${
-                    state.consistencyOk ? "text-gain" : "text-loss"
-                  }`}
-                  dir="ltr"
-                >
-                  {state.bestDayPct}%
-                </span>
-              </div>
-              <Bar
-                value={state.bestDayPct}
-                max={state.consistencyPct}
-                tone={state.consistencyOk ? "gold" : "loss"}
-              />
-              {!state.consistencyOk && state.points > 0 && (
-                <p className="mt-1.5 text-[10px] leading-5 text-muted">
-                  سود شما بیش از حد روی یک روز متمرکز است. برای قبولی، سود باید
-                  در چند روز پخش شود.
-                </p>
-              )}
-            </div>
-          </div>
         )}
-        {active && (
-          <p className="mt-4 text-[10px] leading-5 text-muted">
+
+        {state.status === "active" && (
+          <p className="text-[10px] leading-5 text-muted">
             جایزه‌ی پاس‌شدن: {state.prize}
           </p>
         )}
