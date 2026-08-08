@@ -41,7 +41,7 @@ const INTERVALS: { id: Interval; label: string }[] = [
 const ERRORS: Record<string, string> = {
   not_authed: "برای ثبت پیش‌بینی وارد شوید.",
   already_predicted: "روی این بازار قبلاً پیش‌بینی ثبت کرده‌اید.",
-  insufficient_credits: "سهم رایگان امروز تمام شده و کردیت کافی ندارید.",
+  insufficient_credits: "سهم رایگان امروز تمام شده و MOON کافی ندارید.",
   market_not_found: "این بازار دیگر فعال نیست.",
 };
 
@@ -604,7 +604,7 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
                   <div className="flex justify-between border-t border-line pt-1.5">
                     <span className="text-muted">هزینه</span>
                     <span className={freeLeft > 0 ? "text-gain" : "text-cream"} dir="ltr">
-                      {freeLeft > 0 ? "FREE" : "1◆"}
+                      {freeLeft > 0 ? "FREE" : "1 MOON"}
                     </span>
                   </div>
                 </div>
@@ -638,7 +638,7 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
                   FREE {freeLeft}
                 </span>
                 <span className="text-cream" dir="ltr">
-                  {player.credits}◆
+                  {player.credits} MOON
                 </span>
                 <span className="text-gold" dir="ltr">
                   {player.totalPoints} pts
@@ -660,7 +660,7 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
               { id: "positions", label: "پوزیشن‌های باز", n: positions.length },
               { id: "history", label: "تاریخچه", n: history.length },
               { id: "combo", label: "کمبو", n: 0 },
-              { id: "credits", label: "خرید کردیت", n: 0 },
+              { id: "credits", label: "خرید MOON", n: 0 },
             ] as const
           ).map((t) => (
             <button
@@ -823,7 +823,7 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
             </div>
           )}
 
-          {/* ترید بیشتر از همه کردیت مصرف می‌کند، پس خرید باید همین‌جا باشد
+          {/* ترید بیشتر از همه MOON مصرف می‌کند، پس خرید باید همین‌جا باشد
               نه فقط در نبض بازار. */}
           {tab === "credits" && (
             <div className="p-4">

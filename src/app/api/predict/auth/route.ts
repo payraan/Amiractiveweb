@@ -41,7 +41,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "bad_username" }, { status: 400 });
   }
   // رمز عبور: حداقل ۸ کاراکتر و ترکیبی از حرف و عدد.
-  // حساب‌ها کردیت خریداری‌شده نگه می‌دارند، پس سخت‌گیری اینجا لازم است.
+  // حساب‌ها MOON خریداری‌شده نگه می‌دارند، پس سخت‌گیری اینجا لازم است.
   const strongEnough =
     password.length >= 8 && /[a-zA-Z]/.test(password) && /[0-9]/.test(password);
   if (mode === "register" && !strongEnough) {

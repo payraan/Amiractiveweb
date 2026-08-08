@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { db } from "@/lib/db";
+import { db, touchActivity } from "@/lib/db";
 import { verifySession, SESSION_COOKIE } from "@/lib/session";
 import {
   ensureIrTables,
@@ -13,7 +13,7 @@ import { isIrCategory } from "@/lib/ir-categories";
 export const dynamic = "force-dynamic";
 
 // هزینه‌ی پیشنهاد بازار (ضد اسپم) از کیف پول تتر کسر می‌شود — بازار ایران
-// هیچ کردیتی ندارد؛ کردیت فقط مال بازار خارجی است. اگر ادمین رد کند،
+// هیچ MOON ندارد؛ MOON فقط مال بازار خارجی است. اگر ادمین رد کند،
 // همین مبلغ کامل برمی‌گردد (روت ادمین).
 
 /** حداکثر بازار در انتظار تأیید برای هر کاربر */
@@ -107,6 +107,8 @@ export async function POST(req: Request) {
       marketId: ins.rows[0].id,
       playerId,
     });
+
+    await touchActivity(client, playerId);
 
     await client.query("COMMIT");
     return NextResponse.json({ ok: true, cost: PROPOSE_FEE_USDT });

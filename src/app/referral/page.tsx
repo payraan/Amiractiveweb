@@ -8,7 +8,7 @@ import TelegramConnect from "@/components/predict/TelegramConnect";
 export const metadata: Metadata = {
   title: "دعوت دوستان | نارمون",
   description:
-    "دوستان‌تان را دعوت کنید؛ آن‌ها کردیت هدیه می‌گیرند و شما از هر شارژشان پورسانت کردیتی دریافت می‌کنید.",
+    "دوستان‌تان را دعوت کنید؛ آن‌ها MOON هدیه می‌گیرند و شما از هر شارژشان پورسانت MOON دریافت می‌کنید.",
 };
 
 export const dynamic = "force-dynamic";
@@ -26,8 +26,8 @@ export default function ReferralPage() {
           دعوت <span className="text-gold">دوستان</span>
         </h1>
         <p className="mt-4 max-w-2xl leading-8 text-muted">
-          لینک اختصاصی‌تان را بفرستید. دوست‌تان کردیت هدیه می‌گیرد و شما از هر
-          شارژ او پورسانت کردیتی دریافت می‌کنید — بدون سقف.
+          لینک اختصاصی‌تان را بفرستید. دوست‌تان MOON هدیه می‌گیرد و شما از هر
+          شارژ او پورسانت MOON دریافت می‌کنید — بدون سقف.
         </p>
 
         <div className="mt-10">

@@ -1,4 +1,4 @@
-// چلنج پراپ پیش‌بینی — ورود با کردیت، سنجش با پوینت، جایزه‌ی مهارتی.
+// چلنج پراپ پیش‌بینی — ورود با MOON، سنجش با پوینت، جایزه‌ی مهارتی.
 // همه‌ی اعداد این فایل قابل تنظیم‌اند.
 
 import { db } from "@/lib/db";
@@ -10,7 +10,7 @@ export type ChallengeTier = {
   track: ChallengeTrack;
   label: string; // "$1,000"
   size: number;
-  fee: number; // کردیت ورود
+  fee: number; // MOON ورود
   target: number; // هدف پوینت
   maxDrawdown: number; // حداکثر افت از سقف (Trailing)
   dailyLoss: number; // سقف ضرر روزانه (پوینت)

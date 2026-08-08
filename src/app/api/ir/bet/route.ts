@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { db } from "@/lib/db";
+import { db, touchActivity } from "@/lib/db";
 import { verifySession, SESSION_COOKIE } from "@/lib/session";
 import { ensureIrTables, moveFunds, MIN_STAKE_USDT } from "@/lib/iran";
 
@@ -92,6 +92,10 @@ export async function POST(req: Request) {
         WHERE id = $4`,
       [side === "yes" ? stake : 0, side === "no" ? stake : 0, prev.rowCount ? 0 : 1, marketId]
     );
+
+    // بدون این، شرط‌بندی در بازار ایران کاربر را فعال حساب نمی‌کرد و آمار
+    // «کاربران فعال ۷ روز» همیشه صفر می‌ماند.
+    await touchActivity(client, playerId);
 
     await client.query("COMMIT");
     return NextResponse.json({ ok: true });

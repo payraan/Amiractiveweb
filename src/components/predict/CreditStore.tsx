@@ -6,13 +6,13 @@ import { CREDIT_PACKS } from "@/lib/game";
 import { usePlayer } from "@/components/predict/usePlayer";
 
 const ERR: Record<string, string> = {
-  not_authed: "برای خرید کردیت وارد حساب شوید.",
+  not_authed: "برای خرید MOON وارد حساب شوید.",
   insufficient_funds: "موجودی تتر کیف پول کافی نیست.",
   bad_pack: "این بسته معتبر نیست.",
 };
 
 /**
- * فروشگاه کردیت — خرید آنی از موجودی تتر کیف پول.
+ * فروشگاه MOON — خرید آنی از موجودی تتر کیف پول.
  * قبلا کاربر به تلگرام هدایت می‌شد و شارژ دستی بود؛ حالا که کیف پول داخلی
  * داریم، خرید همین‌جا و بدون واسطه تمام می‌شود.
  */
@@ -53,7 +53,7 @@ export default function CreditStore({ compact = false }: { compact?: boolean }) 
       }
       setMsg({
         ok: true,
-        text: `${j.gained} کردیت اضافه شد. موجودی کردیت: ${j.credits}◆`,
+        text: `${j.gained} MOON اضافه شد. موجودی MOON: ${j.credits}`,
       });
       await Promise.all([refresh(), loadBalance()]);
     } catch {
@@ -67,10 +67,10 @@ export default function CreditStore({ compact = false }: { compact?: boolean }) 
     <section id="credits" className="scroll-mt-10">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h2 className="font-display text-xl font-black">خرید کردیت</h2>
+          <h2 className="font-display text-xl font-black">خرید MOON</h2>
           <p className="mt-2 max-w-xl text-xs leading-6 text-muted">
-            کردیت، تایم‌فریم‌های کوتاه‌تر و پیش‌بینی‌های بیشتر را باز می‌کند.
-            کردیت فقط قابلیت می‌خرد، نه امتیاز و نه رتبه — جایگاه شما همیشه با
+            MOON، تایم‌فریم‌های کوتاه‌تر و پیش‌بینی‌های بیشتر را باز می‌کند.
+            MOON فقط قابلیت می‌خرد، نه امتیاز و نه رتبه — جایگاه شما همیشه با
             مهارت ساخته می‌شود.
           </p>
         </div>
@@ -82,7 +82,7 @@ export default function CreditStore({ compact = false }: { compact?: boolean }) 
               <span className="font-bold text-gain">
                 ${(balance ?? 0).toFixed(2)}
               </span>
-              <span className="text-gold">{player.credits}◆</span>
+              <span className="text-gold">{player.credits} MOON</span>
             </div>
           </div>
         )}
@@ -127,7 +127,7 @@ export default function CreditStore({ compact = false }: { compact?: boolean }) 
                 <span className="font-mono text-3xl font-bold text-gold" dir="ltr">
                   {pack.credits}
                 </span>
-                <span className="text-sm text-muted">◆ کردیت</span>
+                <span className="text-sm text-muted"> MOON MOON</span>
               </div>
 
               <div className="mt-3 flex items-baseline gap-1">
@@ -184,7 +184,7 @@ export default function CreditStore({ compact = false }: { compact?: boolean }) 
             </li>
             <li>۲. بسته‌ی موردنظر را انتخاب و روی «خرید آنی» بزنید.</li>
             <li>
-              ۳. مبلغ از موجودی کیف پول کم و کردیت{" "}
+              ۳. مبلغ از موجودی کیف پول کم و MOON{" "}
               <b className="text-cream">بلافاصله</b> اضافه می‌شود — بدون واسطه و
               بدون انتظار.
             </li>

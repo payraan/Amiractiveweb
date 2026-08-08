@@ -5,16 +5,16 @@ const SUPPORT = "https://t.me/Amiractive_support";
 const CHANNEL = "https://t.me/CashflowFactorys";
 
 const TIERS = [
-  { label: "$1K", fee: "50◆" },
-  { label: "$5K", fee: "150◆" },
-  { label: "$10K", fee: "250◆" },
-  { label: "$50K", fee: "500◆" },
+  { label: "$1K", fee: "50 MOON" },
+  { label: "$5K", fee: "150 MOON" },
+  { label: "$10K", fee: "250 MOON" },
+  { label: "$50K", fee: "500 MOON" },
 ];
 
 const POINTS = [
   "روی مهم‌ترین رویدادهای جهان — سیاست، کریپتو، اقتصاد، ورزش — پیش‌بینی بله/خیر ثبت کنید؛ ورود رایگان است.",
   "امتیازدهی صفر-انتظار: برد روی گزینه‌ی سخت امتیاز بزرگ می‌دهد و انتخاب گزینه‌های واضح چیزی نمی‌سازد — فقط مهارت.",
-  "چلنج پراپ: حساب ۱K تا ۵۰K را با کردیت فعال کنید، در ۳۰ روز هدف پوینتی را بدون عبور از حد افت بزنید.",
+  "چلنج پراپ: حساب ۱K تا ۵۰K را با MOON فعال کنید، در ۳۰ روز هدف پوینتی را بدون عبور از حد افت بزنید.",
   "پاداش هر چلنج، حساب پراپی به اندازه‌ی همان تیر است — از ۱,۰۰۰ تا ۵۰,۰۰۰ دلار. حساب‌های ۱۰۰ تا ۱,۰۰۰ دلاری هم جوایز اکسترای کمپین‌های دوره‌ای‌اند.",
 ];
 
@@ -103,7 +103,7 @@ export default function ArenaSection() {
           </div>
 
           <div className="mt-5 border-t border-line pt-4">
-            <div className="text-[10px] text-muted">چلنج پراپ — ورودی با کردیت:</div>
+            <div className="text-[10px] text-muted">چلنج پراپ — ورودی با MOON:</div>
             <div className="mt-2 flex flex-wrap gap-2">
               {TIERS.map((t) => (
                 <span

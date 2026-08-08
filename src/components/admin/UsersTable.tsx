@@ -35,7 +35,7 @@ const SORTS = [
   { id: "recent", label: "تازه‌ترین" },
   { id: "active", label: "فعال‌ترین" },
   { id: "points", label: "بیشترین امتیاز" },
-  { id: "credits", label: "بیشترین کردیت" },
+  { id: "credits", label: "بیشترین MOON" },
   { id: "balance", label: "بیشترین موجودی" },
 ] as const;
 
@@ -84,7 +84,7 @@ export default function UsersTable() {
           <Stat label="کاربران" v={totals.players} />
           <Stat label="فعال ۷ روز" v={totals.active_7d} tone="gain" />
           <Stat label="تلگرام وصل" v={totals.tg_linked} />
-          <Stat label="کل کردیت" v={totals.credits} />
+          <Stat label="کل MOON" v={totals.credits} />
           <Stat label="کل امتیاز" v={totals.points} tone="gold" />
           <Stat label="موجودی تتر" v={`$${Number(totals.balance).toFixed(2)}`} tone="gain" />
         </div>
@@ -122,7 +122,7 @@ export default function UsersTable() {
           <table className="w-full min-w-[900px] text-[11px]">
             <thead className="bg-raised/60 text-muted">
               <tr>
-                {["کاربر","تلگرام","کردیت","امتیاز","تتر","استریک","نبض","آرنا","کمبو","چلنج","شرط ایران","حجم ایران","شارژ","آخرین بازی","عضویت"].map((h) => (
+                {["کاربر","تلگرام","MOON","امتیاز","تتر","استریک","نبض","آرنا","کمبو","چلنج","شرط ایران","حجم ایران","شارژ","آخرین بازی","عضویت"].map((h) => (
                   <th key={h} className="whitespace-nowrap px-3 py-2.5 text-start font-bold">
                     {h}
                   </th>

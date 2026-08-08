@@ -41,7 +41,7 @@ const CATEGORY_TABS: { id: string; label: string }[] = [
 const ERRORS: Record<string, string> = {
   not_authed: "برای ثبت پیش‌بینی وارد شوید.",
   already_predicted: "برای این بازار قبلاً پیش‌بینی ثبت کرده‌اید.",
-  insufficient_credits: "سهم رایگان امروز تمام شده و کردیت کافی ندارید.",
+  insufficient_credits: "سهم رایگان امروز تمام شده و MOON کافی ندارید.",
   market_not_found: "این بازار دیگر فعال نیست.",
 };
 
@@ -198,7 +198,7 @@ export default function ArenaBoard() {
               "۵ پیش‌بینی رایگان در روز روی بازارهای واقعی",
               "امتیاز = ۱۰۰ منهای احتمال؛ گزینه‌ی کم‌شانس‌تر، پاداش بزرگ‌تر",
               "رقابت در لیدربورد و ورود به چلنج پراپ",
-              "۱۰ کردیت هدیه‌ی خوش‌آمد",
+              "۱۰ MOON هدیه‌ی خوش‌آمد",
             ]}
             onAuthed={() => {
               refresh();
@@ -226,9 +226,9 @@ export default function ArenaBoard() {
 
             <div className="flex flex-wrap gap-8">
               <div>
-                <div className="text-xs text-muted">کردیت</div>
+                <div className="text-xs text-muted">MOON</div>
                 <div className="font-mono text-3xl font-bold text-cream" dir="ltr">
-                  {player.credits}◆
+                  {player.credits} MOON
                 </div>
               </div>
               <div>
@@ -244,7 +244,7 @@ export default function ArenaBoard() {
                 href="/predict#credits"
                 className="rounded-xl border border-gold/40 px-5 py-2.5 text-xs text-gold transition hover:bg-gold hover:text-ink"
               >
-                خرید کردیت
+                خرید MOON
               </a>
               <button
                 type="button"

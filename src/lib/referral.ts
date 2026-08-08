@@ -1,9 +1,9 @@
-// سیستم دعوت — کد اختصاصی هر کاربر، پورسانت کردیتی از شارژ دعوت‌شده‌ها.
+// سیستم دعوت — کد اختصاصی هر کاربر، پورسانت MOON از شارژ دعوت‌شده‌ها.
 
 import { db } from "@/lib/db";
 
 export const REFERRAL_PERCENT = 10; // درصد پورسانت از هر شارژ دعوت‌شده
-export const REFERRAL_BONUS = 5; // کردیت هدیه به دعوت‌شده هنگام ثبت‌نام
+export const REFERRAL_BONUS = 5; // MOON هدیه به دعوت‌شده هنگام ثبت‌نام
 export const REF_COOKIE = "amir_ref";
 
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // بدون حروف گیج‌کننده
@@ -120,7 +120,7 @@ export async function attachReferral(
   }
 }
 
-/** پس از شارژ کردیت یک کاربر، پورسانت را به دعوت‌کننده‌اش می‌دهد. */
+/** پس از شارژ MOON یک کاربر، پورسانت را به دعوت‌کننده‌اش می‌دهد. */
 export async function payReferralCommission(
   referredId: number,
   topupCredits: number

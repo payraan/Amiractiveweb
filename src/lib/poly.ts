@@ -5,7 +5,7 @@
 import { db } from "@/lib/db";
 
 export const POLY_FREE_PER_DAY = 5; // پیش‌بینی رایگان روزانه
-export const POLY_EXTRA_COST = 1; // هزینه‌ی هر پیش‌بینی اضافه (کردیت)
+export const POLY_EXTRA_COST = 1; // هزینه‌ی هر پیش‌بینی اضافه (MOON)
 
 const UA = { "User-Agent": "Mozilla/5.0" };
 const GAMMA = "https://gamma-api.polymarket.com";

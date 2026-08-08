@@ -1,5 +1,7 @@
 "use client";
 
+import { usePlayer } from "@/components/predict/usePlayer";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -36,7 +38,7 @@ const NAV: NavItem[] = [
       { href: "/results", label: "نتایج زنده", desc: "کارنامه‌ی مستقل در Myfxbook" },
       { href: "/broker", label: "بروکر (کارگزاری)", desc: "بروکر همکار" },
       { href: "/#academy", label: "آکادمی", desc: "مقالات و آموزش" },
-      { href: "/referral", label: "دعوت دوستان", desc: "کد دعوت و پاداش کردیتی" },
+      { href: "/referral", label: "دعوت دوستان", desc: "کد دعوت و پاداش MOON" },
     ],
   },
 ];
@@ -65,6 +67,7 @@ function Chevron() {
 }
 
 export default function Nav() {
+  const { player, logout } = usePlayer();
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
@@ -157,16 +160,27 @@ export default function Nav() {
 
           {/* سمت راست: ورود + تلگرام (دسکتاپ) و دکمه‌ی منو (موبایل) */}
           <div className="flex items-center gap-2">
-            <Link
-              href="/login"
-              className={`hidden rounded-full px-4 py-2 text-sm transition lg:block ${
-                isActive("/login")
-                  ? "bg-raised font-bold text-cream"
-                  : "text-muted hover:text-cream"
-              }`}
-            >
-              ورود
-            </Link>
+            {/* داینامیک: تا وقتی وارد نشده «ورود»، بعد از ورود «خروج» */}
+            {player ? (
+              <button
+                type="button"
+                onClick={() => logout()}
+                className="no-zoom hidden rounded-full px-4 py-2 text-sm text-muted transition hover:text-cream lg:block"
+              >
+                خروج
+              </button>
+            ) : (
+              <Link
+                href="/login"
+                className={`hidden rounded-full px-4 py-2 text-sm transition lg:block ${
+                  isActive("/login")
+                    ? "bg-raised font-bold text-cream"
+                    : "text-muted hover:text-cream"
+                }`}
+              >
+                ورود
+              </Link>
+            )}
 
             <a
               href={TELEGRAM}
@@ -249,16 +263,32 @@ export default function Nav() {
                 )
               )}
 
-              <Link
-                href="/login"
-                onClick={() => setOpen(false)}
-                className={`border-b border-line py-3.5 font-display text-2xl font-extrabold transition-all duration-500 ${
-                  isActive("/login") ? "text-gold" : "text-cream"
-                } ${open ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"}`}
-                style={{ transitionDelay: open ? "360ms" : "0ms" }}
-              >
-                ورود
-              </Link>
+              {player ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    logout();
+                  }}
+                  className={`no-zoom border-b border-line py-3.5 text-start font-display text-2xl font-extrabold text-cream transition-all duration-500 ${
+                    open ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
+                  }`}
+                  style={{ transitionDelay: open ? "360ms" : "0ms" }}
+                >
+                  خروج
+                </button>
+              ) : (
+                <Link
+                  href="/login"
+                  onClick={() => setOpen(false)}
+                  className={`border-b border-line py-3.5 font-display text-2xl font-extrabold transition-all duration-500 ${
+                    isActive("/login") ? "text-gold" : "text-cream"
+                  } ${open ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"}`}
+                  style={{ transitionDelay: open ? "360ms" : "0ms" }}
+                >
+                  ورود
+                </Link>
+              )}
             </div>
 
             <a

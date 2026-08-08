@@ -47,7 +47,7 @@ const START_ERRORS: Record<string, string> = {
   active_exists: "یک چلنج فعال دارید؛ ابتدا آن را کامل کنید.",
   entry_limit:
     "سقف ورود به چلنج حساب پیش‌بینی ۳ بار در ۳۰ روز است. کمی صبر کنید یا مسیر حساب معاملاتی را انتخاب کنید.",
-  insufficient_credits: "کردیت کافی برای این چلنج ندارید.",
+  insufficient_credits: "MOON کافی برای این چلنج ندارید.",
   not_authed: "برای شروع چلنج وارد شوید.",
 };
 
@@ -326,7 +326,7 @@ export default function ChallengePanel() {
 
             <div className="mt-3 flex items-baseline gap-1.5">
               <span className="font-mono text-xl font-bold text-gold" dir="ltr">
-                {t.fee}◆
+                {t.fee} MOON
               </span>
               <span className="text-[10px] text-muted">ورودی چلنج</span>
             </div>
@@ -396,7 +396,7 @@ export default function ChallengePanel() {
         </div>
 
         <p className="mt-3 border-t border-gold/20 pt-3 text-[10px] leading-6 text-muted">
-          نارمون یک آزمون مهارت است، نه شرط‌بندی. امتیاز نقد نمی‌شود و با کردیت
+          نارمون یک آزمون مهارت است، نه شرط‌بندی. امتیاز نقد نمی‌شود و با MOON
           خریدنی نیست. سامانه‌ی امتیازدهی طوری کالیبره شده که حدس تصادفی
           به‌طور میانگین امتیاز منفی بگیرد. ورودی چلنج پس از شروع بازگشت‌پذیر
           نیست.

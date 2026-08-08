@@ -28,7 +28,7 @@ export async function POST(req: Request) {
 
   const username = normalizeUsername(body.username ?? "");
   const note = (body.note ?? "").slice(0, 200);
-  // تتر اعشار دارد، کردیت ندارد — پس گرد کردن فقط برای کردیت است.
+  // تتر اعشار دارد، MOON ندارد — پس گرد کردن فقط برای MOON است.
   const isUsdt = body.currency === "usdt";
   const raw = Number(body.amount);
   const amount = isUsdt ? Math.round(raw * 1e6) / 1e6 : Math.trunc(raw);

@@ -50,7 +50,7 @@ const ERRORS: Record<string, string> = {
   too_few_legs: `کمبو حداقل به ${MIN_LEGS} انتخاب نیاز دارد.`,
   too_many_legs: `کمبو حداکثر ${MAX_LEGS} انتخاب می‌پذیرد.`,
   duplicate_market: "از هر بازار فقط یک بار می‌توانید در یک کمبو استفاده کنید.",
-  insufficient_credits: "کمبوی رایگان امروز مصرف شده و کردیت کافی ندارید.",
+  insufficient_credits: "کمبوی رایگان امروز مصرف شده و MOON کافی ندارید.",
   market_unavailable: "یکی از بازارهای انتخابی دیگر فعال نیست.",
 };
 
@@ -237,9 +237,9 @@ export default function ComboBuilder() {
           هر روز <b className="text-gain">۱ کمبوی رایگان</b> دارید؛ کمبوهای بعدی
           هر کدام{" "}
           <b className="font-mono text-cream" dir="ltr">
-            {COMBO_COST}◆
+            {COMBO_COST} MOON
           </b>{" "}
-          کردیت. امتیاز کمبو در لیدربورد ثبت می‌شود اما در ارزیابی چلنج پراپ
+          MOON. امتیاز کمبو در لیدربورد ثبت می‌شود اما در ارزیابی چلنج پراپ
           محاسبه نمی‌شود.
         </p>
       </div>
@@ -251,7 +251,7 @@ export default function ComboBuilder() {
               "هر روز ۱ کمبوی رایگان",
               "هرچه ترکیب سخت‌تر، پاداش بزرگ‌تر",
               "امتیاز کمبو در لیدربورد ثبت می‌شود",
-              "۱۰ کردیت هدیه‌ی خوش‌آمد",
+              "۱۰ MOON هدیه‌ی خوش‌آمد",
             ]}
             onAuthed={() => refresh()}
           />
@@ -271,9 +271,9 @@ export default function ComboBuilder() {
             </b>
           </span>
           <span>
-            <span className="text-muted">کردیت: </span>
+            <span className="text-muted">MOON: </span>
             <b className="font-mono text-cream" dir="ltr">
-              {player.credits}◆
+              {player.credits} MOON
             </b>
           </span>
         </div>
@@ -530,7 +530,7 @@ export default function ComboBuilder() {
                       <b className="text-gain">رایگان</b>
                     ) : (
                       <b className="font-mono text-cream" dir="ltr">
-                        {(freeLeft > 0 ? 0 : COMBO_COST) + levTier.cost}◆
+                        {(freeLeft > 0 ? 0 : COMBO_COST) + levTier.cost} MOON
                       </b>
                     )}
                   </span>
@@ -548,11 +548,11 @@ export default function ComboBuilder() {
                           ? "border-gold bg-gold/10 text-gold"
                           : "border-line text-muted hover:border-gold/40 hover:text-cream"
                       }`}
-                      title={t.cost ? `${t.cost} کردیت` : "رایگان"}
+                      title={t.cost ? `${t.cost} MOON` : "رایگان"}
                     >
                       {t.label}
                       {t.cost > 0 && (
-                        <span className="ms-1.5 opacity-70">+{t.cost}◆</span>
+                        <span className="ms-1.5 opacity-70">+{t.cost} MOON</span>
                       )}
                     </button>
                   ))}

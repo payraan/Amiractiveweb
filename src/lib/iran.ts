@@ -22,7 +22,10 @@ import { db } from "@/lib/db";
 // برگردانده می‌شود (کمیسیون هم برنمی‌داریم).
 
 export const COMMISSION = 0.03; // ۳٪ — از حجم، نه از سود
-export const MIN_STAKE_USDT = 3; // بر اساس فی شبکه‌ی تتر
+// حداقل شرط ۱ تتر. دلیل قبلی («فی شبکه‌ی تتر») برای شرط داخلی بی‌ربط بود:
+// شرط فقط یک ردیف دیتابیس است و هیچ کارمزد شبکه‌ای ندارد؛ فی شبکه فقط روی
+// واریز و برداشت اثر دارد (حداقل برداشت جدا و ۱۰ تتر است).
+export const MIN_STAKE_USDT = 1;
 export const MIN_ODDS = 1.05; // زیر این، بازار باطل می‌شود
 export const DISPUTE_HOURS = 24; // پنجره‌ی اعتراض پس از تسویه
 /** هزینه‌ی ساخت بازار — از کیف پول تتر. اگر بازار رد شود کامل برمی‌گردد. */
@@ -85,7 +88,7 @@ export async function ensureIrTables(): Promise<void> {
         "CREATE INDEX IF NOT EXISTS irm_status_idx ON ir_markets(status, closes_at)"
       );
       // هزینه‌ی پرداختی سازنده (تتر) — برای برگشت دقیق هنگام رد شدن.
-      // بازارهای قدیمی که با کردیت ساخته شده‌اند صفر می‌مانند و برگشتی ندارند.
+      // بازارهای قدیمی که با MOON ساخته شده‌اند صفر می‌مانند و برگشتی ندارند.
       await pool.query(
         "ALTER TABLE ir_markets ADD COLUMN IF NOT EXISTS fee_usdt NUMERIC(18,6) NOT NULL DEFAULT 0"
       );
@@ -226,14 +229,14 @@ export type RevenueKind =
   | "ir_propose_refund" // برگشت هزینه‌ی ساخت (بازار رد شد) — منفی
   | "ir_commission" // کمیسیون تسویه‌ی عادی
   | "ir_commission_void" // کمیسیون بازار بدون برنده
-  | "credit_sale"; // فروش کردیت از موجودی کیف پول
+  | "credit_sale"; // فروش MOON از موجودی کیف پول
 
 export const REVENUE_LABEL: Record<RevenueKind, string> = {
   ir_propose_fee: "هزینه‌ی ساخت بازار",
   ir_propose_refund: "برگشت هزینه‌ی ساخت",
   ir_commission: "کمیسیون تسویه",
   ir_commission_void: "کمیسیون بازار بدون برنده",
-  credit_sale: "فروش کردیت",
+  credit_sale: "فروش MOON",
 };
 
 /**

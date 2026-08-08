@@ -59,7 +59,7 @@ const KIND_LABEL: Record<string, string> = {
   ir_refund: "برگشت بازار باطل",
   ir_propose_fee: "هزینه‌ی ساخت بازار",
   ir_propose_refund: "برگشت هزینه‌ی ساخت",
-  credit_purchase: "خرید کردیت",
+  credit_purchase: "خرید MOON",
 };
 
 const usd = (n: number) => `$${(Math.round(n * 100) / 100).toFixed(2)}`;
@@ -153,7 +153,7 @@ export default function ProfilePanel() {
 
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
             <Metric label="امتیاز کل" value={String(player.totalPoints)} tone="gold" />
-            <Metric label="کردیت" value={`${player.credits}◆`} />
+            <Metric label="MOON" value={`${player.credits} MOON`} />
             <Metric label="موجودی تتر" value={usd(player.usdtBalance)} tone="gain" />
             <Metric label="استریک" value={`${player.streak} روز`} />
           </div>
@@ -174,7 +174,9 @@ export default function ProfilePanel() {
             />
           </div>
           <p className="mt-2 text-[10px] text-muted">
-            از {rank.totalPlayers} کاربر، {rank.above} نفر امتیاز بیشتری دارند.
+            {rank.percentile >= 100
+              ? "در صدر جدول ایستاده‌ای."
+              : `از ${100 - rank.percentile}٪ پیش‌بین‌ها جلوتری.`}
           </p>
         </div>
       </div>
@@ -227,7 +229,7 @@ export default function ProfilePanel() {
           {/* تتری */}
           <div className="rounded-xl border border-line bg-ink/30 p-4">
             <h3 className="text-[12px] font-bold text-cream">
-              بازار ایران <span className="text-muted">— تتر واقعی</span>
+              بازار ایران <span className="text-muted">— تتر</span>
             </h3>
             <div
               className={`mt-3 font-mono text-3xl font-black ${

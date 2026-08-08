@@ -9,7 +9,7 @@ import { payReferralCommission } from "@/lib/referral";
 export const dynamic = "force-dynamic";
 
 /**
- * خرید کردیت مستقیم از موجودی تتر کیف پول.
+ * خرید MOON مستقیم از موجودی تتر کیف پول.
  *
  * جایگزین مسیر قبلی (هدایت به تلگرام و شارژ دستی). حالا که کیف پول داخلی
  * داریم، خرید باید همان‌جا و آنی تمام شود.
@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
  * دو نکته‌ی امنیتی:
  *  ۱. قیمت هرگز از کلاینت خوانده نمی‌شود؛ فقط شناسه‌ی بسته می‌آید و قیمت از
  *     game.ts خوانده می‌شود. وگرنه کاربر می‌توانست priceUsdt=0 بفرستد.
- *  ۲. کسر تتر و افزودن کردیت در یک ترنزاکشن با قفل ردیف بازیکن انجام می‌شود،
+ *  ۲. کسر تتر و افزودن MOON در یک ترنزاکشن با قفل ردیف بازیکن انجام می‌شود،
  *     پس دو درخواست همزمان نمی‌توانند یک موجودی را دوبار خرج کنند.
  */
 export async function POST(req: Request) {
@@ -71,16 +71,16 @@ export async function POST(req: Request) {
       playerId,
       -pack.priceUsdt,
       "credit_purchase",
-      `${pack.credits}◆`
+      `${pack.credits} MOON`
     );
     const upd = await client.query(
       "UPDATE players SET credits = credits + $1 WHERE id=$2 RETURNING credits",
       [pack.credits, playerId]
     );
-    // فروش کردیت درآمد پلتفرم است و باید در دفترکل دیده شود
+    // فروش MOON درآمد پلتفرم است و باید در دفترکل دیده شود
     await recordRevenue(client, "credit_sale", pack.priceUsdt, {
       playerId,
-      note: `${pack.credits} کردیت`,
+      note: `${pack.credits} MOON`,
     });
 
     await client.query("COMMIT");

@@ -19,7 +19,7 @@ const LABEL: Record<string, string> = {
   ir_propose_refund: "برگشت هزینه‌ی ساخت",
   ir_commission: "کمیسیون تسویه",
   ir_commission_void: "کمیسیون بازار بدون برنده",
-  credit_sale: "فروش کردیت",
+  credit_sale: "فروش MOON",
 };
 
 const usd = (n: number) => `$${(Math.round(n * 100) / 100).toFixed(2)}`;

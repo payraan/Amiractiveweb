@@ -114,7 +114,7 @@ export default function AssetCard({
         const map: Record<string, string> = {
           not_authed: "برای ثبت پیش‌بینی وارد شوید.",
           already_predicted: "برای این تایم‌فریم قبلاً پیش‌بینی ثبت کرده‌اید.",
-          insufficient_credits: "کردیت کافی ندارید.",
+          insufficient_credits: "MOON کافی ندارید.",
           daily_limit: "سقف مجاز امروز این تایم‌فریم پر شده است.",
           market_closed: "بازار این دارایی الان بسته است.",
           bad_guess: "قیمت واردشده معتبر نیست.",
@@ -235,7 +235,7 @@ export default function AssetCard({
                 className={`font-mono text-[10px] ${paid ? "" : "text-gain"}`}
                 dir="ltr"
               >
-                {paid ? `${t.cost}◆` : "رایگان"}
+                {paid ? `${t.cost} MOON` : "رایگان"}
               </span>
             </button>
           );

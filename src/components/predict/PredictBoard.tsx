@@ -61,12 +61,12 @@ export default function PredictBoard() {
 
                 <div className="flex flex-wrap gap-8">
                   <div>
-                    <div className="text-xs text-muted">کردیت</div>
+                    <div className="text-xs text-muted">MOON</div>
                     <div
                       className="font-mono text-3xl font-bold text-cream"
                       dir="ltr"
                     >
-                      {player.credits}◆
+                      {player.credits} MOON
                     </div>
                   </div>
                   <div>
@@ -85,7 +85,7 @@ export default function PredictBoard() {
                     href="#credits"
                     className="rounded-xl border border-gold/40 px-5 py-2.5 text-xs text-gold transition hover:bg-gold hover:text-ink"
                   >
-                    خرید کردیت
+                    خرید MOON
                   </a>
                   <button
                     type="button"
@@ -98,7 +98,7 @@ export default function PredictBoard() {
               </div>
 
               <p className="mt-5 border-t border-line pt-4 text-[11px] leading-6 text-muted">
-                امتیاز از دقت پیش‌بینی می‌آید و خرید و فروش نمی‌شود. کردیت فقط
+                امتیاز از دقت پیش‌بینی می‌آید و خرید و فروش نمی‌شود. MOON فقط
                 تایم‌فریم‌های کوتاه‌تر و پیش‌بینی بیشتر را باز می‌کند.
               </p>
             </div>
@@ -108,7 +108,7 @@ export default function PredictBoard() {
                 "هر روز پیش‌بینی رایگان روی ۴۲ دارایی",
                 "آستانه‌ها با نوسان هر دارایی تنظیم می‌شوند",
                 "رقابت در لیدربورد و ورود به چلنج پراپ",
-                "۱۰ کردیت هدیه‌ی خوش‌آمد",
+                "۱۰ MOON هدیه‌ی خوش‌آمد",
               ]}
               onAuthed={() => refresh()}
             />

@@ -2,7 +2,7 @@ import { createHmac, timingSafeEqual, scrypt, randomBytes } from "crypto";
 import { db } from "@/lib/db";
 
 // ── Admin session (separate from player sessions) ──────────────
-// جعل نشست ادمین یعنی قدرت شارژ کردیت، پس هیچ fallback حدس‌زدنی نداریم.
+// جعل نشست ادمین یعنی قدرت شارژ MOON، پس هیچ fallback حدس‌زدنی نداریم.
 // قبلا به دنباله‌ی DATABASE_URL و یک رشته‌ی ثابت برمی‌گشت؛ هر دو حذف شدند.
 // اگر هیچ کلیدی ست نباشد، همه‌ی نشست‌های ادمین رد می‌شوند.
 const SECRET = process.env.ADMIN_SECRET || process.env.SESSION_SECRET || "";

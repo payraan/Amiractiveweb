@@ -165,7 +165,7 @@ function StatsView() {
     { label: "کاربران فعال (۷ روز)", value: o.active_players },
     { label: "کل پیش‌بینی‌ها", value: o.total_predictions },
     { label: "پیش‌بینی پولی", value: o.paid_predictions },
-    { label: "کردیت فروخته‌شده", value: `${sales.credits_sold}◆` },
+    { label: "MOON فروخته‌شده", value: `${sales.credits_sold} MOON` },
     { label: "تعداد شارژ", value: sales.topup_count },
   ];
 
@@ -193,7 +193,7 @@ function StatsView() {
                 <span className="font-mono" dir="ltr">@{t.username}</span>
                 <span className="text-muted">{t.note ?? "—"}</span>
                 <span className={`font-mono font-bold ${t.amount >= 0 ? "text-gain" : "text-loss"}`} dir="ltr">
-                  {t.amount >= 0 ? "+" : ""}{t.amount}◆
+                  {t.amount >= 0 ? "+" : ""}{t.amount} MOON
                 </span>
               </div>
             ))
@@ -211,7 +211,7 @@ function StatsView() {
                 <span className="font-mono text-muted" dir="ltr">@{u.username}</span>
               </span>
               <span className="flex gap-4 font-mono" dir="ltr">
-                <span className="text-gold">{u.credits}◆</span>
+                <span className="text-gold">{u.credits} MOON</span>
                 <span className="text-muted">{u.plays}p</span>
               </span>
             </div>
@@ -271,7 +271,7 @@ function AdminHome() {
         setMsg({ ok: true, text: `موجودی تتر ${j.username}: ${j.newUsdt}$` });
         setFound((f) => (f ? { ...f, usdtBalance: j.newUsdt } : f));
       } else {
-        setMsg({ ok: true, text: `کردیت جدید ${j.username}: ${j.newCredits}◆` });
+        setMsg({ ok: true, text: `MOON جدید ${j.username}: ${j.newCredits} MOON` });
         setFound((f) => (f ? { ...f, credits: j.newCredits } : f));
       }
       setAmount("");
@@ -310,7 +310,7 @@ function AdminHome() {
 
       {tab === "charge" && (
       <div className="mt-6 rounded-2xl border border-line bg-surface/50 p-6">
-        <h2 className="text-sm font-bold">شارژ کردیت یا تتر کاربر</h2>
+        <h2 className="text-sm font-bold">شارژ MOON یا تتر کاربر</h2>
 
         <div className="mt-4 flex gap-2">
           <input
@@ -340,16 +340,16 @@ function AdminHome() {
               </span>
             </div>
             <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 font-mono text-xs" dir="ltr">
-              <span>credits: <b className="text-gold">{found.credits}◆</b></span>
+              <span>credits: <b className="text-gold">{found.credits} MOON</b></span>
               <span>USDT: <b className="text-gain">{found.usdtBalance}$</b></span>
               <span>points: <b>{found.totalPoints}</b></span>
             </div>
 
-            {/* انتخاب واحد: کردیت مال بازار خارجی، تتر مال بازار ایران */}
+            {/* انتخاب واحد: MOON مال بازار خارجی، تتر مال بازار ایران */}
             <div className="mt-4 flex gap-2 rounded-xl border border-line bg-ink/40 p-1">
               {(
                 [
-                  { id: "credits", label: "کردیت ◆" },
+                  { id: "credits", label: "MOON  MOON" },
                   { id: "usdt", label: "تتر $" },
                 ] as const
               ).map((c) => (
@@ -374,7 +374,7 @@ function AdminHome() {
                 placeholder={
                   currency === "usdt"
                     ? "مقدار تتر (مثبت یا منفی، مثلا 10 یا 2.5)"
-                    : "تعداد کردیت (مثبت یا منفی)"
+                    : "تعداد MOON (مثبت یا منفی)"
                 }
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}

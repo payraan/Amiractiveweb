@@ -65,7 +65,7 @@ export default function ReferralDashboard() {
       .catch(() => {});
   }
 
-  const shareText = `من توی آرنای پیش‌بینی نارمون پیش‌بینی می‌کنم — با این لینک ثبت‌نام کنی ${bonus} کردیت هدیه می‌گیری:`;
+  const shareText = `من توی آرنای پیش‌بینی نارمون پیش‌بینی می‌کنم — با این لینک ثبت‌نام کنی ${bonus} MOON هدیه می‌گیری:`;
   const tgShare = `https://t.me/share/url?url=${encodeURIComponent(
     link
   )}&text=${encodeURIComponent(shareText)}`;
@@ -83,12 +83,12 @@ export default function ReferralDashboard() {
           {
             n: "۲",
             t: "آن‌ها هدیه می‌گیرند",
-            b: `هرکس با لینک شما ثبت‌نام کند، ${bonus} کردیت هدیه‌ی اضافه می‌گیرد.`,
+            b: `هرکس با لینک شما ثبت‌نام کند، ${bonus} MOON هدیه‌ی اضافه می‌گیرد.`,
           },
           {
             n: "۳",
             t: "شما پورسانت می‌گیرید",
-            b: `از هر شارژ کردیت آن‌ها، ${percent}٪ به‌صورت کردیت به حساب شما اضافه می‌شود — همیشگی.`,
+            b: `از هر شارژ MOON آن‌ها، ${percent}٪ به‌صورت MOON به حساب شما اضافه می‌شود — همیشگی.`,
           },
         ].map((s) => (
           <div
@@ -111,7 +111,7 @@ export default function ReferralDashboard() {
             benefits={[
               "کد دعوت اختصاصی و لینک قابل اشتراک",
               "پورسانت از هر شارژ کسانی که دعوت می‌کنی",
-              "کردیت هدیه برای دعوت‌شده‌ها",
+              "MOON هدیه برای دعوت‌شده‌ها",
               "کارنامه‌ی زنده‌ی دعوت‌ها و درآمد",
             ]}
           />
@@ -134,8 +134,8 @@ export default function ReferralDashboard() {
                 tone: "text-cream",
               },
               {
-                label: "کردیت دریافتی",
-                value: busy ? "…" : `${stats?.earned ?? 0}◆`,
+                label: "MOON دریافتی",
+                value: busy ? "…" : `${stats?.earned ?? 0} MOON`,
                 tone: "text-gold",
               },
             ].map((c) => (
@@ -203,8 +203,8 @@ export default function ReferralDashboard() {
             </div>
 
             <p className="mt-4 text-[10px] leading-5 text-muted">
-              پورسانت به‌صورت کردیت پرداخت می‌شود، نه پول نقد. ساخت حساب‌های
-              تقلبی برای دریافت پورسانت، به حذف حساب و ابطال کردیت‌ها منجر
+              پورسانت به‌صورت MOON پرداخت می‌شود، نه پول نقد. ساخت حساب‌های
+              تقلبی برای دریافت پورسانت، به حذف حساب و ابطال MOON منجر
               می‌شود.
             </p>
           </div>
@@ -226,10 +226,10 @@ export default function ReferralDashboard() {
                       {faDateTime(r.at)}
                     </span>
                     <span className="font-mono text-[10px] text-muted" dir="ltr">
-                      شارژ {r.credits}◆
+                      شارژ {r.credits} MOON
                     </span>
                     <b className="font-mono text-gold" dir="ltr">
-                      +{r.commission}◆
+                      +{r.commission} MOON
                     </b>
                   </div>
                 ))}
