@@ -105,6 +105,29 @@ export async function ensureIrTables(): Promise<void> {
       await pool.query(
         "CREATE INDEX IF NOT EXISTS irb_market_idx ON ir_bets(market_id, player_id)"
       );
+
+      // ── دفترکل درآمد پلتفرم ──────────────────────────────
+      // پیش از این، کمیسیون و هزینه‌ی ساخت بازار هیچ‌جا ثبت نمی‌شد: فقط از
+      // موجودی کاربر کم می‌شد و ناپدید می‌شد. درآمد واقعی را فقط با تفریق
+      // «تتر واقعی در درگاه منهای مجموع موجودی کاربران» می‌شد حدس زد، که نه
+      // قابل تفکیک بود و نه قابل حسابرسی. هر برداشت پلتفرم اینجا یک سطر است.
+      await pool.query(
+        `CREATE TABLE IF NOT EXISTS platform_revenue (
+           id BIGSERIAL PRIMARY KEY,
+           kind TEXT NOT NULL,
+           amount NUMERIC(18,6) NOT NULL,
+           market_id INTEGER REFERENCES ir_markets(id) ON DELETE SET NULL,
+           player_id INTEGER REFERENCES players(id) ON DELETE SET NULL,
+           note TEXT,
+           created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+         )`
+      );
+      await pool.query(
+        "CREATE INDEX IF NOT EXISTS prv_kind_idx ON platform_revenue(kind, created_at DESC)"
+      );
+      await pool.query(
+        "CREATE INDEX IF NOT EXISTS prv_created_idx ON platform_revenue(created_at DESC)"
+      );
     });
   }
   return ready;
@@ -165,6 +188,51 @@ export async function moveFunds(
   );
   return after;
 }
+
+/**
+ * ثبت یک سطر درآمد پلتفرم.
+ *
+ * برخلاف moveFunds، اینجا هیچ موجودی‌ای جابه‌جا نمی‌شود — پول واقعی همیشه در
+ * کیف پول تجمیعی درگاه است. این جدول فقط می‌گوید «از این مبلغ، این‌قدرش سهم
+ * پلتفرم است و بابت چه». مبلغ منفی یعنی برگشت (مثلاً رد شدن بازار).
+ *
+ * حتما داخل همان ترنزاکشنی صدا زده شود که پول را جابه‌جا می‌کند، وگرنه ممکن
+ * است پول برداشته شود ولی ثبت نشود.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function recordRevenue(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  client: any,
+  kind: RevenueKind,
+  amount: number,
+  opts: { marketId?: number; playerId?: number; note?: string } = {}
+): Promise<void> {
+  if (!Number.isFinite(amount) || amount === 0) return;
+  await client.query(
+    `INSERT INTO platform_revenue (kind, amount, market_id, player_id, note)
+     VALUES ($1,$2,$3,$4,$5)`,
+    [
+      kind,
+      Math.round(amount * 1e6) / 1e6,
+      opts.marketId ?? null,
+      opts.playerId ?? null,
+      opts.note ?? null,
+    ]
+  );
+}
+
+export type RevenueKind =
+  | "ir_propose_fee" // هزینه‌ی ساخت بازار
+  | "ir_propose_refund" // برگشت هزینه‌ی ساخت (بازار رد شد) — منفی
+  | "ir_commission" // کمیسیون تسویه‌ی عادی
+  | "ir_commission_void"; // کمیسیون بازار بدون برنده
+
+export const REVENUE_LABEL: Record<RevenueKind, string> = {
+  ir_propose_fee: "هزینه‌ی ساخت بازار",
+  ir_propose_refund: "برگشت هزینه‌ی ساخت",
+  ir_commission: "کمیسیون تسویه",
+  ir_commission_void: "کمیسیون بازار بدون برنده",
+};
 
 /**
  * تسویه‌ی یک بازار پس از پایان پنجره‌ی اعتراض.
@@ -240,14 +308,20 @@ export async function settleIrMarket(
     // برگردانده می‌شود.
     const winnerTotal = outcome === "yes" ? yes : no;
     if (winnerTotal <= 0) {
+      let kept = 0;
       for (const b of bets.rows) {
         const back = Number(b.stake) * (1 - COMMISSION);
+        kept += Number(b.stake) - back;
         await moveFunds(client, b.player_id, back, "ir_refund", `m${marketId}`);
         await client.query(
           "UPDATE ir_bets SET status='refunded', payout=$1 WHERE id=$2",
           [back, b.id]
         );
       }
+      await recordRevenue(client, "ir_commission_void", kept, {
+        marketId,
+        note: `استخر ${(yes + no).toFixed(2)} — هیچ‌کس روی گزینه‌ی برنده شرط نبست`,
+      });
       await client.query(
         "UPDATE ir_markets SET status='void', void_reason='no_winners' WHERE id=$1",
         [marketId]
@@ -271,6 +345,12 @@ export async function settleIrMarket(
         [won ? "won" : "lost", amt, b.id]
       );
     }
+    // کمیسیون = آنچه از استخر به برنده‌ها نرسید. از روی همان عددی که واقعا
+    // پرداخت شد حساب می‌شود، نه فرمول جدا، تا هرگز از پرداخت واقعی جدا نیفتد.
+    await recordRevenue(client, "ir_commission", yes + no - paid, {
+      marketId,
+      note: `استخر ${(yes + no).toFixed(2)} — پرداختی ${paid.toFixed(2)}`,
+    });
     await client.query("UPDATE ir_markets SET status='settled' WHERE id=$1", [
       marketId,
     ]);

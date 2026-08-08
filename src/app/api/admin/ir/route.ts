@@ -9,6 +9,7 @@ import {
   settleIrMarket,
   wouldBeVoid,
   moveFunds,
+  recordRevenue,
   DISPUTE_HOURS,
 } from "@/lib/iran";
 
@@ -128,6 +129,12 @@ export async function POST(req: Request) {
           "ir_propose_refund",
           `m${id}`
         );
+        // برگشت، درآمد قبلی را خنثی می‌کند → سطر منفی
+        await recordRevenue(client, "ir_propose_refund", -Number(row.fee_usdt), {
+          marketId: id,
+          playerId: row.creator_id,
+          note: "بازار رد شد",
+        });
       }
       await client.query("COMMIT");
     } catch {

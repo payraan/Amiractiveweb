@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { verifySession, SESSION_COOKIE } from "@/lib/session";
-import { ensureIrTables, moveFunds, PROPOSE_FEE_USDT } from "@/lib/iran";
+import {
+  ensureIrTables,
+  moveFunds,
+  recordRevenue,
+  PROPOSE_FEE_USDT,
+} from "@/lib/iran";
 import { isIrCategory } from "@/lib/ir-categories";
 
 export const dynamic = "force-dynamic";
@@ -98,6 +103,10 @@ export async function POST(req: Request) {
       "ir_propose_fee",
       `m${ins.rows[0].id}`
     );
+    await recordRevenue(client, "ir_propose_fee", PROPOSE_FEE_USDT, {
+      marketId: ins.rows[0].id,
+      playerId,
+    });
 
     await client.query("COMMIT");
     return NextResponse.json({ ok: true, cost: PROPOSE_FEE_USDT });

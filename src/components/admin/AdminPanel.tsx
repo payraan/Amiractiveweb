@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import IrMarkets from "@/components/admin/IrMarkets";
 import UsersTable from "@/components/admin/UsersTable";
+import RevenueLedger from "@/components/admin/RevenueLedger";
 
 type Found = {
   username: string;
@@ -75,10 +76,11 @@ export default function AdminPanel() {
 
 /** پوسته‌ی تب‌دار — بخش‌های موجود حفظ شده‌اند و دو بخش تازه اضافه شده. */
 function AdminShell() {
-  const [tab, setTab] = useState<"home" | "ir" | "users">("home");
+  const [tab, setTab] = useState<"home" | "ir" | "revenue" | "users">("home");
   const TABS = [
     { id: "home" as const, label: "شارژ و آمار" },
     { id: "ir" as const, label: "بازار ایران" },
+    { id: "revenue" as const, label: "دفترکل درآمد" },
     { id: "users" as const, label: "کاربران" },
   ];
   return (
@@ -105,6 +107,7 @@ function AdminShell() {
 
       {tab === "home" && <AdminHome />}
       {tab === "ir" && <IrMarkets />}
+      {tab === "revenue" && <RevenueLedger />}
       {tab === "users" && <UsersTable />}
     </div>
   );
