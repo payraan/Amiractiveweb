@@ -28,6 +28,19 @@ type Cfg = { minStake: number; commission: number };
 
 const CATS = [{ id: "all", label: "همه" }, ...IR_CATEGORIES];
 
+// مرتب‌سازی اکسپلور. «داغ» عمدا بر پایه‌ی حجم به‌ازای زمانِ سپری‌شده است، نه
+// حجم خام: وگرنه بازار قدیمی همیشه بالای بازار تازه‌ی پرشتاب می‌ماند و هیچ
+// بازار جدیدی هرگز دیده نمی‌شود.
+const SORTS = [
+  { id: "hot", label: "داغ", help: "سریع‌ترین رشد مشارکت" },
+  { id: "volume", label: "بیشترین حجم", help: "بزرگ‌ترین استخر" },
+  { id: "bettors", label: "پرمشارکت‌ترین", help: "بیشترین تعداد شرکت‌کننده" },
+  { id: "closing", label: "نزدیک به پایان", help: "زودتر بسته می‌شوند" },
+  { id: "new", label: "تازه‌ترین", help: "جدیدترین بازارها" },
+] as const;
+
+type SortId = (typeof SORTS)[number]["id"];
+
 const ERR: Record<string, string> = {
   not_authed: "برای ثبت پیش‌بینی وارد شوید.",
   insufficient_funds: "موجودی کیف پول کافی نیست.",
@@ -69,6 +82,7 @@ export default function IranTerminal() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [load, setLoad] = useState(true);
+  const [sort, setSort] = useState<SortId>("hot");
 
   const fetchMarkets = useCallback(async () => {
     try {
@@ -136,6 +150,37 @@ export default function IranTerminal() {
 
   const noPct = m ? Math.round((100 - m.yesPct) * 10) / 10 : 0;
 
+  // فقط بازارهای بازِ قابل شرط در اکسپلور دیده می‌شوند — بازار بسته یا در حال
+  // تسویه اینجا نمی‌آید چون کاربر کاری با آن نمی‌تواند بکند.
+  const explore = useMemo(() => {
+    const open = markets.filter(
+      (x) => x.status === "open" && new Date(x.closesAt).getTime() > Date.now()
+    );
+    const byClose = (x: M) => new Date(x.closesAt).getTime();
+    const arr = [...open];
+    switch (sort) {
+      case "volume":
+        return arr.sort((a, b) => b.volume - a.volume);
+      case "bettors":
+        return arr.sort((a, b) => b.bettors - a.bettors || b.volume - a.volume);
+      case "closing":
+        return arr.sort((a, b) => byClose(a) - byClose(b));
+      case "new":
+        return arr.sort((a, b) => b.id - a.id);
+      case "hot":
+      default:
+        // شتاب مشارکت: حجم تقسیم بر ساعت‌های باقی‌مانده تا بسته‌شدن. بازاری که
+        // در فرصت کمتر حجم بیشتری جمع کرده، داغ‌تر است.
+        return arr.sort((a, b) => {
+          const heat = (x: M) => {
+            const hoursLeft = Math.max(1, (byClose(x) - Date.now()) / 3600000);
+            return (x.volume + x.bettors * 2) / Math.sqrt(hoursLeft);
+          };
+          return heat(b) - heat(a);
+        });
+    }
+  }, [markets, sort]);
+
   return (
     // rounded-xl عمدی است: قاعده‌ی سراسری globals.css فقط rounded-2xl را
     // موقع هاور زوم و قاب طلایی می‌دهد، که برای یک ترمینال تمام‌صفحه بد است.
@@ -165,12 +210,12 @@ export default function IranTerminal() {
           </div>
         </div>
 
-        <div className="flex items-center gap-5">
-          <Stat k="TOTAL POOL" v={m ? `$${m.volume.toFixed(2)}` : "—"} />
-          <Stat k="YES" v={m ? `${m.yesPct}%` : "—"} tone="gain" />
-          <Stat k="NO" v={m ? `${noPct}%` : "—"} tone="loss" />
-          <Stat k="CLOSES IN" v={m ? remain(m.closesAt) : "—"} tone="gold" />
-          <Stat k="BETTORS" v={m ? String(m.bettors) : "—"} />
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <Stat k="حجم استخر" v={m ? `$${m.volume.toFixed(2)}` : "—"} />
+          <Stat k="بله" v={m ? `${m.yesPct}٪` : "—"} tone="gain" />
+          <Stat k="خیر" v={m ? `${noPct}٪` : "—"} tone="loss" />
+          <Stat k="تا بسته‌شدن" v={m ? remain(m.closesAt) : "—"} tone="gold" />
+          <Stat k="مشارکت‌کنندگان" v={m ? String(m.bettors) : "—"} />
         </div>
 
         <Link
@@ -186,15 +231,13 @@ export default function IranTerminal() {
         {/* استخر */}
         <div className="min-w-0 border-b border-line lg:border-e lg:border-b-0">
           <div className="flex items-center justify-between border-b border-line px-3 py-2">
-            <span className="font-mono text-[10px] tracking-wider text-muted" dir="ltr">
-              POOL DISTRIBUTION
-            </span>
-            <span className="flex items-center gap-1.5 font-mono text-[9px] text-muted" dir="ltr">
+            <span className="text-[11px] font-bold text-cream">اجماع بازار</span>
+            <span className="flex items-center gap-1.5 text-[10px] text-muted">
               <span className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gain opacity-60" />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-gain" />
               </span>
-              LIVE
+              زنده
             </span>
           </div>
 
@@ -228,14 +271,14 @@ export default function IranTerminal() {
               {/* عمق استخر و ضریب هر طرف */}
               <div className="mt-4 overflow-hidden rounded-lg border border-line font-mono text-[11px]">
                 <div className="flex items-center justify-between border-b border-line bg-gain/5 px-3 py-2">
-                  <span className="text-gain">YES POOL</span>
+                  <span className="text-gain">استخر بله</span>
                   <span className="flex gap-4" dir="ltr">
                     <span className="text-cream">${m.yesTotal.toFixed(2)}</span>
                     <span className="text-gain">×{m.yesOdds || "—"}</span>
                   </span>
                 </div>
                 <div className="flex items-center justify-between bg-loss/5 px-3 py-2">
-                  <span className="text-loss">NO POOL</span>
+                  <span className="text-loss">استخر خیر</span>
                   <span className="flex gap-4" dir="ltr">
                     <span className="text-cream">${m.noTotal.toFixed(2)}</span>
                     <span className="text-loss">×{m.noOdds || "—"}</span>
@@ -285,9 +328,7 @@ export default function IranTerminal() {
         {/* نردبان بازارها */}
         <div className="min-w-0 border-b border-line lg:border-e lg:border-b-0">
           <div className="flex items-center justify-between border-b border-line px-3 py-2">
-            <span className="font-mono text-[10px] tracking-wider text-muted" dir="ltr">
-              IRAN MARKETS
-            </span>
+            <span className="text-[11px] font-bold text-cream">بازارهای ایران</span>
             <span className="font-mono text-[10px] text-gold" dir="ltr">
               {markets.length}
             </span>
@@ -355,9 +396,7 @@ export default function IranTerminal() {
         {/* پنل سفارش */}
         <div className="min-w-0">
           <div className="border-b border-line px-3 py-2">
-            <span className="font-mono text-[10px] tracking-wider text-gold" dir="ltr">
-              PLACE PREDICTION
-            </span>
+            <span className="text-[11px] font-bold text-gold">ثبت پیش‌بینی</span>
           </div>
 
           <div className="p-3">
@@ -439,18 +478,18 @@ export default function IranTerminal() {
                 </div>
 
                 <div className="mt-3 rounded-lg border border-line bg-ink/40 p-3 font-mono text-[11px]">
-                  <Row k="Odds" v={preview ? `×${preview.odds.toFixed(2)}` : "—"} />
+                  <Row k="ضریب" v={preview ? `×${preview.odds.toFixed(2)}` : "—"} />
                   <Row
-                    k="To win"
+                    k="دریافتی در صورت برد"
                     v={preview ? `$${preview.payout.toFixed(2)}` : "—"}
                     tone="gain"
                   />
                   <Row
-                    k="Profit"
+                    k="سود خالص"
                     v={preview ? `+$${preview.profit.toFixed(2)}` : "—"}
                     tone="gain"
                   />
-                  <Row k="Fee" v={`${Math.round(cfg.commission * 100)}%`} />
+                  <Row k="کارمزد" v={`${Math.round(cfg.commission * 100)}٪`} />
                 </div>
 
                 <button
@@ -489,6 +528,100 @@ export default function IranTerminal() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* ── اکسپلور: همه‌ی بازارهای باز ── */}
+      <div className="border-t border-line">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line px-3 py-2">
+          <span className="text-[11px] font-bold text-cream">اکسپلور بازارها</span>
+          <span className="font-mono text-[10px] text-gold" dir="ltr">
+            {explore.length}
+          </span>
+
+          <div className="flex gap-1 overflow-x-auto">
+            {SORTS.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setSort(s.id)}
+                className={`no-zoom shrink-0 whitespace-nowrap rounded px-2.5 py-1 text-[10px] transition ${
+                  sort === s.id ? "bg-gold/15 text-gold" : "text-muted hover:text-cream"
+                }`}
+                title={s.help}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="ms-auto flex gap-1 overflow-x-auto">
+            {CATS.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => setCat(c.id)}
+                className={`no-zoom shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-[10px] transition ${
+                  cat === c.id
+                    ? "bg-gold text-ink"
+                    : "border border-line text-muted hover:text-cream"
+                }`}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {explore.length === 0 ? (
+          <p className="py-10 text-center text-[11px] text-muted">
+            {load ? "در حال بارگذاری…" : "بازاری در این دسته باز نیست."}
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+            {explore.map((x) => {
+              const active = x.id === sel;
+              const xNo = Math.round((100 - x.yesPct) * 10) / 10;
+              return (
+                <button
+                  key={x.id}
+                  type="button"
+                  onClick={() => {
+                    setSel(x.id);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className={`no-zoom min-w-0 border-b border-line p-4 text-start transition md:border-e ${
+                    active ? "bg-gold/10" : "hover:bg-raised/40"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="shrink-0 rounded-full border border-line px-2 py-0.5 text-[10px] text-muted">
+                      {catLabel(x.category)}
+                    </span>
+                    <span className="font-mono text-[10px] text-muted" dir="ltr">
+                      ${x.volume.toFixed(0)} · {x.bettors} نفر
+                    </span>
+                  </div>
+
+                  <p className="mt-2.5 line-clamp-2 break-words text-[12px] font-bold leading-6">
+                    {x.question}
+                  </p>
+
+                  <div className="mt-3 flex justify-between font-mono text-[10px]">
+                    <span className="text-gain">بله {x.yesPct}٪</span>
+                    <span className="text-loss">خیر {xNo}٪</span>
+                  </div>
+                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-loss/25">
+                    <div className="h-full bg-gain" style={{ width: `${x.yesPct}%` }} />
+                  </div>
+                  <div className="mt-2.5 flex items-center justify-between text-[10px] text-muted">
+                    <span>بسته‌شدن: {fa(x.closesAt)}</span>
+                    <span className="text-gold">{remain(x.closesAt)}</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

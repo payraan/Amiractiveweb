@@ -362,40 +362,32 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
               <span className="rounded border border-line px-1.5 py-px">
                 {market?.categoryLabel ?? "—"}
               </span>
-              <span dir="ltr">RESOLVES {market ? dualDate(market.endDate) : "—"}</span>
+              <span>تسویه {market ? dualDate(market.endDate) : "—"}</span>
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-6">
           <div>
-            <div className="font-mono text-[9px] tracking-wider text-muted" dir="ltr">
-              TOTAL VOL
-            </div>
+            <div className="text-[10px] text-muted">حجم کل</div>
             <div className="mt-0.5 font-mono text-xs font-bold text-cream" dir="ltr">
               {market ? fmtVol(market.volume) : "—"}
             </div>
           </div>
           <div>
-            <div className="font-mono text-[9px] tracking-wider text-muted" dir="ltr">
-              YES
-            </div>
+            <div className="text-[10px] text-muted">بله</div>
             <div className="mt-0.5 font-mono text-xs font-bold text-gain" dir="ltr">
               {market ? `${market.yesPct}%` : "—"}
             </div>
           </div>
           <div>
-            <div className="font-mono text-[9px] tracking-wider text-muted" dir="ltr">
-              NO
-            </div>
+            <div className="text-[10px] text-muted">خیر</div>
             <div className="mt-0.5 font-mono text-xs font-bold text-loss" dir="ltr">
               {market ? `${Math.round((100 - market.yesPct) * 10) / 10}%` : "—"}
             </div>
           </div>
           <div>
-            <div className="font-mono text-[9px] tracking-wider text-muted" dir="ltr">
-              CLOSES IN
-            </div>
+            <div className="text-[10px] text-muted">تا بسته‌شدن</div>
             <div className="mt-0.5 font-mono text-xs font-bold text-gold" dir="ltr">
               {market ? closesIn(market.endDate) : "—"}
             </div>
@@ -443,12 +435,12 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
                 {iv.label}
               </button>
             ))}
-            <span className="ms-auto flex items-center gap-1.5 font-mono text-[9px] text-muted" dir="ltr">
+            <span className="ms-auto flex items-center gap-1.5 text-[10px] text-muted">
               <span className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gain opacity-60" />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-gain" />
               </span>
-              LIVE · POLYMARKET
+              زنده · پالی‌مارکت
             </span>
           </div>
 
@@ -464,9 +456,7 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
         {/* نردبان رویداد */}
         <div className="border-b border-line lg:border-e lg:border-b-0">
           <div className="flex items-center justify-between border-b border-line px-3 py-2">
-            <span className="font-mono text-[10px] tracking-wider text-muted" dir="ltr">
-              EVENT MARKETS
-            </span>
+            <span className="text-[11px] font-bold text-cream">بازارهای رویداد</span>
             <span className="font-mono text-[10px] text-gold" dir="ltr">
               {ladder.length}
             </span>
@@ -510,9 +500,7 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
         {/* پنل سفارش */}
         <div>
           <div className="border-b border-line px-3 py-2">
-            <span className="font-mono text-[10px] tracking-wider text-gold" dir="ltr">
-              PLACE PREDICTION
-            </span>
+            <span className="text-[11px] font-bold text-gold">ثبت پیش‌بینی</span>
           </div>
 
           <div className="p-3">
@@ -589,25 +577,25 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
 
                 <div className="mt-3 flex flex-col gap-1.5 rounded-lg border border-line bg-ink/40 p-3 font-mono text-[10px]">
                   <div className="flex justify-between">
-                    <span className="text-muted">Entry</span>
+                    <span className="text-muted">احتمال جمعی</span>
                     <span className="text-cream" dir="ltr">
                       {sidePct}%
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted">To win</span>
+                    <span className="text-muted">امتیاز برد</span>
                     <span className="text-gain" dir="ltr">
                       +{reward} pts
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted">Risk</span>
+                    <span className="text-muted">ریسک</span>
                     <span className="text-loss" dir="ltr">
                       −{risk} pts
                     </span>
                   </div>
                   <div className="flex justify-between border-t border-line pt-1.5">
-                    <span className="text-muted">Cost</span>
+                    <span className="text-muted">هزینه</span>
                     <span className={freeLeft > 0 ? "text-gain" : "text-cream"} dir="ltr">
                       {freeLeft > 0 ? "FREE" : "1◆"}
                     </span>

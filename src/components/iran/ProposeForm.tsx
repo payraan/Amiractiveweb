@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePlayer } from "@/components/predict/usePlayer";
 import { IR_CATEGORIES as CATS } from "@/lib/ir-categories";
+import JalaliDateTime from "@/components/iran/JalaliDateTime";
 
 const ERR: Record<string, string> = {
   not_authed: "برای پیشنهاد بازار وارد شوید.",
@@ -154,16 +155,11 @@ export default function ProposeForm() {
           </div>
 
           <label className="mt-4 block text-[11px] text-muted">
-            زمان بسته‌شدن بازار
+            زمان بسته‌شدن بازار (به وقت تهران)
           </label>
-          <input
-            type="datetime-local"
-            min={new Date(Date.now() + 3600000).toISOString().slice(0, 16)}
-            value={closesAt}
-            onChange={(e) => setClosesAt(e.target.value)}
-            dir="ltr"
-            className="mt-1.5 w-full rounded-xl border border-line bg-ink/50 px-4 py-2.5 font-mono text-sm text-cream focus:border-gold focus:outline-none"
-          />
+          <div className="mt-1.5">
+            <JalaliDateTime value={closesAt} onChange={setClosesAt} />
+          </div>
 
           {issues.length > 0 && (
             <ul className="mt-4 flex flex-col gap-1.5 rounded-xl border border-line bg-ink/30 px-4 py-3">
