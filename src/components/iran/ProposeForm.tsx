@@ -73,7 +73,7 @@ export default function ProposeForm() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <div className="rounded-2xl border border-gold/30 bg-gold/5 p-5">
+      <div className="no-lift rounded-2xl border border-gold/30 bg-gold/5 p-5">
         <h2 className="font-display text-sm font-extrabold text-gold">
           قبل از پیشنهاد بخوانید
         </h2>
@@ -100,7 +100,7 @@ export default function ProposeForm() {
       </div>
 
       {!player ? (
-        <div className="mt-6 rounded-2xl border border-line bg-surface/40 p-8 text-center">
+        <div className="no-lift mt-6 rounded-2xl border border-line bg-surface/40 p-8 text-center">
           <p className="text-sm text-muted">برای پیشنهاد بازار باید وارد شوید.</p>
           <Link
             href="/login"
@@ -110,7 +110,7 @@ export default function ProposeForm() {
           </Link>
         </div>
       ) : (
-        <div className="mt-6 rounded-2xl border border-line bg-surface/40 p-5">
+        <div className="no-lift mt-6 rounded-2xl border border-line bg-surface/40 p-5">
           <label className="block text-[11px] text-muted">سؤال بازار</label>
           <textarea
             value={question}

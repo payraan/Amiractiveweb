@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { verifyAdmin, ADMIN_COOKIE } from "@/lib/admin";
 import { normalizeUsername } from "@/lib/auth";
+import { ensureIrTables } from "@/lib/iran";
 
 export const dynamic = "force-dynamic";
 
@@ -16,9 +17,11 @@ export async function GET(req: Request) {
   const username = normalizeUsername(searchParams.get("username") ?? "");
   if (!username) return NextResponse.json({ ok: false, error: "bad_username" }, { status: 400 });
 
+  await ensureIrTables(); // ستون usdt_balance اینجا ساخته می‌شود
   const pool = await db();
   const { rows } = await pool.query(
-    `SELECT tg_username, display_name, credits, total_points, streak, created_at
+    `SELECT tg_username, display_name, credits, total_points, streak, created_at,
+            usdt_balance
        FROM players WHERE tg_username=$1`,
     [username]
   );
@@ -31,6 +34,7 @@ export async function GET(req: Request) {
       username: p.tg_username,
       displayName: p.display_name,
       credits: p.credits,
+      usdtBalance: Number(p.usdt_balance ?? 0),
       totalPoints: p.total_points,
       streak: p.streak,
       createdAt: p.created_at,

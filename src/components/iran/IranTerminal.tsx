@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePlayer } from "@/components/predict/usePlayer";
-import AuthCallout from "@/components/predict/AuthCallout";
+import AuthPanel from "@/components/predict/AuthPanel";
 import { IR_CATEGORIES } from "@/lib/ir-categories";
 
 type M = {
@@ -13,6 +13,7 @@ type M = {
   sourceNote: string;
   closesAt: string;
   status: string;
+  outcome: string | null;
   yesTotal: number;
   noTotal: number;
   volume: number;
@@ -35,6 +36,9 @@ const ERR: Record<string, string> = {
   not_found: "بازار پیدا نشد.",
 };
 
+const catLabel = (id: string) =>
+  IR_CATEGORIES.find((c) => c.id === id)?.label ?? id;
+
 const fa = (iso: string) =>
   new Date(iso).toLocaleString("fa-IR", {
     timeZone: "Asia/Tehran",
@@ -56,10 +60,7 @@ function remain(iso: string) {
 export default function IranTerminal() {
   const { player, loading, refresh } = usePlayer();
   const [markets, setMarkets] = useState<M[]>([]);
-  const [cfg, setCfg] = useState<Cfg>({
-    minStake: 3,
-    commission: 0.03,
-  });
+  const [cfg, setCfg] = useState<Cfg>({ minStake: 3, commission: 0.03 });
   const [balance, setBalance] = useState(0);
   const [cat, setCat] = useState("all");
   const [sel, setSel] = useState<number | null>(null);
@@ -77,7 +78,9 @@ export default function IranTerminal() {
         setMarkets(j.markets);
         setBalance(j.balance ?? 0);
         if (j.config) setCfg(j.config);
-        setSel((s) => (s && j.markets.some((m: M) => m.id === s) ? s : j.markets[0]?.id ?? null));
+        setSel((s) =>
+          s && j.markets.some((m: M) => m.id === s) ? s : (j.markets[0]?.id ?? null)
+        );
       }
     } finally {
       setLoad(false);
@@ -131,102 +134,250 @@ export default function IranTerminal() {
     }
   }
 
+  const noPct = m ? Math.round((100 - m.yesPct) * 10) / 10 : 0;
+
   return (
-    <div>
-      {!loading && !player && (
-        <div className="mb-8">
-          <AuthCallout
-            benefits={[
-              "پیش‌بینی روی رویدادهای واقعی ایران",
-              "برد از استخر شرط‌ها — گزینه‌ی کم‌طرفدارتر، ضریب بزرگ‌تر",
-              "برداشت مستقیم به کیف پول",
-              "۱۰ کردیت هدیه‌ی خوش‌آمد",
-            ]}
-            onAuthed={() => refresh()}
-          />
-        </div>
-      )}
-
-      {/* ── پنل بالا ── */}
-      <div className="overflow-hidden rounded-2xl border border-line bg-surface/40">
-        {m ? (
-          <>
-            <div className="flex flex-wrap items-start justify-between gap-4 border-b border-line p-5">
-              <div className="min-w-0 flex-1">
-                <span className="rounded-full border border-line px-2.5 py-1 text-[10px] text-muted">
-                  {CATS.find((c) => c.id === m.category)?.label ?? m.category}
-                </span>
-                <h2 className="mt-3 font-display text-lg font-extrabold leading-8 md:text-xl">
-                  {m.question}
-                </h2>
-                <p className="mt-2 text-[11px] leading-6 text-muted">
-                  <b className="text-gold">منبع تسویه:</b> {m.sourceNote}
-                </p>
-              </div>
-              <div className="flex shrink-0 gap-6 font-mono text-[11px]">
-                <div>
-                  <div className="text-[9px] text-muted">TOTAL POOL</div>
-                  <div className="mt-1 text-base text-cream" dir="ltr">
-                    ${m.volume.toFixed(2)}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-[9px] text-muted">CLOSES IN</div>
-                  <div className="mt-1 text-base text-cream">{remain(m.closesAt)}</div>
-                </div>
-                <div>
-                  <div className="text-[9px] text-muted">BETTORS</div>
-                  <div className="mt-1 text-base text-cream" dir="ltr">
-                    {m.bettors}
-                  </div>
-                </div>
-              </div>
+    // rounded-xl عمدی است: قاعده‌ی سراسری globals.css فقط rounded-2xl را
+    // موقع هاور زوم و قاب طلایی می‌دهد، که برای یک ترمینال تمام‌صفحه بد است.
+    // پنل /trade هم دقیقا به همین دلیل rounded-xl است.
+    <div className="rounded-xl border border-line bg-surface/40">
+      {/* ── نوار بالا ── */}
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-line px-4 py-3">
+        {/* روی موبایل سؤال یک ردیف کامل می‌گیرد، وگرنه بین آمارها له می‌شود */}
+        <div className="flex w-full min-w-0 items-center gap-3 lg:w-auto lg:flex-1">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gold/30 bg-gold/10 font-mono text-[10px] font-bold text-gold">
+            IR
+          </span>
+          <div className="min-w-0">
+            <h1 className="truncate text-sm font-bold">
+              {m?.question ?? (load ? "در حال بارگذاری…" : "بازار ایران")}
+            </h1>
+            <div className="mt-0.5 flex min-w-0 items-center gap-2 font-mono text-[9px] tracking-wide text-muted">
+              <span className="shrink-0 rounded border border-line px-1.5 py-px">
+                {m ? catLabel(m.category) : "—"}
+              </span>
+              {/* truncate لازم است نه line-clamp: منبع می‌تواند یک URL یا
+                  رشته‌ی بی‌فاصله‌ی بلند باشد که کل ترمینال را پهن می‌کند. */}
+              <span className="truncate">
+                {m ? `منبع: ${m.sourceNote}` : "بازارها را کاربران می‌سازند"}
+              </span>
             </div>
+          </div>
+        </div>
 
-            <div className="grid gap-5 p-5 lg:grid-cols-[1fr_340px]">
-              {/* نمودار سهم */}
-              <div>
-                <div className="flex justify-between font-mono text-[11px]">
-                  <span className="text-gain">بله {m.yesPct}%</span>
-                  <span className="text-loss">
-                    خیر {Math.round((100 - m.yesPct) * 10) / 10}%
+        <div className="flex items-center gap-5">
+          <Stat k="TOTAL POOL" v={m ? `$${m.volume.toFixed(2)}` : "—"} />
+          <Stat k="YES" v={m ? `${m.yesPct}%` : "—"} tone="gain" />
+          <Stat k="NO" v={m ? `${noPct}%` : "—"} tone="loss" />
+          <Stat k="CLOSES IN" v={m ? remain(m.closesAt) : "—"} tone="gold" />
+          <Stat k="BETTORS" v={m ? String(m.bettors) : "—"} />
+        </div>
+
+        <Link
+          href="/iran/propose"
+          className="no-zoom rounded-lg border border-gold/40 px-3 py-1.5 text-[10px] font-bold text-gold transition hover:bg-gold hover:text-ink"
+        >
+          ساخت بازار
+        </Link>
+      </div>
+
+      {/* ── بدنه ── */}
+      <div className="grid lg:grid-cols-[1fr_260px_300px]">
+        {/* استخر */}
+        <div className="min-w-0 border-b border-line lg:border-e lg:border-b-0">
+          <div className="flex items-center justify-between border-b border-line px-3 py-2">
+            <span className="font-mono text-[10px] tracking-wider text-muted" dir="ltr">
+              POOL DISTRIBUTION
+            </span>
+            <span className="flex items-center gap-1.5 font-mono text-[9px] text-muted" dir="ltr">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gain opacity-60" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-gain" />
+              </span>
+              LIVE
+            </span>
+          </div>
+
+          {m ? (
+            <div className="p-4">
+              {/* نوار بزرگ سهم دو طرف */}
+              <div className="flex items-end justify-between font-mono text-xs">
+                <span className="text-gain">
+                  بله <b className="text-lg">{m.yesPct}%</b>
+                </span>
+                <span className="text-loss">
+                  <b className="text-lg">{noPct}%</b> خیر
+                </span>
+              </div>
+              <div className="mt-2 flex h-14 overflow-hidden rounded-lg border border-line">
+                <div
+                  className="flex items-center justify-start bg-gain/25 ps-2 font-mono text-[10px] text-gain transition-all duration-500"
+                  style={{ width: `${Math.max(m.yesPct, 0)}%` }}
+                  dir="ltr"
+                >
+                  {m.yesTotal > 0 ? `$${m.yesTotal.toFixed(2)}` : ""}
+                </div>
+                <div
+                  className="flex flex-1 items-center justify-end bg-loss/25 pe-2 font-mono text-[10px] text-loss transition-all duration-500"
+                  dir="ltr"
+                >
+                  {m.noTotal > 0 ? `$${m.noTotal.toFixed(2)}` : ""}
+                </div>
+              </div>
+
+              {/* عمق استخر و ضریب هر طرف */}
+              <div className="mt-4 overflow-hidden rounded-lg border border-line font-mono text-[11px]">
+                <div className="flex items-center justify-between border-b border-line bg-gain/5 px-3 py-2">
+                  <span className="text-gain">YES POOL</span>
+                  <span className="flex gap-4" dir="ltr">
+                    <span className="text-cream">${m.yesTotal.toFixed(2)}</span>
+                    <span className="text-gain">×{m.yesOdds || "—"}</span>
                   </span>
                 </div>
-                <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-loss/25">
-                  <div
-                    className="h-full rounded-full bg-gain transition-all duration-500"
-                    style={{ width: `${m.yesPct}%` }}
-                  />
-                </div>
-                <div className="mt-2 flex justify-between font-mono text-[10px] text-muted" dir="ltr">
-                  <span>${m.yesTotal.toFixed(2)}</span>
-                  <span>${m.noTotal.toFixed(2)}</span>
-                </div>
-
-                <div className="mt-4 rounded-xl border border-line bg-ink/30 p-4">
-                  <h3 className="text-[11px] font-bold text-cream">چطور محاسبه می‌شود</h3>
-                  <p className="mt-2 text-[11px] leading-7 text-muted">
-                    همه‌ی شرط‌ها در یک استخر جمع می‌شوند. پس از کسر{" "}
-                    {Math.round(cfg.commission * 100)}٪ کارمزد، باقی بین برنده‌ها به
-                    نسبت سهمشان تقسیم می‌شود. هرچه طرفدار یک گزینه کمتر باشد، ضریب آن
-                    بزرگ‌تر است. اگر ضریب برنده زیر حد مجاز بیفتد، بازار باطل و کل
-                    پول بدون کسر کارمزد برگردانده می‌شود؛ و اگر هیچ‌کس روی گزینه‌ی
-                    برنده شرط نبسته باشد، پول همه پس از کسر کارمزد برمی‌گردد.
-                  </p>
+                <div className="flex items-center justify-between bg-loss/5 px-3 py-2">
+                  <span className="text-loss">NO POOL</span>
+                  <span className="flex gap-4" dir="ltr">
+                    <span className="text-cream">${m.noTotal.toFixed(2)}</span>
+                    <span className="text-loss">×{m.noOdds || "—"}</span>
+                  </span>
                 </div>
               </div>
 
-              {/* پنل سفارش */}
-              <div className="rounded-xl border border-line bg-raised/30 p-4">
-                <div className="font-mono text-[10px] tracking-wider text-muted">
-                  PLACE PREDICTION
-                </div>
+              <div className="mt-4 rounded-lg border border-line bg-ink/30 p-3">
+                <h3 className="text-[11px] font-bold text-cream">چطور محاسبه می‌شود</h3>
+                <p className="mt-2 text-[11px] leading-7 text-muted">
+                  همه‌ی شرط‌ها در یک استخر جمع می‌شوند. پس از کسر{" "}
+                  {Math.round(cfg.commission * 100)}٪ کارمزد، باقی بین برنده‌ها به نسبت
+                  سهمشان تقسیم می‌شود. هرچه طرفدار یک گزینه کمتر باشد، ضریب آن بزرگ‌تر
+                  است. اگر ضریب برنده زیر حد مجاز بیفتد، بازار باطل و کل پول بدون کسر
+                  کارمزد برگردانده می‌شود؛ و اگر هیچ‌کس روی گزینه‌ی برنده شرط نبسته
+                  باشد، پول همه پس از کسر کارمزد برمی‌گردد.
+                </p>
+              </div>
 
-                <div className="mt-3 grid grid-cols-2 gap-2">
+              <p className="mt-3 break-all text-[10px] leading-6 text-muted">
+                <b className="text-gold">منبع تسویه:</b> {m.sourceNote}
+              </p>
+            </div>
+          ) : (
+            <div className="flex h-[320px] flex-col items-center justify-center px-6 text-center">
+              <p className="text-sm font-bold text-cream">
+                {load ? "در حال بارگذاری…" : "هنوز بازاری منتشر نشده"}
+              </p>
+              {!load && (
+                <>
+                  <p className="mx-auto mt-3 max-w-md text-[12px] leading-7 text-muted">
+                    بازارهای این بخش را خود کاربران پیشنهاد می‌دهند و پس از بررسی
+                    انسانی منتشر می‌شوند. اولین نفری باش که یک بازار می‌سازد.
+                  </p>
+                  <Link
+                    href="/iran/propose"
+                    className="no-zoom mt-5 rounded-lg bg-gold px-6 py-2.5 font-display text-sm font-extrabold text-ink transition hover:bg-gold-deep"
+                  >
+                    پیشنهاد بازار جدید
+                  </Link>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* نردبان بازارها */}
+        <div className="min-w-0 border-b border-line lg:border-e lg:border-b-0">
+          <div className="flex items-center justify-between border-b border-line px-3 py-2">
+            <span className="font-mono text-[10px] tracking-wider text-muted" dir="ltr">
+              IRAN MARKETS
+            </span>
+            <span className="font-mono text-[10px] text-gold" dir="ltr">
+              {markets.length}
+            </span>
+          </div>
+
+          <div className="flex gap-1 overflow-x-auto border-b border-line px-2 py-1.5">
+            {CATS.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => setCat(c.id)}
+                className={`no-zoom shrink-0 rounded px-2 py-1 text-[10px] transition ${
+                  cat === c.id ? "bg-gold/15 text-gold" : "text-muted hover:text-cream"
+                }`}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="max-h-[420px] overflow-y-auto">
+            {markets.map((x) => {
+              const active = x.id === sel;
+              return (
+                <button
+                  key={x.id}
+                  type="button"
+                  onClick={() => setSel(x.id)}
+                  className={`no-zoom relative block w-full px-3 py-2.5 text-start transition ${
+                    active ? "bg-gold/10" : "hover:bg-raised/40"
+                  }`}
+                >
+                  <span
+                    className="absolute inset-y-0 start-0 bg-gain/10"
+                    style={{ width: `${x.yesPct}%` }}
+                  />
+                  <span className="relative flex items-start justify-between gap-2">
+                    <span className="line-clamp-2 min-w-0 flex-1 break-words text-[11px] leading-5">
+                      {x.question}
+                    </span>
+                    <span
+                      className={`shrink-0 font-mono text-[11px] font-bold ${
+                        x.yesPct >= 50 ? "text-gain" : "text-loss"
+                      }`}
+                      dir="ltr"
+                    >
+                      {x.yesPct}%
+                    </span>
+                  </span>
+                  <span className="relative mt-1 flex items-center justify-between font-mono text-[9px] text-muted" dir="ltr">
+                    <span>${x.volume.toFixed(0)} · {x.bettors}</span>
+                    <span>{fa(x.closesAt)}</span>
+                  </span>
+                </button>
+              );
+            })}
+            {!load && markets.length === 0 && (
+              <div className="py-10 text-center text-[10px] text-muted">
+                بازاری در این دسته نیست
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* پنل سفارش */}
+        <div className="min-w-0">
+          <div className="border-b border-line px-3 py-2">
+            <span className="font-mono text-[10px] tracking-wider text-gold" dir="ltr">
+              PLACE PREDICTION
+            </span>
+          </div>
+
+          <div className="p-3">
+            {!loading && !player ? (
+              <>
+                <p className="text-[10px] leading-5 text-muted">
+                  برای ثبت پیش‌بینی با تتر وارد حساب شوید.
+                </p>
+                <div className="mt-3">
+                  <AuthPanel onAuthed={() => refresh()} />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
+                    disabled={!m}
                     onClick={() => setSide("yes")}
-                    className={`rounded-xl border py-3 text-sm font-bold transition ${
+                    className={`no-zoom rounded-lg border py-2.5 text-sm font-bold transition disabled:opacity-40 ${
                       side === "yes"
                         ? "border-gain bg-gain/10 text-gain"
                         : "border-line text-muted hover:text-cream"
@@ -234,13 +385,14 @@ export default function IranTerminal() {
                   >
                     بله
                     <span className="ms-2 font-mono text-[11px]" dir="ltr">
-                      ×{m.yesOdds || "—"}
+                      ×{m?.yesOdds || "—"}
                     </span>
                   </button>
                   <button
                     type="button"
+                    disabled={!m}
                     onClick={() => setSide("no")}
-                    className={`rounded-xl border py-3 text-sm font-bold transition ${
+                    className={`no-zoom rounded-lg border py-2.5 text-sm font-bold transition disabled:opacity-40 ${
                       side === "no"
                         ? "border-loss bg-loss/10 text-loss"
                         : "border-line text-muted hover:text-cream"
@@ -248,7 +400,7 @@ export default function IranTerminal() {
                   >
                     خیر
                     <span className="ms-2 font-mono text-[11px]" dir="ltr">
-                      ×{m.noOdds || "—"}
+                      ×{m?.noOdds || "—"}
                     </span>
                   </button>
                 </div>
@@ -266,17 +418,19 @@ export default function IranTerminal() {
                     dir="ltr"
                     min={cfg.minStake}
                     value={stake}
+                    disabled={!m}
                     onChange={(e) => setStake(e.target.value)}
                     placeholder={`حداقل ${cfg.minStake}`}
-                    className="mt-1.5 w-full rounded-xl border border-line bg-ink/50 px-4 py-2.5 font-mono text-sm text-cream focus:border-gold focus:outline-none"
+                    className="no-zoom mt-1.5 w-full rounded-lg border border-line bg-ink/50 px-3 py-2 font-mono text-sm text-cream outline-none transition focus:border-gold/60 disabled:opacity-40"
                   />
                   <div className="mt-2 flex gap-1.5">
                     {[25, 50, 100].map((p) => (
                       <button
                         key={p}
                         type="button"
+                        disabled={!m || balance <= 0}
                         onClick={() => setStake(((balance * p) / 100).toFixed(2))}
-                        className="flex-1 rounded-lg border border-line py-1.5 font-mono text-[10px] text-muted transition hover:border-gold/40 hover:text-cream"
+                        className="no-zoom flex-1 rounded border border-line py-1 font-mono text-[10px] text-muted transition hover:border-gold/40 hover:text-cream disabled:opacity-40"
                       >
                         {p}%
                       </button>
@@ -284,7 +438,7 @@ export default function IranTerminal() {
                   </div>
                 </div>
 
-                <div className="mt-3 rounded-xl border border-line bg-ink/40 p-3 font-mono text-[11px]">
+                <div className="mt-3 rounded-lg border border-line bg-ink/40 p-3 font-mono text-[11px]">
                   <Row k="Odds" v={preview ? `×${preview.odds.toFixed(2)}` : "—"} />
                   <Row
                     k="To win"
@@ -299,25 +453,25 @@ export default function IranTerminal() {
                   <Row k="Fee" v={`${Math.round(cfg.commission * 100)}%`} />
                 </div>
 
-                {player ? (
-                  <button
-                    type="button"
-                    disabled={busy || !stake || Number(stake) < cfg.minStake}
-                    onClick={submit}
-                    className={`mt-3 w-full rounded-xl py-3 font-display text-sm font-extrabold transition disabled:opacity-40 ${
-                      side === "yes"
-                        ? "bg-gain/90 text-ink hover:bg-gain"
-                        : "bg-loss/90 text-cream hover:bg-loss"
-                    }`}
-                  >
-                    {busy ? "…" : side === "yes" ? "ثبت بله" : "ثبت خیر"}
-                  </button>
-                ) : (
+                <button
+                  type="button"
+                  disabled={busy || !m || !stake || Number(stake) < cfg.minStake}
+                  onClick={submit}
+                  className={`no-zoom mt-3 w-full rounded-lg py-2.5 font-display text-sm font-extrabold transition disabled:opacity-40 ${
+                    side === "yes"
+                      ? "bg-gain/90 text-ink hover:bg-gain"
+                      : "bg-loss/90 text-cream hover:bg-loss"
+                  }`}
+                >
+                  {busy ? "…" : side === "yes" ? "ثبت بله" : "ثبت خیر"}
+                </button>
+
+                {balance <= 0 && (
                   <Link
-                    href="/login"
-                    className="mt-3 block rounded-xl bg-gold py-3 text-center font-display text-sm font-extrabold text-ink"
+                    href="/wallet"
+                    className="no-zoom mt-2 block rounded-lg border border-gold/40 py-2 text-center text-[11px] font-bold text-gold transition hover:bg-gold hover:text-ink"
                   >
-                    برای پیش‌بینی وارد شوید
+                    شارژ کیف پول
                   </Link>
                 )}
 
@@ -331,147 +485,39 @@ export default function IranTerminal() {
                   ضریب نمایش‌داده‌شده با ورود شرط شما بازمحاسبه شده است و تا لحظه‌ی
                   بسته‌شدن بازار می‌تواند تغییر کند.
                 </p>
-              </div>
-            </div>
-          </>
-        ) : (
-          /* اسکلت پنل — تا بازاری نیست، ساختار پنل دیده شود که کاربر بفهمد
-             این صفحه چه شکلی می‌شود و چرا الان خالی است. */
-          <div className="grid gap-5 p-5 lg:grid-cols-[1fr_340px]">
-            <div>
-              <div className="rounded-xl border border-dashed border-line/70 px-6 py-12 text-center">
-                <p className="text-sm font-bold text-cream">
-                  {load ? "در حال بارگذاری…" : "هنوز بازاری منتشر نشده"}
-                </p>
-                {!load && (
-                  <p className="mx-auto mt-3 max-w-md text-[12px] leading-7 text-muted">
-                    بازارهای این بخش را خود کاربران پیشنهاد می‌دهند و پس از بررسی
-                    انسانی منتشر می‌شوند. اولین نفری باش که یک بازار می‌سازد.
-                  </p>
-                )}
-                {!load && (
-                  <Link
-                    href="/iran/propose"
-                    className="mt-5 inline-block rounded-xl bg-gold px-6 py-2.5 font-display text-sm font-extrabold text-ink transition hover:bg-gold-deep"
-                  >
-                    پیشنهاد بازار جدید
-                  </Link>
-                )}
-              </div>
-
-              <div className="mt-4 rounded-xl border border-line bg-ink/30 p-4">
-                <h3 className="text-[11px] font-bold text-cream">چطور محاسبه می‌شود</h3>
-                <p className="mt-2 text-[11px] leading-7 text-muted">
-                  همه‌ی شرط‌ها در یک استخر جمع می‌شوند. پس از کسر{" "}
-                  {Math.round(cfg.commission * 100)}٪ کارمزد، باقی بین برنده‌ها به
-                  نسبت سهمشان تقسیم می‌شود. هرچه طرفدار یک گزینه کمتر باشد، ضریب
-                  آن بزرگ‌تر است. اگر ضریب برنده زیر حد مجاز بیفتد، بازار باطل و
-                  کل پول بدون کسر کارمزد برگردانده می‌شود؛ و اگر هیچ‌کس روی
-                  گزینه‌ی برنده شرط نبسته باشد، پول همه پس از کسر کارمزد برمی‌گردد.
-                </p>
-              </div>
-            </div>
-
-            <div className="rounded-xl border border-line bg-raised/30 p-4 opacity-50">
-              <div className="font-mono text-[10px] tracking-wider text-muted">
-                PLACE PREDICTION
-              </div>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <div className="rounded-xl border border-line py-3 text-center text-sm font-bold text-muted">
-                  بله
-                </div>
-                <div className="rounded-xl border border-line py-3 text-center text-sm font-bold text-muted">
-                  خیر
-                </div>
-              </div>
-              <div className="mt-3 h-11 rounded-xl border border-line bg-ink/50" />
-              <div className="mt-3 rounded-xl border border-line bg-ink/40 p-3 font-mono text-[11px]">
-                <Row k="Odds" v="—" />
-                <Row k="To win" v="—" />
-                <Row k="Profit" v="—" />
-                <Row k="Fee" v={`${Math.round(cfg.commission * 100)}%`} />
-              </div>
-              <div className="mt-3 h-11 rounded-xl bg-line/40" />
-              <p className="mt-3 text-center text-[10px] text-muted">
-                با انتخاب یک بازار فعال می‌شود
-              </p>
-            </div>
+              </>
+            )}
           </div>
-        )}
+        </div>
       </div>
+    </div>
+  );
+}
 
-      {/* ── لیست بازارها ── */}
-      <div className="mt-6">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap gap-2">
-            {CATS.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => setCat(c.id)}
-                className={`rounded-full px-4 py-1.5 text-xs transition ${
-                  cat === c.id
-                    ? "bg-gold text-ink"
-                    : "border border-line text-muted hover:text-cream"
-                }`}
-              >
-                {c.label}
-              </button>
-            ))}
-          </div>
-          <Link
-            href="/iran/propose"
-            className="rounded-xl border border-gold/40 px-4 py-2 text-xs text-gold transition hover:bg-gold hover:text-ink"
-          >
-            پیشنهاد بازار جدید
-          </Link>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          {markets.map((x) => (
-            <button
-              key={x.id}
-              type="button"
-              onClick={() => {
-                setSel(x.id);
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }}
-              className={`rounded-2xl border p-5 text-start transition hover:border-gold/50 ${
-                sel === x.id ? "border-gold/60 bg-surface/60" : "border-line bg-surface/30"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="rounded-full border border-line px-2.5 py-1 text-[10px] text-muted">
-                  {CATS.find((c) => c.id === x.category)?.label ?? x.category}
-                </span>
-                <span className="font-mono text-[10px] text-muted" dir="ltr">
-                  ${x.volume.toFixed(0)} · {x.bettors}
-                </span>
-              </div>
-              <p className="mt-3 line-clamp-2 text-[13px] font-bold leading-7">
-                {x.question}
-              </p>
-              <div className="mt-3 flex justify-between font-mono text-[10px]">
-                <span className="text-gain">بله {x.yesPct}%</span>
-                <span className="text-loss">
-                  خیر {Math.round((100 - x.yesPct) * 10) / 10}%
-                </span>
-              </div>
-              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-loss/25">
-                <div className="h-full bg-gain" style={{ width: `${x.yesPct}%` }} />
-              </div>
-              <div className="mt-2.5 flex items-center justify-between text-[10px] text-muted">
-                <span>بسته‌شدن: {fa(x.closesAt)}</span>
-              </div>
-            </button>
-          ))}
-        </div>
-
-        {!load && markets.length === 0 && (
-          <p className="py-12 text-center text-xs text-muted">
-            هنوز بازاری در این دسته منتشر نشده است.
-          </p>
-        )}
+function Stat({
+  k,
+  v,
+  tone,
+}: {
+  k: string;
+  v: string;
+  tone?: "gain" | "loss" | "gold";
+}) {
+  const c =
+    tone === "gain"
+      ? "text-gain"
+      : tone === "loss"
+        ? "text-loss"
+        : tone === "gold"
+          ? "text-gold"
+          : "text-cream";
+  return (
+    <div>
+      <div className="font-mono text-[9px] tracking-wider text-muted" dir="ltr">
+        {k}
+      </div>
+      <div className={`mt-0.5 font-mono text-xs font-bold ${c}`} dir="ltr">
+        {v}
       </div>
     </div>
   );

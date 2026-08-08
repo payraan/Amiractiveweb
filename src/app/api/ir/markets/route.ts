@@ -57,7 +57,7 @@ export async function GET(req: Request) {
   const jar = await cookies();
   const playerId = verifySession(jar.get(SESSION_COOKIE)?.value);
   let balance = 0;
-  let myBets: Record<number, { side: string; stake: number }> = {};
+  const myBets: Record<number, { side: string; stake: number }> = {};
   if (playerId) {
     const [b, mine] = await Promise.all([
       pool.query("SELECT usdt_balance FROM players WHERE id=$1", [playerId]),

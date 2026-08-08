@@ -8,6 +8,7 @@ type Found = {
   username: string;
   displayName: string;
   credits: number;
+  usdtBalance: number;
   totalPoints: number;
   streak: number;
   createdAt: string;
@@ -223,6 +224,7 @@ function AdminHome() {
   const [found, setFound] = useState<Found | null>(null);
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
+  const [currency, setCurrency] = useState<"credits" | "usdt">("credits");
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -255,15 +257,20 @@ function AdminHome() {
       const res = await fetch("/api/admin/topup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, amount: Number(amount), note }),
+        body: JSON.stringify({ username, amount: Number(amount), note, currency }),
       });
       const j = await res.json();
       if (!j.ok) {
         setMsg({ ok: false, text: `خطا: ${j.error}` });
         return;
       }
-      setMsg({ ok: true, text: `کردیت جدید ${j.username}: ${j.newCredits}◆` });
-      setFound((f) => (f ? { ...f, credits: j.newCredits } : f));
+      if (currency === "usdt") {
+        setMsg({ ok: true, text: `موجودی تتر ${j.username}: ${j.newUsdt}$` });
+        setFound((f) => (f ? { ...f, usdtBalance: j.newUsdt } : f));
+      } else {
+        setMsg({ ok: true, text: `کردیت جدید ${j.username}: ${j.newCredits}◆` });
+        setFound((f) => (f ? { ...f, credits: j.newCredits } : f));
+      }
       setAmount("");
       setNote("");
     } catch {
@@ -285,7 +292,7 @@ function AdminHome() {
           onClick={() => setTab("charge")}
           className={`flex-1 rounded-lg py-2 text-sm font-bold transition ${tab === "charge" ? "bg-gold text-ink" : "text-muted"}`}
         >
-          شارژ کردیت
+          شارژ کاربر
         </button>
         <button
           type="button"
@@ -300,7 +307,7 @@ function AdminHome() {
 
       {tab === "charge" && (
       <div className="mt-6 rounded-2xl border border-line bg-surface/50 p-6">
-        <h2 className="text-sm font-bold">شارژ کردیت کاربر</h2>
+        <h2 className="text-sm font-bold">شارژ کردیت یا تتر کاربر</h2>
 
         <div className="mt-4 flex gap-2">
           <input
@@ -329,17 +336,43 @@ function AdminHome() {
                 @{found.username}
               </span>
             </div>
-            <div className="mt-3 flex gap-6 font-mono text-xs" dir="ltr">
+            <div className="mt-3 flex flex-wrap gap-x-6 gap-y-2 font-mono text-xs" dir="ltr">
               <span>credits: <b className="text-gold">{found.credits}◆</b></span>
+              <span>USDT: <b className="text-gain">{found.usdtBalance}$</b></span>
               <span>points: <b>{found.totalPoints}</b></span>
             </div>
 
-            <div className="mt-4 flex flex-col gap-2">
+            {/* انتخاب واحد: کردیت مال بازار خارجی، تتر مال بازار ایران */}
+            <div className="mt-4 flex gap-2 rounded-xl border border-line bg-ink/40 p-1">
+              {(
+                [
+                  { id: "credits", label: "کردیت ◆" },
+                  { id: "usdt", label: "تتر $" },
+                ] as const
+              ).map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setCurrency(c.id)}
+                  className={`flex-1 rounded-lg py-2 text-xs font-bold transition ${
+                    currency === c.id ? "bg-gold text-ink" : "text-muted hover:text-cream"
+                  }`}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-3 flex flex-col gap-2">
               <input
                 type="text"
-                inputMode="numeric"
+                inputMode="decimal"
                 dir="ltr"
-                placeholder="تعداد کردیت (مثبت یا منفی)"
+                placeholder={
+                  currency === "usdt"
+                    ? "مقدار تتر (مثبت یا منفی، مثلا 10 یا 2.5)"
+                    : "تعداد کردیت (مثبت یا منفی)"
+                }
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 className="w-full rounded-xl border border-line bg-ink/60 px-4 py-3 font-mono text-sm text-cream focus:border-gold focus:outline-none"
