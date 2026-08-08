@@ -10,7 +10,7 @@ const POINTS = [
 export default function TradeSection() {
   return (
     <section id="trade" className="relative mx-auto max-w-6xl scroll-mt-20 px-6 py-24">
-      <div className="grid items-center gap-12 lg:grid-cols-2">
+      <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2">
         <div>
           <span className="font-mono text-[11px] tracking-[0.4em] text-gold" dir="ltr">
             01 · PREDICTION TERMINAL

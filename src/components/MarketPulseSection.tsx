@@ -27,7 +27,7 @@ export default function MarketPulseSection() {
         رقابت کاملاً مهارتی.
       </p>
 
-      <div className="mt-8 grid items-start gap-10 lg:grid-cols-2">
+      <div className="mt-8 grid grid-cols-1 items-start gap-10 lg:grid-cols-2">
         <div>
           <ul className="flex flex-col gap-3">
             {POINTS.map((t, i) => (

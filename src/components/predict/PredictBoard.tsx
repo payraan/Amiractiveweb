@@ -185,7 +185,7 @@ export default function PredictBoard() {
 
       {/* کارت دارایی انتخاب‌شده */}
       {selected && (
-        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
           <AssetCard
             data={selected}
             player={player}
@@ -259,7 +259,8 @@ export default function PredictBoard() {
       )}
 
       {player && results.length > 0 && (
-        <div className="mt-8 max-w-2xl">
+        // بدون max-w تا با بقیه‌ی پنل‌های صفحه هم‌عرض بماند
+        <div className="mt-8">
           <h3 className="mb-3 text-sm font-bold">نتایج اخیر شما</h3>
           <div className="overflow-hidden rounded-2xl border border-line">
             {results.map((r, i) => {

@@ -26,7 +26,7 @@ const LEGAL: { href: string; label: string }[] = [
 export default function Footer() {
   return (
     <footer className="relative border-t border-line bg-surface/30">
-      <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 md:grid-cols-4">
+      <div className="mx-auto grid grid-cols-1 max-w-6xl gap-10 px-6 py-14 md:grid-cols-4">
         <div>
           <span className="flex items-center gap-2.5 font-display text-lg font-black tracking-wide" dir="ltr">
             <Logo className="h-7 w-auto" />

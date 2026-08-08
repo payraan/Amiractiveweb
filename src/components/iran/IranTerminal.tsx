@@ -182,7 +182,7 @@ export default function IranTerminal() {
       </div>
 
       {/* ── بدنه ── */}
-      <div className="grid lg:grid-cols-[1fr_260px_300px]">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px_300px]">
         {/* استخر */}
         <div className="min-w-0 border-b border-line lg:border-e lg:border-b-0">
           <div className="flex items-center justify-between border-b border-line px-3 py-2">

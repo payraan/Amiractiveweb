@@ -93,7 +93,7 @@ export default function ChallengePage() {
           {/* چطور کار می‌کند */}
           <div className="mx-auto mt-12 max-w-4xl">
             <h2 className="font-display text-xl font-extrabold">چطور کار می‌کند</h2>
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
               {STEPS.map((s) => (
                 <div
                   key={s.n}
@@ -119,7 +119,7 @@ export default function ChallengePage() {
             <p className="mt-2 text-[12px] leading-7 text-muted">
               همه‌ی تیرها قوانین یکسان دارند؛ فقط ورودی و جایزه فرق می‌کند.
             </p>
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
               {RULES.map((r) => (
                 <div
                   key={r.t}

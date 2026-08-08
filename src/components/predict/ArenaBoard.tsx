@@ -313,7 +313,7 @@ export default function ArenaBoard() {
         </div>
       ) : (
         <>
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           {paged.map((m) => {
             const my = mine.get(m.id);
             const yesWin = Math.max(1, Math.round(100 - m.yesPct));
@@ -463,7 +463,8 @@ export default function ArenaBoard() {
       )}
 
       {settled.length > 0 && (
-        <div className="mt-10 max-w-2xl">
+        // بدون max-w تا با بقیه‌ی پنل‌های صفحه هم‌عرض بماند
+        <div className="mt-10">
           <h3 className="mb-3 text-sm font-bold">نتایج پیش‌بینی‌های شما</h3>
           <div className="overflow-hidden rounded-2xl border border-line">
             {settled.map((p, i) => (

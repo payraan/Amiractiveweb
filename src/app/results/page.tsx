@@ -50,7 +50,7 @@ export default function ResultsPage() {
             </p>
           </div>
 
-          <div className="mx-auto mt-10 grid max-w-4xl gap-4 md:grid-cols-2">
+          <div className="mx-auto mt-10 grid grid-cols-1 max-w-4xl gap-4 md:grid-cols-2">
             {WHY.map((w) => (
               <div
                 key={w.t}

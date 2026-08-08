@@ -203,7 +203,7 @@ export default function ComboBuilder() {
   return (
     <>
       {/* توضیح ساده */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {STEPS.map((s) => (
           <div
             key={s.n}
@@ -318,7 +318,7 @@ export default function ComboBuilder() {
           </div>
         ) : (
           <>
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
               {paged.map((m) => {
                 const c = chosen(m.id);
                 return (

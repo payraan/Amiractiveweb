@@ -140,7 +140,7 @@ export default function WalletPanel() {
     toAddress.trim().length >= 20;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[360px_1fr]">
       {/* ── ستون راست: موجودی و عملیات ── */}
       <div>
         <div className="rounded-2xl border border-gold/30 bg-gold/5 p-6 text-center">

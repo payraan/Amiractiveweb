@@ -180,7 +180,7 @@ export default function ChallengePanel() {
             </a>
           </div>
         ) : (
-          <div className="mt-5 grid gap-5 sm:grid-cols-2">
+          <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
             <div>
               <div className="flex justify-between text-[11px]">
                 <span className="text-muted">پیشرفت به هدف</span>
@@ -302,7 +302,7 @@ export default function ChallengePanel() {
         ))}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {tiers
           .filter((t) => t.track === track)
           .map((t) => (
@@ -369,7 +369,7 @@ export default function ChallengePanel() {
           پیش از پرداخت، دقیقاً بدانید چه می‌گیرید
         </h4>
 
-        <div className="mt-3 grid gap-4 md:grid-cols-2">
+        <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <span className="text-[11px] font-bold text-cream">
               مسیر حساب معاملاتی

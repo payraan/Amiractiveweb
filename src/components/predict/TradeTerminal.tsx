@@ -424,7 +424,7 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
       </div>
 
       {/* ── بدنه ── */}
-      <div className="grid lg:grid-cols-[1fr_220px_300px]">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_220px_300px]">
         {/* نمودار */}
         <div className="border-b border-line lg:border-e lg:border-b-0">
           <div className="flex items-center gap-1 border-b border-line px-3 py-2">
@@ -656,7 +656,9 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
 
       {/* ── تب‌های پایین ── */}
       <div className="border-t border-line">
-        <div className="flex items-center gap-1 border-b border-line px-3">
+        {/* روی صفحه‌های باریک (۳۲۰px) این چهار تب جا نمی‌شوند و کل صفحه را
+            پهن می‌کردند؛ حالا خودشان افقی اسکرول می‌شوند. */}
+        <div className="flex items-center gap-1 overflow-x-auto border-b border-line px-3">
           {(
             [
               { id: "markets", label: "همه بازارها", n: list.length },
@@ -669,7 +671,7 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
               key={t.id}
               type="button"
               onClick={() => setTab(t.id)}
-              className={`no-zoom border-b-2 px-3 py-2.5 text-[11px] font-bold transition ${
+              className={`no-zoom shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-[11px] font-bold transition ${
                 tab === t.id
                   ? "border-gold text-gold"
                   : "border-transparent text-muted hover:text-cream"

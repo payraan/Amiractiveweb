@@ -80,7 +80,7 @@ export default function UsersTable() {
   return (
     <div>
       {totals && (
-        <div className="mb-5 grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           <Stat label="کاربران" v={totals.players} />
           <Stat label="فعال ۷ روز" v={totals.active_7d} tone="gain" />
           <Stat label="تلگرام وصل" v={totals.tg_linked} />

@@ -159,7 +159,7 @@ export default function Faq() {
         </div>
       </div>
 
-      <div className="mt-8 grid gap-3 md:grid-cols-2">
+      <div className="mt-8 grid grid-cols-1 gap-3 md:grid-cols-2">
         {active.items.map((item, i) => {
           const key = `${group}-${i}`;
           const isOpen = open === key;

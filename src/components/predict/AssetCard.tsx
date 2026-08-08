@@ -137,9 +137,11 @@ export default function AssetCard({
   }
 
   return (
-    <div className="rounded-2xl border border-line bg-surface/50 p-6">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
+    // min-w-0 حیاتی است: آیتم گرید به‌طور پیش‌فرض min-width:auto دارد و زیر
+    // عرض محتوایش کوچک نمی‌شود، پس کارت روی موبایل از صفحه بیرون می‌زد.
+    <div className="min-w-0 rounded-2xl border border-line bg-surface/50 p-5 sm:p-6">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-gold/30 bg-gold/10 text-gold">
             <svg
               viewBox="0 0 24 24"
@@ -155,10 +157,12 @@ export default function AssetCard({
               />
             </svg>
           </span>
-          <div>
-            <h2 className="font-display text-lg font-extrabold">{data.label}</h2>
+          <div className="min-w-0">
+            <h2 className="truncate font-display text-lg font-extrabold">
+              {data.label}
+            </h2>
             <span
-              className="font-mono text-[11px] tracking-widest text-muted"
+              className="block truncate font-mono text-[11px] tracking-widest text-muted"
               dir="ltr"
             >
               {asset} / USD
@@ -166,9 +170,9 @@ export default function AssetCard({
           </div>
         </div>
 
-        <div className="text-end">
+        <div className="shrink-0 text-end">
           <span
-            className="flex items-center justify-end gap-2 font-mono text-2xl font-bold text-cream md:text-3xl"
+            className="flex items-center justify-end gap-2 font-mono text-xl font-bold text-cream sm:text-2xl md:text-3xl"
             dir="ltr"
           >
             {marketOpen && (

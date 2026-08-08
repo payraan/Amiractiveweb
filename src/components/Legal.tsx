@@ -78,7 +78,7 @@ export default function Legal() {
         </p>
       </div>
 
-      <div className="mt-8 grid gap-3 md:grid-cols-2">
+      <div className="mt-8 grid grid-cols-1 gap-3 md:grid-cols-2">
         {TERMS.map((t, i) => {
           const isOpen = open === i;
           return (

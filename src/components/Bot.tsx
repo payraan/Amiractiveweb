@@ -147,7 +147,7 @@ export default function Bot() {
           <TradeCycle />
         </div>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((f, i) => (
             <div
               key={f.title}
@@ -163,7 +163,7 @@ export default function Bot() {
           ))}
         </div>
 
-        <div className="mt-14 grid gap-6 md:grid-cols-3">
+        <div className="mt-14 grid grid-cols-1 gap-6 md:grid-cols-3">
           {PLANS.map((p, i) => (
             <div
               key={p.id}

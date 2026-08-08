@@ -27,7 +27,7 @@ export default function AuthCallout({
 
   return (
     <div className="rounded-2xl border border-line bg-surface/60 p-6 backdrop-blur md:p-8">
-      <div className="grid items-center gap-8 md:grid-cols-2 md:gap-12">
+      <div className="grid grid-cols-1 items-center gap-8 md:grid-cols-2 md:gap-12">
         <div>
           <span className="font-mono text-[11px] tracking-[0.25em] text-gold-deep">
             START FREE

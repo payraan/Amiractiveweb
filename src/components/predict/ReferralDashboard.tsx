@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { usePlayer } from "@/components/predict/usePlayer";
-import AuthPanel from "@/components/predict/AuthPanel";
+import AuthCallout from "@/components/predict/AuthCallout";
 
 type Stats = {
   code: string;
@@ -73,7 +73,7 @@ export default function ReferralDashboard() {
   return (
     <>
       {/* توضیح */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {[
           {
             n: "۱",
@@ -105,18 +105,23 @@ export default function ReferralDashboard() {
       </div>
 
       {!loading && !player && (
-        <div className="mt-8 max-w-md">
-          <p className="mb-4 text-xs text-muted">
-            برای دریافت کد دعوت اختصاصی، وارد حساب شوید.
-          </p>
-          <AuthPanel onAuthed={() => refresh()} />
+        <div className="mt-8">
+          <AuthCallout
+            onAuthed={() => refresh()}
+            benefits={[
+              "کد دعوت اختصاصی و لینک قابل اشتراک",
+              "پورسانت از هر شارژ کسانی که دعوت می‌کنی",
+              "کردیت هدیه برای دعوت‌شده‌ها",
+              "کارنامه‌ی زنده‌ی دعوت‌ها و درآمد",
+            ]}
+          />
         </div>
       )}
 
       {player && (
         <>
           {/* آمار */}
-          <div className="mt-8 grid gap-4 sm:grid-cols-3">
+          <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
             {[
               {
                 label: "دعوت‌شده‌ها",
