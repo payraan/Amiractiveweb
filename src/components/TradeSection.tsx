@@ -1,10 +1,13 @@
 import Link from "next/link";
+import ArenaCycle from "@/components/ArenaCycle";
 
+// متن عمدا با «مثال» شروع می‌شود، نه با ویژگی. کاربر تازه‌وارد اول باید
+// بفهمد اینجا چه کاری انجام می‌دهد، بعد بداند چه ابزارهایی دارد.
 const POINTS = [
-  "نمای حرفه‌ای هر بازار: نمودار احتمال با بازه‌های ۱ روز تا کل تاریخچه، با کراس‌هر تعاملی.",
-  "نردبان رویداد: همه‌ی بازارهای یک رویداد کنار هم — با یک کلیک بین‌شان جابه‌جا شو.",
-  "ثبت پیش‌بینی از همان صفحه: پاداش و ریسک هر گزینه پیش از ثبت مشخص است.",
-  "جستجو و فیلتر زنده روی بیش از صد بازار، مرتب بر اساس نزدیک‌ترین سررسید.",
+  "می‌بینی جمع چه فکر می‌کند: کنار هر سؤال یک عدد هست. «۶۸٪ بله» یعنی از میان همه‌ی کسانی که پیش‌بینی کرده‌اند، جمع روی «بله» سنگین‌تر است.",
+  "نمودار نشان می‌دهد نظر جمع در طول زمان چطور عوض شده — دیروز ۵۸٪ بود، امروز ۷۱٪. همین تغییر، خودش خبر است.",
+  "قبل از ثبت می‌بینی چقدر می‌بری و چقدر می‌بازی. هرچه گزینه‌ات کم‌طرفدارتر باشد، برد بیشتری دارد.",
+  "بیش از صد بازار زنده، با جستجو و فیلتر — از قیمت بیت‌کوین تا نتیجه‌ی انتخابات.",
 ];
 
 export default function TradeSection() {
@@ -12,15 +15,24 @@ export default function TradeSection() {
     <section id="trade" className="relative mx-auto max-w-6xl scroll-mt-20 px-6 py-24">
       <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2">
         <div>
-          <span className="font-mono text-[11px] tracking-[0.4em] text-gold" dir="ltr">
-            01 · PREDICTION TERMINAL
+          <span className="font-mono text-[11px] tracking-[0.3em] text-gold">
+            ۰۱ · بازار خارجی
           </span>
           <h2 className="mt-4 font-display text-3xl font-black md:text-4xl">
             ترید <span className="text-gold">پیش‌بینی</span>
           </h2>
           <p className="mt-4 max-w-xl leading-8 text-muted">
-            ترمینال کامل بازارهای پیش‌بینی — همان تجربه‌ای که از یک پلتفرم
-            حرفه‌ای انتظار داری، به فارسی.
+            یک سؤال ساده می‌بینی: «بیت‌کوین تا آخر هفته بالای ۷۰ هزار دلار
+            می‌بندد؟» تو بله یا خیر را انتخاب می‌کنی. اگر درست بگویی امتیاز
+            می‌گیری — و هرچه نظرت خلاف جمع بوده و درست دربیایی، امتیاز بیشتری
+            می‌گیری.
+          </p>
+
+          <p className="mt-3 max-w-xl text-xs leading-7 text-muted">
+            <b className="text-cream">چرا این‌طوری؟</b> چون حدس‌زدنِ چیزی که
+            همه می‌دانند هنری نیست. اینجا فقط وقتی امتیاز می‌گیری که بهتر از
+            جمع فهمیده باشی. بازارها و درصدها زنده از پالی‌مارکت، بزرگ‌ترین
+            بازار پیش‌بینی جهان، می‌آیند.
           </p>
 
           <ul className="mt-6 flex flex-col gap-3">
@@ -37,81 +49,13 @@ export default function TradeSection() {
               href="/trade"
               className="rounded-xl bg-gold px-7 py-3.5 font-display font-extrabold text-ink transition hover:bg-gold-deep"
             >
-              ورود به ترمینال
+              امتحان کن — رایگان است
             </Link>
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-line bg-surface/50 transition-all duration-300 hover:border-gold/50 hover:shadow-[0_0_32px_rgba(232,196,106,0.10)]">
-          <div className="flex items-center gap-1 border-b border-line px-3 py-2">
-            {["1D", "1W", "1M", "ALL"].map((t, i) => (
-              <span
-                key={t}
-                className={`rounded px-2.5 py-1 font-mono text-[10px] ${
-                  i === 1 ? "bg-gold/15 text-gold" : "text-muted"
-                }`}
-                dir="ltr"
-              >
-                {t}
-              </span>
-            ))}
-            <span className="ms-auto flex items-center gap-1.5 font-mono text-[9px] text-muted" dir="ltr">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gain opacity-60" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-gain" />
-              </span>
-              LIVE
-            </span>
-          </div>
-
-          <div className="relative p-4">
-            <svg viewBox="0 0 400 130" className="h-[130px] w-full" preserveAspectRatio="none">
-              <path
-                d="M0,95 L40,88 L80,96 L120,72 L160,78 L200,58 L240,64 L280,42 L320,48 L360,30 L400,34 L400,130 L0,130 Z"
-                fill="rgba(232,196,106,0.08)"
-              />
-              <path
-                d="M0,95 L40,88 L80,96 L120,72 L160,78 L200,58 L240,64 L280,42 L320,48 L360,30 L400,34"
-                fill="none"
-                stroke="var(--color-gold)"
-                strokeWidth="2"
-              />
-            </svg>
-            <span className="absolute end-5 top-5 font-mono text-xl font-bold text-gold" dir="ltr">
-              68%
-            </span>
-          </div>
-
-          <div className="border-t border-line">
-            {[
-              { q: "above $70,000", p: 68 },
-              { q: "above $75,000", p: 41 },
-              { q: "above $80,000", p: 19 },
-            ].map((r, i) => (
-              <div
-                key={r.q}
-                className={`relative flex items-center justify-between px-4 py-2.5 ${
-                  i === 0 ? "bg-gold/10" : ""
-                }`}
-              >
-                <span
-                  className="absolute inset-y-0 start-0 bg-gain/10"
-                  style={{ width: `${r.p}%` }}
-                />
-                <span className="relative font-mono text-[10px] text-muted" dir="ltr">
-                  {r.q}
-                </span>
-                <span
-                  className={`relative font-mono text-[11px] font-bold ${
-                    r.p >= 50 ? "text-gain" : "text-loss"
-                  }`}
-                  dir="ltr"
-                >
-                  {r.p}%
-                </span>
-              </div>
-            ))}
-          </div>
+        <div className="no-lift overflow-hidden rounded-2xl border border-line bg-surface/50 p-4">
+          <ArenaCycle />
         </div>
       </div>
     </section>

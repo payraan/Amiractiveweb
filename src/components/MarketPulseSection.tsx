@@ -18,8 +18,8 @@ export default function MarketPulseSection() {
       id="pulse"
       className="relative mx-auto max-w-6xl scroll-mt-10 px-6 py-24 md:py-28"
     >
-      <span className="font-mono text-[11px] tracking-[0.4em] text-gold" dir="ltr">
-        03 · MARKET PULSE
+      <span className="font-mono text-[11px] tracking-[0.3em] text-gold">
+        ۰۲ · نبض بازار
       </span>
       <h2 className="mt-4 font-display text-3xl font-black md:text-4xl">نبض <span className="text-gold">بازار</span></h2>
       <p className="mt-4 max-w-xl leading-8 text-muted">

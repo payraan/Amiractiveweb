@@ -6,6 +6,7 @@ import Ticker from "@/components/Ticker";
 import TradeSection from "@/components/TradeSection";
 import MarketPulseSection from "@/components/MarketPulseSection";
 import ComboSection from "@/components/ComboSection";
+import PropSection from "@/components/PropSection";
 import Faq from "@/components/Faq";
 import Footer from "@/components/Footer";
 
@@ -21,6 +22,7 @@ export default function Home() {
         <PredictTicker variant="ending" reverse />
         <MarketPulseSection />
         <ComboSection />
+        <PropSection />
         <Ticker />
         <Faq />
       </main>

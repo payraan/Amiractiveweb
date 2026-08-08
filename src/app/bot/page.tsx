@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import CandleField from "@/components/CandleField";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
+import BotFaq from "@/components/BotFaq";
 import Bot from "@/components/Bot";
 
 export const metadata: Metadata = {
@@ -88,6 +89,7 @@ export default function BotPage() {
         </section>
 
         <Bot />
+        <BotFaq />
       </main>
       <Footer />
     </>

@@ -470,3 +470,23 @@ main .rounded-2xl.border-line:not(.no-lift):hover::after,
     animation: none !important;
   }
 }
+
+/* ── موشن سکشن پراپ ───────────────────────────────────────
+   مسیر امتیاز از چپ کشیده می‌شود و بعد ثابت می‌ماند تا خوانده شود؛
+   جرقه‌ی روی مسیر با animateMotion خودِ SVG حرکت می‌کند. */
+.prop-path {
+  stroke-dasharray: 1200;
+  stroke-dashoffset: 1200;
+  animation: prop-draw 7s ease-in-out infinite;
+}
+
+@keyframes prop-draw {
+  0% { stroke-dashoffset: 1200; }
+  55% { stroke-dashoffset: 0; }
+  90% { stroke-dashoffset: 0; opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0.25; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .prop-path { animation: none; stroke-dashoffset: 0; }
+}
