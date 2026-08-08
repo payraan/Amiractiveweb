@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import CandleField from "@/components/CandleField";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import PredictCycle from "@/components/predict/PredictCycle";
 import PredictBoard from "@/components/predict/PredictBoard";
-import Leaderboard from "@/components/predict/Leaderboard";
 import CreditStore from "@/components/predict/CreditStore";
 import { settleDueRounds } from "@/lib/settle";
 
@@ -85,9 +85,18 @@ export default async function PredictPage() {
           </div>
         </div>
 
-        <div className="mt-8">
-          <h2 className="mb-4 font-display text-xl font-black">لیدربورد</h2>
-          <Leaderboard defaultRange="monthly" limit={10} />
+        <div className="mt-8 rounded-2xl border border-line bg-surface/40 p-6">
+          <h2 className="font-display text-xl font-black">لیدربورد</h2>
+          <p className="mt-2 max-w-xl text-xs leading-7 text-muted">
+            رتبه‌بندی کامل پیش‌بین‌ها — نبض بازار، ترید و کمبو — در صفحه‌ی
+            اختصاصی خودش است.
+          </p>
+          <Link
+            href="/leaderboard"
+            className="no-zoom mt-4 inline-block rounded-xl border border-gold/40 px-5 py-2.5 text-sm font-bold text-gold transition hover:bg-gold hover:text-ink"
+          >
+            دیدن لیدربورد
+          </Link>
         </div>
 
         <div className="mt-12">

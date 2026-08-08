@@ -109,6 +109,15 @@ export async function ensureIrTables(): Promise<void> {
         "CREATE INDEX IF NOT EXISTS irb_market_idx ON ir_bets(market_id, player_id)"
       );
 
+      // پول دمو از پول واقعی جدا می‌ماند.
+      //
+      // قاعده‌ی تشخیص ساده و قطعی است: پول واقعی *فقط* از وبهوک درگاه وارد
+      // می‌شود. هر شارژ دستیِ ادمین یعنی حساب تستی. پس حسابی که دستی شارژ
+      // شده «دمو» علامت می‌خورد و آمار و درآمدش از اعداد واقعی جدا می‌شود.
+      await pool.query(
+        "ALTER TABLE players ADD COLUMN IF NOT EXISTS is_demo BOOLEAN NOT NULL DEFAULT false"
+      );
+
       // ── دفترکل درآمد پلتفرم ──────────────────────────────
       // پیش از این، کمیسیون و هزینه‌ی ساخت بازار هیچ‌جا ثبت نمی‌شد: فقط از
       // موجودی کاربر کم می‌شد و ناپدید می‌شد. درآمد واقعی را فقط با تفریق
@@ -124,6 +133,9 @@ export async function ensureIrTables(): Promise<void> {
            note TEXT,
            created_at TIMESTAMPTZ NOT NULL DEFAULT now()
          )`
+      );
+      await pool.query(
+        "ALTER TABLE platform_revenue ADD COLUMN IF NOT EXISTS is_demo BOOLEAN NOT NULL DEFAULT false"
       );
       await pool.query(
         "CREATE INDEX IF NOT EXISTS prv_kind_idx ON platform_revenue(kind, created_at DESC)"
@@ -211,9 +223,17 @@ export async function recordRevenue(
   opts: { marketId?: number; playerId?: number; note?: string } = {}
 ): Promise<void> {
   if (!Number.isFinite(amount) || amount === 0) return;
+  // is_demo از روی خودِ حساب پرداخت‌کننده خوانده می‌شود، نه پارامتر ورودی —
+  // تا هیچ مسیری نتواند فراموش کند علامت بزند. اگر بازیکن مشخص نیست (مثل
+  // کمیسیون تسویه که چند نفر در آن سهیم‌اند)، از سازنده‌ی بازار حساب می‌شود.
   await client.query(
-    `INSERT INTO platform_revenue (kind, amount, market_id, player_id, note)
-     VALUES ($1,$2,$3,$4,$5)`,
+    `INSERT INTO platform_revenue (kind, amount, market_id, player_id, note, is_demo)
+     VALUES ($1,$2,$3,$4,$5,
+       COALESCE(
+         (SELECT is_demo FROM players WHERE id = $4),
+         (SELECT p.is_demo FROM ir_markets m JOIN players p ON p.id = m.creator_id WHERE m.id = $3),
+         false
+       ))`,
     [
       kind,
       Math.round(amount * 1e6) / 1e6,

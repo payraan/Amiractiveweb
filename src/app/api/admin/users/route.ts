@@ -31,7 +31,7 @@ export async function GET(req: Request) {
             : "p.created_at DESC";
 
   const { rows } = await pool.query(
-    `SELECT p.id, p.tg_username, p.display_name, p.credits, p.total_points,
+    `SELECT p.id, p.tg_username, p.display_name, p.credits, p.total_points, p.is_demo,
             p.streak, p.last_played, p.created_at, p.tg_user_id,
             COALESCE(p.usdt_balance,0) AS usdt_balance,
             (SELECT count(*) FROM predictions   x WHERE x.player_id=p.id)::int AS pulse_preds,
@@ -51,6 +51,7 @@ export async function GET(req: Request) {
 
   const totals = await pool.query(
     `SELECT count(*)::int AS players,
+            (SELECT count(*) FROM players WHERE is_demo)::int AS demo_players,
             COALESCE(SUM(credits),0)::int AS credits,
             COALESCE(SUM(total_points),0)::int AS points,
             COALESCE(SUM(usdt_balance),0)::float AS balance,
@@ -60,9 +61,15 @@ export async function GET(req: Request) {
        FROM players`
   );
 
+  const growth = await pool.query(
+    `SELECT (created_at AT TIME ZONE 'Asia/Tehran')::date AS day, count(*)::int AS n
+       FROM players GROUP BY day ORDER BY day ASC LIMIT 120`
+  );
+
   return NextResponse.json({
     ok: true,
     totals: totals.rows[0],
+    growth: growth.rows.map((r) => ({ day: String(r.day).slice(0, 10), n: Number(r.n) })),
     users: rows.map((r) => ({
       id: r.id,
       tg: r.tg_username,
@@ -74,6 +81,7 @@ export async function GET(req: Request) {
       lastPlayed: r.last_played,
       joined: r.created_at,
       tgLinked: !!r.tg_user_id,
+      isDemo: !!r.is_demo,
       pulsePreds: r.pulse_preds,
       arenaPreds: r.arena_preds,
       combos: r.combos,

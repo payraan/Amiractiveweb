@@ -57,6 +57,13 @@ export async function POST(req: Request) {
         await client.query("ROLLBACK");
         return NextResponse.json({ ok: false, error: "player_not_found" }, { status: 404 });
       }
+      // شارژ دستی = پول دمو. پول واقعی فقط از وبهوک درگاه می‌آید، پس هر
+      // حسابی که اینجا شارژ شود حساب تستی است و آمارش باید جدا بماند.
+      if (amount > 0) {
+        await client.query("UPDATE players SET is_demo = true WHERE id=$1", [
+          pl.rows[0].id,
+        ]);
+      }
       const after = await moveFunds(
         client,
         pl.rows[0].id,

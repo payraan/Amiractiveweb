@@ -60,16 +60,15 @@ export default async function Hero() {
           className="rise mt-8 font-display text-4xl font-black leading-[1.15] tracking-tight md:text-6xl"
           style={{ animationDelay: "160ms" }}
         >
-          آینده را <span className="text-gold">پیش‌بینی</span> کن،{" "}
-          <span className="text-gold">پراپ</span> بگیر
+          <span className="text-gold">هوش جمعی</span>، اندازه‌گیری شد
         </h1>
 
         <p
           className="rise mx-auto mt-6 max-w-lg text-sm leading-7 text-muted md:text-base"
           style={{ animationDelay: "240ms" }}
         >
-          بازار پیش‌بینی فارسی، با دیتای زنده. امتیاز فقط از مهارت می‌آید — نه
-          شانس، نه پول.
+          یک نفر یک نظر دارد؛ هزاران نفر یک سیگنال می‌سازند. روی رویدادهایی که
+          واقعاً برایت مهم‌اند پیش‌بینی کن — بازارها را خود مردم می‌سازند.
         </p>
 
         <div
@@ -77,10 +76,10 @@ export default async function Hero() {
           style={{ animationDelay: "330ms" }}
         >
           <Link
-            href="/trade"
+            href="/iran"
             className="group flex items-center gap-3 rounded-full bg-gold py-2 pe-2 ps-7 font-display font-extrabold text-ink shadow-[0_10px_40px_rgba(232,196,106,0.28)] transition hover:bg-gold-deep hover:shadow-[0_10px_48px_rgba(232,196,106,0.4)]"
           >
-            شروع رایگان
+            ورود به بازار
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink/15 transition group-hover:bg-ink/25">
               <svg
                 viewBox="0 0 24 24"

@@ -236,18 +236,28 @@ export default function IranTerminal() {
           <Stat k="مشارکت‌کنندگان" v={m ? String(m.bettors) : "—"} />
         </div>
 
-        <Link
-          href="/iran/propose"
-          className="no-zoom rounded-lg border border-gold/40 px-3 py-1.5 text-[10px] font-bold text-gold transition hover:bg-gold hover:text-ink"
-        >
-          ساخت بازار
-        </Link>
+        <div className="flex gap-2">
+          {m && (
+            <Link
+              href={`/iran/m/${m.id}`}
+              className="no-zoom rounded-lg border border-line px-3 py-1.5 text-[10px] text-muted transition hover:border-gold/50 hover:text-gold"
+            >
+              اشتراک‌گذاری
+            </Link>
+          )}
+          <Link
+            href="/iran/propose"
+            className="no-zoom rounded-lg border border-gold/40 px-3 py-1.5 text-[10px] font-bold text-gold transition hover:bg-gold hover:text-ink"
+          >
+            ساخت بازار
+          </Link>
+        </div>
       </div>
 
       {/* ── بدنه ── */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px_300px]">
         {/* استخر */}
-        <div className="min-w-0 border-b border-line lg:border-e lg:border-b-0">
+        <div className="order-2 min-w-0 border-b border-line lg:order-1 lg:border-e lg:border-b-0">
           <div className="flex items-center justify-between border-b border-line px-3 py-2">
             <span className="text-[11px] font-bold text-cream">اجماع بازار</span>
             <span className="flex items-center gap-1.5 text-[10px] text-muted">
@@ -344,7 +354,7 @@ export default function IranTerminal() {
         </div>
 
         {/* نردبان بازارها */}
-        <div className="min-w-0 border-b border-line lg:border-e lg:border-b-0">
+        <div className="order-3 min-w-0 border-b border-line lg:order-2 lg:border-e lg:border-b-0">
           <div className="flex items-center justify-between border-b border-line px-3 py-2">
             <span className="text-[11px] font-bold text-cream">بازارهای ایران</span>
             <span className="font-mono text-[10px] text-gold" dir="ltr">
@@ -411,8 +421,9 @@ export default function IranTerminal() {
           </div>
         </div>
 
-        {/* پنل سفارش */}
-        <div className="min-w-0">
+        {/* پنل سفارش — روی موبایل اول می‌آید تا کاربر بدون خواندن هیچ متنی
+            بتواند پیش‌بینی‌اش را ثبت کند. */}
+        <div className="order-1 min-w-0 border-b border-line lg:order-3 lg:border-b-0">
           <div className="border-b border-line px-3 py-2">
             <span className="text-[11px] font-bold text-gold">ثبت پیش‌بینی</span>
           </div>

@@ -29,16 +29,18 @@ const NAV: NavItem[] = [
   // کیف پول از زیرمنو به سطح اول آمد: حالا که پول واقعی در جریان است، دسترسی
   // به موجودی نباید پشت یک منوی کشویی پنهان باشد.
   { href: "/wallet", label: "کیف پول" },
+  { href: "/profile", label: "پنل کاربری" },
   {
     label: "بیشتر",
     children: [
-      { href: "/profile", label: "پنل کاربری", desc: "کارنامه، سود و زیان و نشان‌ها" },
       { href: "/challenge", label: "چلنج پراپ", desc: "قوانین و مسیر دریافت حساب" },
       { href: "/bot", label: "ربات معامله‌گر", desc: "اکسپرت اسکلپر متاتریدر ۵" },
       { href: "/results", label: "نتایج زنده", desc: "کارنامه‌ی مستقل در Myfxbook" },
       { href: "/broker", label: "بروکر (کارگزاری)", desc: "بروکر همکار" },
       { href: "/#academy", label: "آکادمی", desc: "مقالات و آموزش" },
       { href: "/referral", label: "دعوت دوستان", desc: "کد دعوت و پاداش MOON" },
+      { href: "/leaderboard", label: "لیدربورد", desc: "جدول پیش‌بین‌های برتر" },
+      { href: "/legal", label: "قوانین و مقررات", desc: "شرایط استفاده و افشای ریسک" },
     ],
   },
 ];

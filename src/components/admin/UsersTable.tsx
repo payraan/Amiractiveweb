@@ -22,6 +22,8 @@ type U = {
   topupCredits: number;
 };
 
+type Growth = { day: string; n: number };
+
 type Totals = {
   players: number;
   credits: number;
@@ -29,6 +31,7 @@ type Totals = {
   balance: number;
   tg_linked: number;
   active_7d: number;
+  demo_players: number;
 };
 
 const SORTS = [
@@ -53,6 +56,7 @@ export default function UsersTable() {
   const [sort, setSort] = useState<string>("recent");
   const [rows, setRows] = useState<U[]>([]);
   const [totals, setTotals] = useState<Totals | null>(null);
+  const [growth, setGrowth] = useState<Growth[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -66,6 +70,7 @@ export default function UsersTable() {
       if (j.ok) {
         setRows(j.users);
         setTotals(j.totals);
+        setGrowth(j.growth ?? []);
       }
     } finally {
       setLoading(false);
@@ -82,11 +87,19 @@ export default function UsersTable() {
       {totals && (
         <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-6">
           <Stat label="کاربران" v={totals.players} />
+          <Stat label="حساب تستی" v={totals.demo_players ?? 0} />
           <Stat label="فعال ۷ روز" v={totals.active_7d} tone="gain" />
           <Stat label="تلگرام وصل" v={totals.tg_linked} />
           <Stat label="کل MOON" v={totals.credits} />
           <Stat label="کل امتیاز" v={totals.points} tone="gold" />
           <Stat label="موجودی تتر" v={`$${Number(totals.balance).toFixed(2)}`} tone="gain" />
+        </div>
+      )}
+
+      {growth.length > 1 && (
+        <div className="no-lift mb-5 rounded-xl border border-line bg-ink/30 p-4">
+          <h3 className="text-sm font-bold">رشد کاربران</h3>
+          <GrowthChart data={growth} />
         </div>
       )}
 
@@ -186,6 +199,67 @@ function Stat({
       <div className="text-[10px] text-muted">{label}</div>
       <div className={`mt-1 font-mono text-lg font-bold ${c}`} dir="ltr">
         {typeof v === "number" ? v.toLocaleString("en-US") : v}
+      </div>
+    </div>
+  );
+}
+
+
+/** رشد کاربران: میله‌ی ثبت‌نام روزانه + خط مجموع تجمعی. */
+function GrowthChart({ data }: { data: Growth[] }) {
+  const W = 720;
+  const H = 140;
+  const pad = 10;
+  const maxDay = Math.max(1, ...data.map((d) => d.n));
+  const bw = Math.min(26, (W / data.length) * 0.62);
+
+  let run = 0;
+  const cum = data.map((d) => (run += d.n));
+  const cMax = Math.max(1, ...cum);
+  const pts = cum.map((v, i) => {
+    const x = ((i + 0.5) / data.length) * W;
+    const y = pad + (1 - v / cMax) * (H - pad * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+
+  const faDay = (s: string) =>
+    new Date(s + "T12:00:00Z").toLocaleDateString("fa-IR", {
+      timeZone: "Asia/Tehran",
+      month: "short",
+      day: "numeric",
+    });
+
+  return (
+    <div className="mt-3">
+      <svg viewBox={`0 0 ${W} ${H}`} className="h-[140px] w-full" preserveAspectRatio="none">
+        {data.map((d, i) => {
+          const h = (d.n / maxDay) * (H - pad * 2);
+          const x = ((i + 0.5) / data.length) * W - bw / 2;
+          return (
+            <rect
+              key={d.day}
+              x={x}
+              y={H - pad - h}
+              width={bw}
+              height={Math.max(1, h)}
+              rx="2"
+              fill="rgba(232,196,106,0.35)"
+            />
+          );
+        })}
+        {pts.length > 1 && (
+          <path
+            d={`M ${pts[0]} L ${pts.slice(1).join(" L ")}`}
+            fill="none"
+            stroke="var(--color-gain)"
+            strokeWidth="1.8"
+          />
+        )}
+      </svg>
+      <div className="mt-1 flex justify-between text-[9px] text-muted">
+        <span>{faDay(data[0].day)}</span>
+        <span className="text-gain">خط سبز: مجموع کاربران — {cum[cum.length - 1]}</span>
+        <span>{faDay(data[data.length - 1].day)}</span>
       </div>
     </div>
   );
