@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyAdmin, ADMIN_COOKIE } from "@/lib/admin";
-import { botReady, registerWebhook, tgCall, webhookUrl } from "@/lib/telegram";
+import {
+  botReady,
+  registerWebhook,
+  tgCall,
+  webhookConfigError,
+  webhookUrl,
+} from "@/lib/telegram";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +44,8 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     expectedUrl: webhookUrl(),
+    // ایراد پیکربندی را همین‌جا برمی‌گردانیم تا پیش از فشردن دکمه دیده شود.
+    configError: webhookConfigError(),
     bot: me.ok ? me.result : { error: me.error },
     webhook: info.ok ? info.result : { error: info.error },
   });

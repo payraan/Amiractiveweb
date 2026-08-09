@@ -13,6 +13,7 @@ import { useCallback, useEffect, useState } from "react";
 
 type Info = {
   expectedUrl: string;
+  configError: string | null;
   bot: { username?: string; first_name?: string; id?: number; error?: string };
   webhook: {
     url?: string;
@@ -21,6 +22,15 @@ type Info = {
     last_error_date?: number;
     error?: string;
   };
+};
+
+const SETUP_ERRORS: Record<string, string> = {
+  site_url_missing: "متغیر SITE_URL روی سرور ست نشده است.",
+  site_url_not_https:
+    "تلگرام فقط وبهوک HTTPS می‌پذیرد. مقدار SITE_URL باید با //:https شروع شود.",
+  webhook_secret_missing: "متغیر TG_WEBHOOK_SECRET روی سرور ست نشده است.",
+  webhook_secret_invalid:
+    "مقدار TG_WEBHOOK_SECRET کاراکتر غیرمجاز دارد. تلگرام فقط حرف انگلیسی، عدد، _ و - را می‌پذیرد. با دستور openssl rand -hex 32 یک مقدار تازه بساز و در Railway جایگزین کن.",
 };
 
 const fa = (unix: number) =>
@@ -80,12 +90,7 @@ export default function BotStatus() {
           ? { ok: true, text: `وبهوک روی ${j.url} ثبت شد.` }
           : {
               ok: false,
-              text:
-                j.error === "site_url_missing"
-                  ? "متغیر SITE_URL روی سرور ست نشده است."
-                  : j.error === "webhook_secret_missing"
-                    ? "متغیر TG_WEBHOOK_SECRET روی سرور ست نشده است."
-                    : `تلگرام نپذیرفت: ${j.error}`,
+              text: SETUP_ERRORS[j.error] ?? `تلگرام نپذیرفت: ${j.error}`,
             }
       );
       await load();
@@ -133,8 +138,23 @@ export default function BotStatus() {
     },
   }[state];
 
+  const configError = info?.configError ?? null;
+
   return (
     <div className="flex flex-col gap-4">
+      {configError && (
+        <div className="rounded-2xl border border-loss/40 bg-loss/5 p-5">
+          <p className="text-sm font-bold text-loss">ایراد پیکربندی سرور</p>
+          <p className="mt-2 text-[11px] leading-6 text-cream">
+            {SETUP_ERRORS[configError] ?? configError}
+          </p>
+          <p className="mt-2 text-[11px] leading-6 text-muted">
+            تا این حل نشود، دکمه‌ی ثبت وبهوک کار نمی‌کند. پس از تغییر متغیر در
+            Railway باید سرویس دوباره دیپلوی شود تا مقدار تازه خوانده شود.
+          </p>
+        </div>
+      )}
+
       <div className={`rounded-2xl border p-5 ${STATE.cls}`}>
         <p className="text-sm font-bold">{STATE.text}</p>
         {state === "mismatch" && (

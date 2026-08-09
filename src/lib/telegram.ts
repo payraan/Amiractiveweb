@@ -22,8 +22,22 @@ export const LINK_CODE_TTL_MIN = 15;
 const BOT_TOKEN = process.env.TG_BOT_TOKEN ?? "";
 export const BOT_USERNAME = process.env.TG_BOT_USERNAME ?? "";
 
-const WEBHOOK_SECRET = process.env.TG_WEBHOOK_SECRET ?? "";
-const SITE_URL = (process.env.SITE_URL ?? "").replace(/\/+$/, "");
+// trim چون فضای خالی یا خط جدیدِ اضافه در پنل متغیرها دیده نمی‌شود ولی
+// مقدار را خراب می‌کند — و چون تلگرام همان رشته را برمی‌گرداند، مقایسه‌ی
+// وبهوک هم باید با همان مقدار trim‌شده باشد.
+const WEBHOOK_SECRET = (process.env.TG_WEBHOOK_SECRET ?? "").trim();
+const SITE_URL = (process.env.SITE_URL ?? "").trim().replace(/\/+$/, "");
+
+/**
+ * تلگرام برای secret_token فقط A-Z a-z 0-9 _ - را می‌پذیرد (۱ تا ۲۵۶ کاراکتر).
+ *
+ * این را خودمان اینجا می‌سنجیم تا خطا پیش از تماس با تلگرام و به زبان خودمان
+ * گفته شود. تله‌ی رایج: `openssl rand -base64 32` که + و / و = تولید می‌کند و
+ * تلگرام ردش می‌کند. مقدار درست با `openssl rand -hex 32` ساخته می‌شود.
+ */
+export function webhookSecretShapeValid(): boolean {
+  return /^[A-Za-z0-9_-]{1,256}$/.test(WEBHOOK_SECRET);
+}
 
 /** آیا ربات پلتفرم پیکربندی شده؟ بدون این، مسیرهای تلگرام باید ۵۰۳ بدهند. */
 export function botReady(): boolean {
@@ -82,10 +96,31 @@ export async function tgCall<T = unknown>(
 }
 
 /** ثبت وبهوک نزد تلگرام — یک‌بار پس از هر تغییر دامنه یا رمز. */
+/**
+ * ایراد پیکربندی وبهوک، پیش از هر تماسی با تلگرام. `null` یعنی سالم.
+ *
+ * هم دکمه‌ی ثبت از این استفاده می‌کند و هم صفحه‌ی وضعیت — تا ایراد *قبل* از
+ * فشردن دکمه دیده شود، نه به شکل یک «Bad Request» مبهم بعد از آن.
+ */
+export function webhookConfigError():
+  | "site_url_missing"
+  | "site_url_not_https"
+  | "webhook_secret_missing"
+  | "webhook_secret_invalid"
+  | null {
+  const url = webhookUrl();
+  if (!url) return "site_url_missing";
+  // تلگرام فقط وبهوک HTTPS می‌پذیرد.
+  if (!url.startsWith("https://")) return "site_url_not_https";
+  if (!WEBHOOK_SECRET) return "webhook_secret_missing";
+  if (!webhookSecretShapeValid()) return "webhook_secret_invalid";
+  return null;
+}
+
 export async function registerWebhook() {
   const url = webhookUrl();
-  if (!url) return { ok: false as const, error: "site_url_missing" };
-  if (!WEBHOOK_SECRET) return { ok: false as const, error: "webhook_secret_missing" };
+  const bad = webhookConfigError();
+  if (bad) return { ok: false as const, error: bad };
   return tgCall("setWebhook", {
     url,
     secret_token: WEBHOOK_SECRET,
