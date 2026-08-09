@@ -11,5 +11,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default function AppPage() {
-  return <MiniApp />;
+  // آدرس سایت از سرور می‌آید تا لینک‌های بیرونی مینی‌اپ هاردکد نشوند.
+  const siteUrl = (process.env.SITE_URL ?? "").trim().replace(/\/+$/, "");
+  return <MiniApp siteUrl={siteUrl} />;
 }

@@ -1,0 +1,91 @@
+"use client";
+
+// دسترسی امن به SDK تلگرام.
+//
+// هر قابلیت در نسخه‌ی متفاوتی از کلاینت اضافه شده و کاربر ایرانی معمولا
+// نسخه‌ی قدیمی‌تری دارد. پس هیچ‌جا مستقیم صدا زده نمی‌شود: همه‌چیز از این
+// فایل و با optional chaining می‌گذرد تا نبودِ یک قابلیت اپ را نشکند، فقط
+// آن جزئیات را بی‌اثر کند.
+
+export type TgWebApp = {
+  initData: string;
+  colorScheme?: "light" | "dark";
+  ready: () => void;
+  expand: () => void;
+  setHeaderColor?: (c: string) => void;
+  setBackgroundColor?: (c: string) => void;
+  disableVerticalSwipes?: () => void;
+  BackButton?: {
+    show: () => void;
+    hide: () => void;
+    onClick: (cb: () => void) => void;
+    offClick: (cb: () => void) => void;
+  };
+  MainButton?: {
+    setText: (t: string) => void;
+    show: () => void;
+    hide: () => void;
+    enable: () => void;
+    disable: () => void;
+    showProgress: (leaveActive?: boolean) => void;
+    hideProgress: () => void;
+    onClick: (cb: () => void) => void;
+    offClick: (cb: () => void) => void;
+  };
+  HapticFeedback?: {
+    impactOccurred: (s: "light" | "medium" | "heavy") => void;
+    notificationOccurred: (t: "error" | "success" | "warning") => void;
+    selectionChanged: () => void;
+  };
+  openLink?: (url: string) => void;
+};
+
+declare global {
+  interface Window {
+    Telegram?: { WebApp?: TgWebApp };
+  }
+}
+
+export function webApp(): TgWebApp | null {
+  if (typeof window === "undefined") return null;
+  return window.Telegram?.WebApp ?? null;
+}
+
+/** رنگ‌های نارمون را روی پوسته‌ی خود تلگرام هم می‌نشاند. */
+export function applyTheme() {
+  const wa = webApp();
+  if (!wa) return;
+  wa.ready();
+  wa.expand();
+  wa.setHeaderColor?.("#0a0a0c");
+  wa.setBackgroundColor?.("#0a0a0c");
+  // بدون این، کشیدن انگشت به پایین وسط اسکرول، اپ را می‌بندد — حس اپ را
+  // خراب می‌کند و کاربر فکر می‌کند کرش کرده.
+  wa.disableVerticalSwipes?.();
+}
+
+export const haptic = {
+  tap: () => webApp()?.HapticFeedback?.selectionChanged(),
+  press: () => webApp()?.HapticFeedback?.impactOccurred("light"),
+  success: () => webApp()?.HapticFeedback?.notificationOccurred("success"),
+  error: () => webApp()?.HapticFeedback?.notificationOccurred("error"),
+};
+
+/** دکمه‌ی بازگشتِ خود تلگرام. برگرداندن تابع، آن را پاک می‌کند. */
+export function showBackButton(onBack: () => void): () => void {
+  const b = webApp()?.BackButton;
+  if (!b) return () => {};
+  b.onClick(onBack);
+  b.show();
+  return () => {
+    b.offClick(onBack);
+    b.hide();
+  };
+}
+
+/** لینک بیرونی را در مرورگر باز می‌کند، نه داخل قاب مینی‌اپ. */
+export function openExternal(url: string) {
+  const wa = webApp();
+  if (wa?.openLink) wa.openLink(url);
+  else window.open(url, "_blank", "noopener");
+}
