@@ -3,6 +3,7 @@
 
 import { randomBytes, timingSafeEqual } from "crypto";
 import { db } from "@/lib/db";
+import { WELCOME_CREDITS } from "@/lib/game";
 
 export const GROUP_BONUS_CREDITS = 20; // هدیه‌ی عضویت در گروه
 export const LINK_CODE_TTL_MIN = 15;
@@ -265,6 +266,76 @@ export async function playerByTgUserId(
   );
   if (!r.rowCount) return null;
   return { id: r.rows[0].id, displayName: r.rows[0].display_name };
+}
+
+/**
+ * حساب متناظر با یک کاربر تلگرام را پیدا می‌کند، و اگر نبود می‌سازد.
+ *
+ * این تنها مسیر ثبت‌نامی است که هویتش واقعا اثبات شده — چون فقط پس از
+ * اعتبارسنجی initData صدا زده می‌شود. مسیر قدیمیِ یوزرنیم+رمز هیچ اثباتی
+ * نداشت و همان حفره‌ای بود که این فاز برای بستنش باز شد.
+ *
+ * قاعده‌ی تصادم (مصوب): کلید هویت `tg_user_id` است و همیشه برنده است.
+ * اگر هندل تلگرام قبلا به‌عنوان یوزرنیمِ ورودِ حساب دیگری گرفته شده باشد،
+ * حساب تازه با یوزرنیم خالی ساخته می‌شود — حساب قدیمی نه تغییر نام می‌دهد،
+ * نه حذف می‌شود، نه خودکار ادغام می‌شود. ادغام خودکار روی تطابق هندل یعنی
+ * تحویل موجودی و سابقه‌ی یک غریبه به هر کسی که آن هندل را دارد.
+ */
+export async function findOrCreateTgPlayer(user: {
+  id: number;
+  username?: string;
+  first_name?: string;
+  last_name?: string;
+}): Promise<{ id: number; displayName: string; created: boolean }> {
+  const handle = user.username ? user.username.replace(/^@+/, "") : null;
+
+  const existing = await playerByTgUserId(user.id, handle);
+  if (existing) return { ...existing, created: false };
+
+  const pool = await db();
+  const displayName =
+    [user.first_name, user.last_name].filter(Boolean).join(" ").trim().slice(0, 40) ||
+    handle ||
+    "کاربر نارمون";
+
+  // یوزرنیمِ ورود فقط اگر آزاد باشد برداشته می‌شود. خالی‌بودنش مشکلی نیست:
+  // این حساب رمز ندارد و هرگز از مسیر رمز وارد نمی‌شود.
+  const free = handle
+    ? !(await pool.query("SELECT 1 FROM players WHERE tg_username=$1", [
+        handle.toLowerCase(),
+      ])).rowCount
+    : false;
+
+  const insert = async (username: string | null) =>
+    pool.query<{ id: number; display_name: string }>(
+      `INSERT INTO players
+         (tg_username, display_name, password_hash, credits, tg_user_id, tg_handle, tg_linked_at)
+       VALUES ($1,$2,NULL,$3,$4,$5,now())
+       ON CONFLICT (tg_user_id) WHERE tg_user_id IS NOT NULL DO NOTHING
+       RETURNING id, display_name`,
+      [username, displayName, WELCOME_CREDITS, user.id, handle]
+    );
+
+  let res;
+  try {
+    res = await insert(free && handle ? handle.toLowerCase() : null);
+  } catch (err) {
+    // مسابقه‌ی نادر روی یوزرنیم: بین چک و درج، کس دیگری همان را گرفت.
+    if ((err as { code?: string })?.code === "23505") {
+      res = await insert(null);
+    } else {
+      throw err;
+    }
+  }
+
+  if (res.rowCount) {
+    return { id: res.rows[0].id, displayName: res.rows[0].display_name, created: true };
+  }
+
+  // ON CONFLICT چیزی برنگرداند: یعنی درخواست همزمانِ دیگری زودتر ساختش.
+  const again = await playerByTgUserId(user.id, handle);
+  if (again) return { ...again, created: false };
+  throw new Error("tg_account_create_failed");
 }
 
 /** هدیه‌ی عضویت گروه — فقط یک بار برای هر حساب. */
