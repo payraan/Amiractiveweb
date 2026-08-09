@@ -1,7 +1,7 @@
 // اتصال حساب سایت به تلگرام — پل ورود کاربر به کانال پیام‌رسانی مستقیم.
 // وقتی آیدی عددی کاربر ذخیره شد، خود سایت می‌تواند بدون واسطه به او پیام بدهد.
 
-import { randomBytes } from "crypto";
+import { randomBytes, timingSafeEqual } from "crypto";
 import { db } from "@/lib/db";
 
 export const GROUP_BONUS_CREDITS = 20; // هدیه‌ی عضویت در گروه
@@ -22,9 +22,78 @@ export const LINK_CODE_TTL_MIN = 15;
 const BOT_TOKEN = process.env.TG_BOT_TOKEN ?? "";
 export const BOT_USERNAME = process.env.TG_BOT_USERNAME ?? "";
 
+const WEBHOOK_SECRET = process.env.TG_WEBHOOK_SECRET ?? "";
+const SITE_URL = (process.env.SITE_URL ?? "").replace(/\/+$/, "");
+
 /** آیا ربات پلتفرم پیکربندی شده؟ بدون این، مسیرهای تلگرام باید ۵۰۳ بدهند. */
 export function botReady(): boolean {
   return Boolean(BOT_TOKEN && BOT_USERNAME);
+}
+
+/**
+ * تأیید اینکه درخواست وبهوک واقعا از تلگرام آمده.
+ *
+ * تلگرام همان رشته‌ای را که موقع setWebhook دادیم در هدر
+ * X-Telegram-Bot-Api-Secret-Token برمی‌گرداند. آدرس وبهوک عمومی است، پس
+ * بدون این چک هرکسی می‌توانست آپدیت جعلی بفرستد و به نام هر آیدی تلگرامی
+ * حساب وصل کند.
+ *
+ * fail-closed: اگر رمز ست نشده باشد، هیچ درخواستی پذیرفته نمی‌شود.
+ */
+export function webhookSecretValid(provided: string | null): boolean {
+  if (!WEBHOOK_SECRET || !provided) return false;
+  const a = Buffer.from(provided);
+  const b = Buffer.from(WEBHOOK_SECRET);
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
+
+/** آدرس وبهوکی که به تلگرام اعلام می‌کنیم. */
+export function webhookUrl(): string {
+  return SITE_URL ? `${SITE_URL}/api/tg/webhook` : "";
+}
+
+type TgResult<T> = { ok: true; result: T } | { ok: false; error: string };
+
+/** تماس عمومی با Bot API. توکن هرگز از سرور بیرون نمی‌رود. */
+export async function tgCall<T = unknown>(
+  method: string,
+  params: Record<string, unknown> = {}
+): Promise<TgResult<T>> {
+  if (!BOT_TOKEN) return { ok: false, error: "bot_not_configured" };
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+      cache: "no-store",
+      signal: AbortSignal.timeout(15000),
+    });
+    const j = (await res.json()) as {
+      ok: boolean;
+      result?: T;
+      description?: string;
+    };
+    if (!j.ok) return { ok: false, error: j.description ?? `http_${res.status}` };
+    return { ok: true, result: j.result as T };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "network_error" };
+  }
+}
+
+/** ثبت وبهوک نزد تلگرام — یک‌بار پس از هر تغییر دامنه یا رمز. */
+export async function registerWebhook() {
+  const url = webhookUrl();
+  if (!url) return { ok: false as const, error: "site_url_missing" };
+  if (!WEBHOOK_SECRET) return { ok: false as const, error: "webhook_secret_missing" };
+  return tgCall("setWebhook", {
+    url,
+    secret_token: WEBHOOK_SECRET,
+    // فقط همان چیزی که واقعا پردازش می‌کنیم. کم‌کردن دامنه یعنی ترافیک و
+    // سطح حمله‌ی کمتر.
+    allowed_updates: ["message", "callback_query"],
+    drop_pending_updates: true,
+  });
 }
 
 let ready: Promise<void> | null = null;
@@ -82,10 +151,17 @@ export type LinkResult =
   | { ok: true; playerId: number; displayName: string }
   | { ok: false; error: "bad_code" | "expired" | "already_used" | "tg_taken" };
 
-/** ربات پس از دریافت /start این را صدا می‌زند تا اتصال نهایی شود. */
+/**
+ * وبهوک پس از دریافت `/start link_<code>` این را صدا می‌زند تا اتصال نهایی شود.
+ *
+ * `handle` یوزرنیم فعلی تلگرام است و در `tg_handle` می‌نشیند — نه در
+ * `tg_username`. کلید هویت `tg_user_id` است؛ هندل فقط برچسبی است که هر بار
+ * تازه می‌شود، چون کاربر می‌تواند عوضش کند و ممکن است اصلا نداشته باشد.
+ */
 export async function consumeLinkCode(
   code: string,
-  tgUserId: number
+  tgUserId: number,
+  handle?: string | null
 ): Promise<LinkResult> {
   await ensureTelegramTables();
   const pool = await db();
@@ -114,9 +190,9 @@ export async function consumeLinkCode(
   try {
     await client.query("BEGIN");
     const upd = await client.query<{ display_name: string }>(
-      `UPDATE players SET tg_user_id=$1, tg_linked_at=now()
+      `UPDATE players SET tg_user_id=$1, tg_linked_at=now(), tg_handle=$3
         WHERE id=$2 RETURNING display_name`,
-      [tgUserId, playerId]
+      [tgUserId, playerId, handle ? handle.replace(/^@+/, "") : null]
     );
     await client.query("UPDATE tg_link_codes SET used_at=now() WHERE code=$1", [code]);
     await client.query("COMMIT");
@@ -131,6 +207,29 @@ export async function consumeLinkCode(
   } finally {
     client.release();
   }
+}
+
+/**
+ * حسابِ متصل به این آیدی تلگرام را برمی‌گرداند و هم‌زمان هندلش را تازه می‌کند.
+ *
+ * هر آپدیتی که از تلگرام می‌رسد جدیدترین یوزرنیم کاربر را همراه دارد، پس
+ * همین‌جا می‌نویسیمش تا `tg_handle` هرگز بیات نشود. اگر کاربر یوزرنیمش را
+ * برداشته باشد، NULL می‌شود — که درست است، نه اینکه مقدار قدیمی بماند.
+ */
+export async function playerByTgUserId(
+  tgUserId: number,
+  handle?: string | null
+): Promise<{ id: number; displayName: string } | null> {
+  await ensureTelegramTables();
+  const pool = await db();
+  const r = await pool.query<{ id: number; display_name: string }>(
+    `UPDATE players SET tg_handle=$2
+      WHERE tg_user_id=$1
+      RETURNING id, display_name`,
+    [tgUserId, handle ? handle.replace(/^@+/, "") : null]
+  );
+  if (!r.rowCount) return null;
+  return { id: r.rows[0].id, displayName: r.rows[0].display_name };
 }
 
 /** هدیه‌ی عضویت گروه — فقط یک بار برای هر حساب. */
@@ -192,29 +291,23 @@ export async function getTgStatus(playerId: number): Promise<TgStatus> {
   };
 }
 
+/** دکمه‌های شیشه‌ای زیر پیام — همان چیزی که هویت رأی‌دهنده را می‌دهد. */
+export type InlineButton = { text: string; url?: string; callback_data?: string };
+
 /** ارسال پیام مستقیم از سایت به کاربر — بدون نیاز به دخالت ربات. */
 export async function sendTelegram(
   tgUserId: number,
-  text: string
+  text: string,
+  buttons?: InlineButton[][]
 ): Promise<boolean> {
-  if (!BOT_TOKEN) return false;
-  try {
-    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: tgUserId,
-        text,
-        parse_mode: "HTML",
-        disable_web_page_preview: true,
-      }),
-      cache: "no-store",
-    });
-    const j = await res.json();
-    return Boolean(j?.ok);
-  } catch {
-    return false;
-  }
+  const r = await tgCall("sendMessage", {
+    chat_id: tgUserId,
+    text,
+    parse_mode: "HTML",
+    link_preview_options: { is_disabled: true },
+    ...(buttons?.length ? { reply_markup: { inline_keyboard: buttons } } : {}),
+  });
+  return r.ok;
 }
 
 /** پیام به کاربر بر اساس شناسه‌ی بازیکن (اگر تلگرامش وصل باشد). */
