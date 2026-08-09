@@ -1,6 +1,5 @@
 import Link from "next/link";
 import PredictCycle from "@/components/predict/PredictCycle";
-import Leaderboard from "@/components/predict/Leaderboard";
 
 const SUPPORT = "https://t.me/Amiractive_support";
 const CHANNEL = "https://t.me/CashflowFactorys";
@@ -28,7 +27,7 @@ export default function MarketPulseSection() {
       </p>
 
       <div className="mt-8 grid grid-cols-1 items-start gap-10 lg:grid-cols-2">
-        <div>
+        <div className="order-2 lg:order-2">
           <ul className="flex flex-col gap-3">
             {POINTS.map((t, i) => (
               <li key={i} className="flex gap-3 text-xs leading-7 text-muted">
@@ -74,12 +73,9 @@ export default function MarketPulseSection() {
             </a>
           </div>
 
-          <div className="mt-8">
-            <Leaderboard defaultRange="monthly" limit={5} />
-          </div>
         </div>
 
-        <div className="rounded-2xl border border-line bg-surface/40 p-4 transition-all duration-300 hover:scale-[1.01] hover:border-gold/60 hover:shadow-[0_0_28px_rgba(232,196,106,0.12)]">
+        <div className="order-1 lg:order-1 rounded-2xl border border-line bg-surface/40 p-4 transition-all duration-300 hover:border-gold/60 hover:shadow-[0_0_28px_rgba(232,196,106,0.12)]">
           <PredictCycle />
         </div>
       </div>

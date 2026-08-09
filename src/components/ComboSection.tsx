@@ -5,11 +5,11 @@ export default function ComboSection() {
   return (
     <section id="combo" className="relative mx-auto max-w-6xl scroll-mt-20 px-6 py-24">
       <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2">
-        <div className="order-2 lg:order-1 rounded-2xl border border-line bg-surface/50 p-6 transition-all duration-300 hover:border-gold/50 hover:shadow-[0_0_32px_rgba(232,196,106,0.10)]">
+        <div className="order-2 lg:order-2 rounded-2xl border border-line bg-surface/50 p-6 transition-all duration-300 hover:border-gold/50 hover:shadow-[0_0_32px_rgba(232,196,106,0.10)]">
           <ComboCycle />
         </div>
 
-        <div className="order-1 lg:order-2">
+        <div className="order-1 lg:order-1">
           <span className="font-mono text-[11px] tracking-[0.3em] text-gold">
             ۰۳ · کمبو
           </span>

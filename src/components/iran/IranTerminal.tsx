@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePlayer } from "@/components/predict/usePlayer";
 import AuthPanel from "@/components/predict/AuthPanel";
 import { IR_CATEGORIES } from "@/lib/ir-categories";
+import DisputePanel from "@/components/iran/DisputePanel";
 
 type M = {
   id: number;
@@ -255,9 +256,9 @@ export default function IranTerminal() {
       </div>
 
       {/* ── بدنه ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px_300px]">
+      <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr_260px]">
         {/* استخر */}
-        <div className="order-2 min-w-0 border-b border-line lg:order-1 lg:border-e lg:border-b-0">
+        <div className="order-2 min-w-0 border-b border-line lg:order-2 lg:border-e lg:border-b-0">
           <div className="flex items-center justify-between border-b border-line px-3 py-2">
             <span className="text-[11px] font-bold text-cream">اجماع بازار</span>
             <span className="flex items-center gap-1.5 text-[10px] text-muted">
@@ -354,7 +355,7 @@ export default function IranTerminal() {
         </div>
 
         {/* نردبان بازارها */}
-        <div className="order-3 min-w-0 border-b border-line lg:order-2 lg:border-e lg:border-b-0">
+        <div className="order-3 min-w-0 border-b border-line lg:order-3 lg:border-b-0">
           <div className="flex items-center justify-between border-b border-line px-3 py-2">
             <span className="text-[11px] font-bold text-cream">بازارهای ایران</span>
             <span className="font-mono text-[10px] text-gold" dir="ltr">
@@ -423,7 +424,7 @@ export default function IranTerminal() {
 
         {/* پنل سفارش — روی موبایل اول می‌آید تا کاربر بدون خواندن هیچ متنی
             بتواند پیش‌بینی‌اش را ثبت کند. */}
-        <div className="order-1 min-w-0 border-b border-line lg:order-3 lg:border-b-0">
+        <div className="order-1 min-w-0 border-b border-line lg:order-1 lg:border-e lg:border-b-0">
           <div className="border-b border-line px-3 py-2">
             <span className="text-[11px] font-bold text-gold">ثبت پیش‌بینی</span>
           </div>
@@ -458,6 +459,10 @@ export default function IranTerminal() {
                 <p className="mt-3 text-[10px] text-muted">
                   از فهرست پایین یک بازار باز انتخاب کن.
                 </p>
+
+                {/* پنجره‌ی اعتراض — هرکس روی این بازار شرط بسته
+                    می‌تواند اعتراض کند، نه فقط سازنده */}
+                {m.status === "settling" && <DisputePanel marketId={m.id} />}
               </div>
             ) : (
               <>
