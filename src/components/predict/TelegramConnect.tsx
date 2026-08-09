@@ -13,12 +13,14 @@ export default function TelegramConnect() {
   const [link, setLink] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [botReady, setBotReady] = useState(false);
 
   const load = useCallback(() => {
     fetch("/api/predict/tg-link", { cache: "no-store" })
       .then((r) => r.json())
       .then((j) => {
         setStatus(j.status ?? null);
+        setBotReady(Boolean(j.botReady));
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -43,6 +45,10 @@ export default function TelegramConnect() {
   }
 
   if (!player || loading) return null;
+
+  // ربات پیکربندی نشده: کارت اتصال را نشان نده. حساب‌های وصل‌شده همچنان
+  // وضعیتشان را می‌بینند، ولی دعوت به اتصالی که کار نمی‌کند نمایش داده نمی‌شود.
+  if (!botReady && !status?.linked) return null;
 
   if (status?.linked) {
     return (

@@ -7,12 +7,24 @@ import { db } from "@/lib/db";
 export const GROUP_BONUS_CREDITS = 20; // هدیه‌ی عضویت در گروه
 export const LINK_CODE_TTL_MIN = 15;
 
-export const BOT_USERNAME = process.env.BOT_USERNAME || "Amiractivesupportbot";
-const BOT_TOKEN = process.env.BOT_TOKEN || "";
-const BOT_API_KEY = process.env.BOT_API_KEY || "";
+// ── ربات پلتفرم ──────────────────────────────────────────────
+//
+// این متغیرها فقط و فقط مال ربات نارمون‌اند. نام‌های قدیمی BOT_TOKEN /
+// BOT_USERNAME / BOT_API_KEY عمدا کنار گذاشته شدند چون به ربات پشتیبانِ
+// جداگانه اشاره می‌کردند و قاطی‌شدنشان یعنی پیام پلتفرم از دهان ربات دیگری
+// بیرون بیاید.
+//
+// هیچ مقدار پیش‌فرضی اینجا نمی‌گذاریم. قبلا `|| "Amiractivesupportbot"`
+// نوشته شده بود و این یعنی اگر متغیر ست نمی‌شد، لینک اتصالِ کاربر بی‌سروصدا
+// به ربات اشتباه می‌رفت و هیچ خطایی هم دیده نمی‌شد. مثل SESSION_SECRET،
+// اینجا هم fail-closed است: بدون تنظیمات، قابلیت خاموش می‌ماند و صریح
+// می‌گوید چرا.
+const BOT_TOKEN = process.env.TG_BOT_TOKEN ?? "";
+export const BOT_USERNAME = process.env.TG_BOT_USERNAME ?? "";
 
-export function botKeyValid(header: string | null): boolean {
-  return Boolean(BOT_API_KEY) && header === BOT_API_KEY;
+/** آیا ربات پلتفرم پیکربندی شده؟ بدون این، مسیرهای تلگرام باید ۵۰۳ بدهند. */
+export function botReady(): boolean {
+  return Boolean(BOT_TOKEN && BOT_USERNAME);
 }
 
 let ready: Promise<void> | null = null;
@@ -39,10 +51,17 @@ export async function ensureTelegramTables(): Promise<void> {
   return ready;
 }
 
-/** کد یک‌بارمصرف برای اتصال می‌سازد و لینک عمیق ربات را برمی‌گرداند. */
+/**
+ * کد یک‌بارمصرف برای اتصال می‌سازد و لینک عمیق ربات را برمی‌گرداند.
+ *
+ * اگر ربات پیکربندی نشده باشد throw می‌کند — ساختن لینکی که به هیچ ربات
+ * معتبری نمی‌رسد بدتر از خطا دادن است: کاربر روی دکمه می‌زند، چیزی باز
+ * می‌شود، و فکر می‌کند وصل شده.
+ */
 export async function createLinkCode(
   playerId: number
 ): Promise<{ code: string; deepLink: string }> {
+  if (!botReady()) throw new Error("bot_not_configured");
   await ensureTelegramTables();
   const pool = await db();
   const code = randomBytes(9).toString("base64url");
