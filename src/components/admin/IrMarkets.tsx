@@ -69,9 +69,22 @@ const fa = (iso: string) =>
     minute: "2-digit",
   });
 
+type D = {
+  id: number;
+  market_id: number;
+  reason: string;
+  status: string;
+  admin_note: string | null;
+  created_at: string;
+  username: string;
+  question: string;
+  outcome: string | null;
+};
+
 export default function IrMarkets() {
   const [status, setStatus] = useState<string>("pending");
   const [rows, setRows] = useState<M[]>([]);
+  const [disputes, setDisputes] = useState<D[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<number | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -82,6 +95,7 @@ export default function IrMarkets() {
       const r = await fetch(`/api/admin/ir?status=${status}`, { cache: "no-store" });
       const j = await r.json();
       setRows(j.ok ? j.markets : []);
+      setDisputes(j.ok ? (j.disputes ?? []) : []);
     } finally {
       setLoading(false);
     }
@@ -134,6 +148,88 @@ export default function IrMarkets() {
         <b className="text-gold">{TABS.find((t) => t.id === status)?.label}:</b>{" "}
         {TABS.find((t) => t.id === status)?.help}
       </p>
+
+      {disputes.filter((d) => d.status === "open").length > 0 && (
+        <div className="no-lift mb-5 rounded-xl border border-gold/40 bg-gold/5 p-4">
+          <h3 className="text-sm font-bold text-gold">
+            اعتراض‌های در انتظار رسیدگی
+          </h3>
+          <p className="mt-1 text-[11px] leading-6 text-muted">
+            تا وقتی اعتراضی باز باشد، تسویه‌ی نهایی آن بازار انجام نمی‌شود. اگر
+            اعتراض وارد است، اول نتیجه را با «اصلاح نتیجه» درست کن، بعد اعتراض را
+            بپذیر.
+          </p>
+          <div className="mt-3 flex flex-col gap-2">
+            {disputes
+              .filter((d) => d.status === "open")
+              .map((d) => (
+                <div
+                  key={d.id}
+                  className="rounded-lg border border-line bg-ink/40 p-3"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                    <span className="font-mono text-muted" dir="ltr">
+                      #{d.market_id} · @{d.username}
+                    </span>
+                    <span className="text-muted">
+                      نتیجه‌ی ثبت‌شده:{" "}
+                      <b className="text-cream">
+                        {d.outcome === "yes"
+                          ? "بله"
+                          : d.outcome === "no"
+                            ? "خیر"
+                            : "باطل"}
+                      </b>
+                    </span>
+                  </div>
+                  <p className="mt-1.5 line-clamp-1 text-[11px] text-cream">
+                    {d.question}
+                  </p>
+                  <p className="mt-2 rounded border border-line bg-surface/40 px-3 py-2 text-[11px] leading-6 text-muted">
+                    {d.reason}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Btn
+                      tone="ok"
+                      busy={busy === d.market_id}
+                      onClick={() =>
+                        act(d.market_id, "dispute_resolve", {
+                          disputeId: d.id,
+                          verdict: "accept",
+                          reason: prompt("توضیح برای پذیرش اعتراض؟") ?? "",
+                        })
+                      }
+                    >
+                      پذیرش اعتراض
+                    </Btn>
+                    <Btn
+                      tone="bad"
+                      busy={busy === d.market_id}
+                      onClick={() =>
+                        act(d.market_id, "dispute_resolve", {
+                          disputeId: d.id,
+                          verdict: "reject",
+                          reason: prompt("دلیل رد اعتراض؟") ?? "",
+                        })
+                      }
+                    >
+                      رد اعتراض
+                    </Btn>
+                    <Btn
+                      busy={busy === d.market_id}
+                      onClick={() => {
+                        const o = prompt("نتیجه‌ی درست چیست؟ yes / no / void");
+                        if (o) act(d.market_id, "revise", { outcome: o.trim() });
+                      }}
+                    >
+                      اصلاح نتیجه
+                    </Btn>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
 
       {msg && <p className="mb-3 text-xs text-gold">{msg}</p>}
 

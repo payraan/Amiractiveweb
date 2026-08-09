@@ -27,7 +27,9 @@ export async function GET(req: Request) {
   const pool = await db();
 
   const { rows } = await pool.query(
-    `SELECT m.*, p.display_name AS creator, p.tg_username AS creator_tg
+    `SELECT m.*, p.display_name AS creator, p.tg_username AS creator_tg,
+            (SELECT count(*)::int FROM ir_disputes d
+              WHERE d.market_id = m.id AND d.status = 'open') AS open_disputes
        FROM ir_markets m
        LEFT JOIN players p ON p.id = m.creator_id
       WHERE ($1 = 'all' OR m.status = $1)
@@ -35,8 +37,19 @@ export async function GET(req: Request) {
     [status]
   );
 
+  const disputes = await pool.query(
+    `SELECT d.id, d.market_id, d.reason, d.status, d.admin_note, d.created_at,
+            p.tg_username AS username, m.question, m.outcome
+       FROM ir_disputes d
+       JOIN players p ON p.id = d.player_id
+       JOIN ir_markets m ON m.id = d.market_id
+      ORDER BY (d.status = 'open') DESC, d.created_at DESC
+      LIMIT 100`
+  );
+
   return NextResponse.json({
     ok: true,
+    disputes: disputes.rows,
     markets: rows.map((r) => {
       const yes = Number(r.yes_total);
       const no = Number(r.no_total);
@@ -69,6 +82,7 @@ export async function GET(req: Request) {
           settledAt > 0 &&
           Date.now() - settledAt >= DISPUTE_HOURS * 3600_000,
         createdAt: r.created_at,
+        openDisputes: Number(r.open_disputes ?? 0),
       };
     }),
   });
@@ -81,7 +95,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
-  let body: { id?: number; action?: string; outcome?: string; reason?: string };
+  let body: {
+    id?: number;
+    action?: string;
+    outcome?: string;
+    reason?: string;
+    disputeId?: number;
+    verdict?: string;
+  };
   try {
     body = await req.json();
   } catch {
@@ -164,6 +185,38 @@ export async function POST(req: Request) {
     await pool.query(
       `UPDATE ir_markets SET status='settling', outcome=$2, settled_at=now()
         WHERE id=$1 AND status IN ('open','locked')`,
+      [id, outcome]
+    );
+    return NextResponse.json({ ok: true, disputeHours: DISPUTE_HOURS });
+  }
+
+  // رسیدگی به اعتراض: پذیرفتن یا رد کردن
+  if (action === "dispute_resolve") {
+    const disputeId = Number(body.disputeId);
+    const verdict = String(body.verdict ?? "");
+    if (!Number.isInteger(disputeId) || !["accept", "reject"].includes(verdict)) {
+      return NextResponse.json({ ok: false, error: "bad_verdict" }, { status: 400 });
+    }
+    await pool.query(
+      `UPDATE ir_disputes
+          SET status=$2, admin_note=$3, resolved_at=now()
+        WHERE id=$1 AND status='open'`,
+      [disputeId, verdict === "accept" ? "accepted" : "rejected", String(body.reason ?? "").slice(0, 500) || null]
+    );
+    return NextResponse.json({ ok: true });
+  }
+
+  // اصلاح نتیجه در پنجره‌ی اعتراض — تنها راه برگرداندن اشتباه ادمین پیش از
+  // پرداخت. پس از تسویه‌ی نهایی هیچ راه برگشتی وجود ندارد.
+  if (action === "revise") {
+    const outcome = body.outcome;
+    if (outcome !== "yes" && outcome !== "no" && outcome !== "void") {
+      return NextResponse.json({ ok: false, error: "bad_outcome" }, { status: 400 });
+    }
+    // ساعت پنجره از نو شروع می‌شود تا همه فرصت دیدن نتیجه‌ی اصلاح‌شده را داشته باشند
+    await pool.query(
+      `UPDATE ir_markets SET outcome=$2, settled_at=now()
+        WHERE id=$1 AND status='settling'`,
       [id, outcome]
     );
     return NextResponse.json({ ok: true, disputeHours: DISPUTE_HOURS });

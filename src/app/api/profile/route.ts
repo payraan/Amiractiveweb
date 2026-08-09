@@ -27,11 +27,11 @@ export async function GET() {
   await Promise.all([ensureIrTables(), ensureTelegramTables()]);
   const pool = await db();
 
-  const [me, wallet, ledger, irPnl, irOpen, pulse, poly, rank, streakDays] =
+  const [me, wallet, ledger, irPnl, irOpen, pulse, poly, rank, streakDays, mkts, chPassed] =
     await Promise.all([
       pool.query(
         `SELECT id, tg_username, display_name, total_points, streak, credits,
-                usdt_balance, created_at, tg_user_id
+                usdt_balance, created_at, tg_user_id, showcase
            FROM players WHERE id=$1`,
         [playerId]
       ),
@@ -103,6 +103,19 @@ export async function GET() {
            FROM predictions WHERE player_id=$1`,
         [playerId]
       ),
+      // بازارهای منتشرشده‌ی این کاربر (نه پیشنهادهای رد یا در انتظار)
+      pool.query(
+        `SELECT COUNT(*)::int AS n FROM ir_markets
+          WHERE creator_id=$1 AND status <> 'pending' AND void_reason IS DISTINCT FROM 'rejected'`,
+        [playerId]
+      ),
+      pool
+        .query(
+          `SELECT COUNT(*)::int AS n FROM player_challenges
+            WHERE player_id=$1 AND status='passed'`,
+          [playerId]
+        )
+        .catch(() => ({ rows: [{ n: 0 }] })),
     ]);
 
   if (!me.rowCount) {
@@ -180,6 +193,23 @@ export async function GET() {
       activeDays: Number(streakDays.rows[0].days),
     },
     rank: { totalPlayers, above: Number(rk.above), percentile },
+    badgeStats: {
+      totalPreds: Number(pu.total) + Number(po.total),
+      accuracy,
+      activeDays: Number(streakDays.rows[0].days),
+      streak: p.streak,
+      points: p.total_points,
+      percentile,
+      deposited: Number(w.deposited),
+      irWon: Number(ir.won),
+      irLost: Number(ir.lost),
+      irNet: Math.round(irNet * 1e6) / 1e6,
+      irStaked: Number(ir.staked),
+      marketsCreated: Number(mkts.rows[0].n),
+      challengesPassed: Number(chPassed.rows[0].n),
+      telegramLinked: Boolean(p.tg_user_id),
+    },
+    showcase: String(p.showcase ?? "").split(",").filter(Boolean),
     ledger: ledger.rows.map((r) => ({
       amount: Number(r.amount),
       kind: r.kind,

@@ -8,6 +8,7 @@ import { ensureIrTables, impliedPct, oddsFor, COMMISSION } from "@/lib/iran";
 import { IR_CATEGORIES } from "@/lib/ir-categories";
 import { dualDateTime } from "@/lib/dates";
 import ShareLink from "@/components/iran/ShareLink";
+import DisputePanel from "@/components/iran/DisputePanel";
 
 export const dynamic = "force-dynamic";
 
@@ -164,6 +165,8 @@ function Market({ m }: { m: Row }) {
             </div>
           )}
         </div>
+
+        <DisputePanel marketId={m.id} />
 
         <ShareLink id={m.id} question={m.question} yesPct={yesPct} />
 

@@ -127,7 +127,7 @@ export default function CreditStore({ compact = false }: { compact?: boolean }) 
                 <span className="font-mono text-3xl font-bold text-gold" dir="ltr">
                   {pack.credits}
                 </span>
-                <span className="text-sm text-muted"> MOON MOON</span>
+                <span className="text-sm text-muted">MOON</span>
               </div>
 
               <div className="mt-3 flex items-baseline gap-1">

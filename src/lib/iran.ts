@@ -109,6 +109,28 @@ export async function ensureIrTables(): Promise<void> {
         "CREATE INDEX IF NOT EXISTS irb_market_idx ON ir_bets(market_id, player_id)"
       );
 
+      // ── اعتراض به نتیجه ──────────────────────────────────
+      // تا امروز «پنجره‌ی اعتراض» فقط یک تایمر بود که جلوی تسویه را می‌گرفت و
+      // کاربر هیچ راهی برای اعتراض نداشت. این جدول همان وعده را واقعی می‌کند:
+      // شرکت‌کننده‌های همان بازار می‌توانند در پنجره اعتراض ثبت کنند و تا وقتی
+      // اعتراضِ باز وجود دارد، تسویه‌ی نهایی انجام نمی‌شود.
+      await pool.query(
+        `CREATE TABLE IF NOT EXISTS ir_disputes (
+           id BIGSERIAL PRIMARY KEY,
+           market_id INTEGER NOT NULL REFERENCES ir_markets(id) ON DELETE CASCADE,
+           player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+           reason TEXT NOT NULL,
+           status TEXT NOT NULL DEFAULT 'open',
+           admin_note TEXT,
+           created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+           resolved_at TIMESTAMPTZ,
+           UNIQUE (market_id, player_id)
+         )`
+      );
+      await pool.query(
+        "CREATE INDEX IF NOT EXISTS ird_open_idx ON ir_disputes(status, created_at DESC)"
+      );
+
       // پول دمو از پول واقعی جدا می‌ماند.
       //
       // قاعده‌ی تشخیص ساده و قطعی است: پول واقعی *فقط* از وبهوک درگاه وارد
@@ -116,6 +138,11 @@ export async function ensureIrTables(): Promise<void> {
       // شده «دمو» علامت می‌خورد و آمار و درآمدش از اعداد واقعی جدا می‌شود.
       await pool.query(
         "ALTER TABLE players ADD COLUMN IF NOT EXISTS is_demo BOOLEAN NOT NULL DEFAULT false"
+      );
+
+      // نشان‌های منتخبی که کاربر انتخاب کرده روی پروفایلش بنشینند
+      await pool.query(
+        "ALTER TABLE players ADD COLUMN IF NOT EXISTS showcase TEXT NOT NULL DEFAULT ''"
       );
 
       // ── دفترکل درآمد پلتفرم ──────────────────────────────
@@ -297,6 +324,17 @@ export async function settleIrMarket(
     if (since < DISPUTE_HOURS * 3600_000) {
       await client.query("ROLLBACK");
       return { ok: false, error: "dispute_window_open" };
+    }
+
+    // اعتراضِ رسیدگی‌نشده یعنی هنوز معلوم نیست نتیجه درست است؛ پرداخت
+    // برگشت‌ناپذیر است، پس تا تعیین تکلیف اعتراض‌ها تسویه نمی‌کنیم.
+    const openDisputes = await client.query(
+      "SELECT count(*)::int AS n FROM ir_disputes WHERE market_id=$1 AND status='open'",
+      [marketId]
+    );
+    if (openDisputes.rows[0].n > 0) {
+      await client.query("ROLLBACK");
+      return { ok: false, error: "disputes_pending" };
     }
 
     const yes = Number(row.yes_total);

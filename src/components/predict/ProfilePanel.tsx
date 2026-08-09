@@ -3,6 +3,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import AuthCallout from "@/components/predict/AuthCallout";
+import {
+  BADGES,
+  MAX_SHOWCASE,
+  TIER_STYLE,
+  badgeById,
+  type BadgeStats,
+} from "@/lib/badges";
 
 type Profile = {
   player: {
@@ -40,6 +47,8 @@ type Profile = {
     activeDays: number;
   };
   rank: { totalPlayers: number; above: number; percentile: number };
+  badgeStats: BadgeStats;
+  showcase: string[];
   ledger: {
     amount: number;
     kind: string;
@@ -79,6 +88,8 @@ export default function ProfilePanel() {
   const [state, setState] = useState<"loading" | "guest" | "ready" | "error">(
     "loading"
   );
+  const [showcase, setShowcase] = useState<string[]>([]);
+  const [savingShowcase, setSavingShowcase] = useState(false);
 
   async function load() {
     try {
@@ -93,6 +104,7 @@ export default function ProfilePanel() {
         return;
       }
       setD(j);
+      setShowcase(j.showcase ?? []);
       setState("ready");
     } catch {
       setState("error");
@@ -123,11 +135,30 @@ export default function ProfilePanel() {
     return <p className="py-16 text-center text-xs text-loss">خطا در دریافت اطلاعات.</p>;
   }
 
+  async function toggleShowcase(id: string) {
+    const next = showcase.includes(id)
+      ? showcase.filter((x) => x !== id)
+      : showcase.length >= MAX_SHOWCASE
+        ? showcase
+        : [...showcase, id];
+    if (next === showcase) return;
+    setShowcase(next);
+    setSavingShowcase(true);
+    try {
+      await fetch("/api/profile/showcase", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: next }),
+      });
+    } finally {
+      setSavingShowcase(false);
+    }
+  }
+
   const { player, wallet, iran, skill, rank, ledger } = d;
 
   // نمودار رشد موجودی از دفترکل — از قدیم به جدید
   const curve = [...ledger].reverse().map((l) => l.balanceAfter);
-  const badges = buildBadges(d);
 
   return (
     <div className="flex flex-col gap-6">
@@ -148,6 +179,24 @@ export default function ProfilePanel() {
               <p className="mt-1 text-[10px] text-muted">
                 عضو از {fa(player.createdAt)}
               </p>
+              {showcase.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {showcase.map((id) => {
+                    const b = badgeById(id);
+                    if (!b || !b.earned(d.badgeStats)) return null;
+                    return (
+                      <span
+                        key={id}
+                        title={`${b.label} — ${b.desc}`}
+                        className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] ${TIER_STYLE[b.tier].ring} ${TIER_STYLE[b.tier].text}`}
+                      >
+                        <span>{b.icon}</span>
+                        {b.label}
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 
@@ -289,32 +338,12 @@ export default function ProfilePanel() {
       </Section>
 
       {/* ── نشان‌ها ── */}
-      <Section title="نشان‌ها">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {badges.map((b) => (
-            <div
-              key={b.id}
-              className={`rounded-xl border p-4 ${
-                b.earned
-                  ? "border-gold/40 bg-gold/5"
-                  : "border-line bg-ink/20 opacity-50"
-              }`}
-            >
-              <div className="text-xl">{b.icon}</div>
-              <div className="mt-2 text-[12px] font-bold text-cream">{b.label}</div>
-              <div className="mt-1 text-[10px] leading-5 text-muted">{b.desc}</div>
-              {!b.earned && b.progress !== undefined && (
-                <div className="mt-2 h-1 overflow-hidden rounded-full bg-line/40">
-                  <div
-                    className="h-full bg-gold/60"
-                    style={{ width: `${Math.min(100, b.progress)}%` }}
-                  />
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </Section>
+      <BadgeSection
+        stats={d.badgeStats}
+        showcase={showcase}
+        onToggle={toggleShowcase}
+        saving={savingShowcase}
+      />
 
       {/* ── تاریخچه ── */}
       <Section title="تاریخچه‌ی تراکنش‌ها">
@@ -489,81 +518,110 @@ function Sparkline({ values }: { values: number[] }) {
   );
 }
 
-/* ── نشان‌ها ─────────────────────────────────────────
-   عمدا فقط بر پایه‌ی داده‌ی واقعی موجود ساخته شده‌اند. نشانی که معیارش را
-   نمی‌توانیم بسنجیم، ساخته نمی‌شود. */
-type Badge = {
-  id: string;
-  icon: string;
-  label: string;
-  desc: string;
-  earned: boolean;
-  progress?: number;
-};
+/* ── نشان‌ها ───────────────────────────────────────────
+   هر نشان از داده‌ی واقعی سنجیده می‌شود و هیچ‌کدام با پول به دست نمی‌آید.
+   کاربر می‌تواند تا سه نشانِ کسب‌شده را برای نمایش کنار نامش انتخاب کند. */
+function BadgeSection({
+  stats,
+  showcase,
+  onToggle,
+  saving,
+}: {
+  stats: BadgeStats;
+  showcase: string[];
+  onToggle: (id: string) => void;
+  saving: boolean;
+}) {
+  const earned = BADGES.filter((b) => b.earned(stats));
+  const locked = BADGES.filter((b) => !b.earned(stats));
 
-function buildBadges(d: Profile): Badge[] {
-  const { skill, iran, wallet, player, rank } = d;
-  const totalPreds = skill.pulse.total + skill.arena.total;
-  return [
-    {
-      id: "first",
-      icon: "🎯",
-      label: "اولین پیش‌بینی",
-      desc: "اولین پیش‌بینی‌ات را ثبت کردی",
-      earned: totalPreds >= 1,
-    },
-    {
-      id: "ten",
-      icon: "📈",
-      label: "ده‌تایی",
-      desc: "۱۰ پیش‌بینی ثبت‌شده",
-      earned: totalPreds >= 10,
-      progress: (totalPreds / 10) * 100,
-    },
-    {
-      id: "hundred",
-      icon: "🏛️",
-      label: "صدتایی",
-      desc: "۱۰۰ پیش‌بینی ثبت‌شده",
-      earned: totalPreds >= 100,
-      progress: (totalPreds / 100) * 100,
-    },
-    {
-      id: "week",
-      icon: "🔥",
-      label: "هفت روز پیاپی",
-      desc: "استریک ۷ روزه",
-      earned: player.streak >= 7,
-      progress: (player.streak / 7) * 100,
-    },
-    {
-      id: "funded",
-      icon: "💧",
-      label: "کیف پول فعال",
-      desc: "اولین واریز تتر",
-      earned: wallet.deposited > 0,
-    },
-    {
-      id: "irwin",
-      icon: "🏆",
-      label: "برد در بازار ایران",
-      desc: "حداقل یک شرط برنده",
-      earned: iran.won >= 1,
-    },
-    {
-      id: "profitable",
-      icon: "💎",
-      label: "سودده",
-      desc: "سود خالص مثبت در بازار ایران",
-      earned: iran.net > 0,
-    },
-    {
-      id: "top10",
-      icon: "👑",
-      label: "ده درصد برتر",
-      desc: "جایگاه بالای ۹۰٪ کاربران",
-      earned: rank.percentile >= 90,
-      progress: rank.percentile,
-    },
-  ];
+  return (
+    <Section
+      title="نشان‌ها"
+      action={
+        <span className="text-[11px] text-muted">
+          {earned.length} از {BADGES.length}
+          {saving && " · در حال ذخیره…"}
+        </span>
+      }
+    >
+      <p className="mb-4 text-[11px] leading-6 text-muted">
+        تا <b className="text-cream">{MAX_SHOWCASE}</b> نشان را انتخاب کن تا کنار
+        نامت نمایش داده شوند. روی نشان‌های کسب‌شده کلیک کن.
+      </p>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        {earned.map((b) => {
+          const picked = showcase.includes(b.id);
+          const full = showcase.length >= MAX_SHOWCASE && !picked;
+          return (
+            <button
+              key={b.id}
+              type="button"
+              onClick={() => onToggle(b.id)}
+              disabled={full}
+              title={full ? `اول یکی را بردار — حداکثر ${MAX_SHOWCASE} تا` : b.desc}
+              className={`no-zoom rounded-xl border p-4 text-start transition disabled:opacity-50 ${
+                picked
+                  ? "border-gold bg-gold/15 shadow-[0_0_20px_rgba(232,196,106,0.12)]"
+                  : TIER_STYLE[b.tier].ring
+              }`}
+            >
+              <div className="flex items-start justify-between">
+                <span className="text-xl">{b.icon}</span>
+                <span
+                  className={`rounded-full border px-1.5 py-0.5 text-[9px] ${TIER_STYLE[b.tier].ring} ${TIER_STYLE[b.tier].text}`}
+                >
+                  {TIER_STYLE[b.tier].label}
+                </span>
+              </div>
+              <div className="mt-2 text-[12px] font-bold text-cream">{b.label}</div>
+              <div className="mt-1 text-[10px] leading-5 text-muted">{b.desc}</div>
+              <div
+                className={`mt-2 text-[10px] font-bold ${picked ? "text-gold" : "text-muted"}`}
+              >
+                {picked ? "روی پروفایل ✓" : "برای نمایش کلیک کن"}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {locked.length > 0 && (
+        <>
+          <h3 className="mb-3 mt-6 text-[12px] font-bold text-muted">
+            هنوز باز نشده
+          </h3>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {locked.map((b) => {
+              const pr = b.progress ? Math.min(100, Math.max(0, b.progress(stats))) : 0;
+              return (
+                <div
+                  key={b.id}
+                  className="rounded-xl border border-line bg-ink/20 p-4 opacity-60"
+                >
+                  <div className="flex items-start justify-between">
+                    <span className="text-xl grayscale">{b.icon}</span>
+                    <span className="rounded-full border border-line px-1.5 py-0.5 text-[9px] text-muted">
+                      {TIER_STYLE[b.tier].label}
+                    </span>
+                  </div>
+                  <div className="mt-2 text-[12px] font-bold text-cream">{b.label}</div>
+                  <div className="mt-1 text-[10px] leading-5 text-muted">{b.desc}</div>
+                  {b.progress && (
+                    <div className="mt-2 h-1 overflow-hidden rounded-full bg-line/40">
+                      <div
+                        className="h-full bg-gold/60 transition-all duration-500"
+                        style={{ width: `${pr}%` }}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </Section>
+  );
 }

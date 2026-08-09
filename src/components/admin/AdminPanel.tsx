@@ -171,7 +171,7 @@ function StatsView() {
 
   return (
     <div className="mt-6 flex flex-col gap-6">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {cards.map((c) => (
           <div key={c.label} className="rounded-xl border border-line bg-raised/40 px-4 py-3">
             <div className="text-[11px] text-muted">{c.label}</div>
@@ -286,10 +286,8 @@ function AdminHome() {
   const [tab, setTab] = useState<"charge" | "stats">("charge");
 
   return (
-    <div className="mx-auto mt-24 max-w-2xl px-6 pb-24">
-      <h1 className="font-display text-2xl font-black">پنل مدیریت</h1>
-
-      <div className="mt-6 flex gap-2 rounded-xl border border-line bg-raised/40 p-1">
+    <div>
+      <div className="flex gap-2 rounded-xl border border-line bg-raised/40 p-1">
         <button
           type="button"
           onClick={() => setTab("charge")}
@@ -309,7 +307,7 @@ function AdminHome() {
       {tab === "stats" && <StatsView />}
 
       {tab === "charge" && (
-      <div className="mt-6 rounded-2xl border border-line bg-surface/50 p-6">
+      <div className="mt-6 max-w-2xl rounded-2xl border border-line bg-surface/50 p-6">
         <h2 className="text-sm font-bold">شارژ MOON یا تتر کاربر</h2>
 
         <div className="mt-4 flex gap-2">
