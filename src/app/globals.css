@@ -490,3 +490,13 @@ main .rounded-2xl.border-line:not(.no-lift):hover::after,
 @media (prefers-reduced-motion: reduce) {
   .prop-path { animation: none; stroke-dashoffset: 0; }
 }
+
+/* نوار اسکرول افقی در ردیف دسته‌ها و تب‌ها — در اپ موبایل دیده‌شدنش
+   ناهماهنگ است و ارتفاع را هم جابه‌جا می‌کند. */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

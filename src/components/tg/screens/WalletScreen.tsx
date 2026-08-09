@@ -1,19 +1,21 @@
 "use client";
 
 import { useResource } from "@/components/tg/useResource";
-import { Card, ErrorState, ScreenTitle, Skeleton } from "@/components/tg/ui";
+import { ErrorState, ScreenTitle, Skeleton } from "@/components/tg/ui";
+import { IconArrow } from "@/components/tg/icons";
 
 // کیف پول — از همان /api/wallet سایت.
 //
-// واریز و برداشت در مرحله‌ی بعد اضافه می‌شوند؛ برداشت هنوز منتظر تصمیم
-// مالک درباره‌ی لایه‌ی تأیید دوم است.
+// ⚠️ نام فیلدها را از خود روت بگیر، نه از حدس: این روت `at` و `balanceAfter`
+// برمی‌گرداند، نه `created_at` و `balance_after`. نسخه‌ی اول همان را اشتباه
+// خوانده بود و نتیجه‌اش «Invalid Date» روی تک‌تک ردیف‌های تاریخچه شد.
 
 type Ledger = {
   amount: number;
   kind: string;
   ref: string | null;
-  balance_after: number;
-  created_at: string;
+  balanceAfter: number;
+  at: string;
 };
 
 type Wallet = {
@@ -37,12 +39,18 @@ const KIND: Record<string, string> = {
   admin_adjust: "تنظیم دستی",
 };
 
-const fa = (iso: string) =>
-  new Date(iso).toLocaleDateString("fa-IR", {
+function when(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("fa-IR", {
     timeZone: "Asia/Tehran",
     month: "short",
     day: "numeric",
   });
+}
+
+const money = (n: number) =>
+  n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export default function WalletScreen() {
   const { data: w, error, reload } = useResource<Wallet>("/api/wallet");
@@ -53,11 +61,13 @@ export default function WalletScreen() {
     return (
       <div>
         <ScreenTitle title="کیف پول" />
-        <Skeleton className="h-24" />
+        <Skeleton className="h-36" />
         <div className="mt-3 grid grid-cols-2 gap-3">
-          <Skeleton className="h-16" />
-          <Skeleton className="h-16" />
+          <Skeleton className="h-12" />
+          <Skeleton className="h-12" />
         </div>
+        <Skeleton className="mt-5 h-16" />
+        <Skeleton className="mt-2 h-16" />
       </div>
     );
   }
@@ -66,49 +76,90 @@ export default function WalletScreen() {
 
   return (
     <div>
-      <ScreenTitle title="کیف پول" subtitle="موجودی تتر و تاریخچه" />
+      <ScreenTitle title="کیف پول" />
 
-      <Card className="text-center">
-        <div className="text-[10px] text-muted">موجودی</div>
-        <div dir="ltr" className="mt-1 font-mono text-3xl font-bold text-gold">
-          ${w.balance.toFixed(2)}
+      {/* کارت موجودی: تنها جای صفحه که طلا پرکننده است، تا چشم اول اینجا برود */}
+      <div className="relative overflow-hidden rounded-2xl border border-gold/30 bg-gradient-to-bl from-gold/12 via-surface/60 to-surface/40 p-5">
+        <div className="text-[11px] text-muted">موجودی تتر</div>
+        <div dir="ltr" className="mt-1.5 text-right font-mono text-[34px] font-bold leading-none text-gold">
+          ${money(w.balance)}
         </div>
-      </Card>
+        <div className="mt-2 text-[10px] text-muted">
+          شبکه‌ی {w.network ?? "TRON"}
+        </div>
+        {/* درخشش ملایم گوشه — عمق می‌دهد بدون اینکه تصویر لازم باشد */}
+        <div className="pointer-events-none absolute -left-10 -top-10 h-32 w-32 rounded-full bg-gold/10 blur-2xl" />
+      </div>
 
-      <p className="mt-4 rounded-xl border border-line bg-surface/30 p-3 text-[11px] leading-6 text-muted">
-        واریز و برداشت به‌زودی همین‌جا اضافه می‌شود. تا آن‌وقت از کیف پول سایت
-        استفاده کن.
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <button
+          type="button"
+          disabled
+          className="rounded-xl border border-line bg-surface/40 py-3 text-xs font-bold text-muted opacity-60"
+        >
+          واریز
+        </button>
+        <button
+          type="button"
+          disabled
+          className="rounded-xl border border-line bg-surface/40 py-3 text-xs font-bold text-muted opacity-60"
+        >
+          برداشت
+        </button>
+      </div>
+      <p className="mt-2 text-center text-[10px] text-muted">
+        واریز و برداشت در مرحله‌ی بعد فعال می‌شود
       </p>
 
-      <h3 className="mb-2 mt-5 text-xs font-bold text-cream">تاریخچه</h3>
+      <div className="mb-2 mt-6 flex items-baseline justify-between">
+        <h3 className="text-xs font-bold text-cream">تاریخچه</h3>
+        <span className="text-[10px] text-muted">{ledger.length} تراکنش</span>
+      </div>
+
       {ledger.length === 0 ? (
-        <p className="text-[11px] text-muted">هنوز تراکنشی نداری.</p>
+        <p className="rounded-xl border border-line bg-surface/30 p-4 text-center text-[11px] text-muted">
+          هنوز تراکنشی نداری.
+        </p>
       ) : (
-        <div className="flex flex-col gap-2">
-          {ledger.slice(0, 30).map((l, i) => (
-            <div
-              key={i}
-              className="flex items-center justify-between rounded-xl border border-line bg-surface/30 px-3 py-2.5"
-            >
-              <div>
-                <div className="text-[11px] font-bold text-cream">
-                  {KIND[l.kind] ?? l.kind}
-                </div>
-                <div className="mt-0.5 text-[10px] text-muted">
-                  {fa(l.created_at)}
-                </div>
-              </div>
+        <div className="flex flex-col gap-1.5">
+          {ledger.slice(0, 40).map((l, i) => {
+            const inflow = l.amount >= 0;
+            return (
               <div
-                dir="ltr"
-                className={`font-mono text-[12px] ${
-                  l.amount >= 0 ? "text-gain" : "text-loss"
-                }`}
+                key={i}
+                className="flex items-center gap-3 rounded-xl border border-line bg-surface/30 px-3 py-2.5"
               >
-                {l.amount >= 0 ? "+" : ""}
-                {l.amount.toFixed(2)}
+                <span
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                    inflow ? "bg-gain/10 text-gain" : "bg-loss/10 text-loss"
+                  }`}
+                >
+                  <IconArrow up={!inflow} />
+                </span>
+
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[11.5px] font-bold text-cream">
+                    {KIND[l.kind] ?? l.kind}
+                  </div>
+                  <div className="mt-0.5 text-[10px] text-muted">{when(l.at)}</div>
+                </div>
+
+                <div className="text-left">
+                  <div
+                    dir="ltr"
+                    className={`font-mono text-[12.5px] font-bold ${
+                      inflow ? "text-gain" : "text-loss"
+                    }`}
+                  >
+                    {inflow ? "+" : "−"}${money(Math.abs(l.amount))}
+                  </div>
+                  <div dir="ltr" className="mt-0.5 font-mono text-[9.5px] text-muted">
+                    ${money(l.balanceAfter)}
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

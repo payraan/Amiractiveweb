@@ -10,6 +10,7 @@ import TradeScreen from "@/components/tg/screens/TradeScreen";
 import WalletScreen from "@/components/tg/screens/WalletScreen";
 import ProfileScreen from "@/components/tg/screens/ProfileScreen";
 import { Skeleton } from "@/components/tg/ui";
+import Logo from "@/components/Logo";
 
 // پوسته‌ی مینی‌اپ.
 //
@@ -86,17 +87,35 @@ export default function MiniApp({ siteUrl }: { siteUrl: string }) {
       />
 
       <div className="mx-auto flex min-h-[100dvh] max-w-md flex-col">
-        <header className="flex items-center justify-between px-5 pb-3 pt-4">
-          <span className="font-display text-base font-black text-gold">نارمون</span>
-          {player && (
-            <span dir="ltr" className="font-mono text-[11px] text-muted">
-              {player.credits} MOON · ${player.usdtBalance.toFixed(2)}
+        {/* هدر چسبان: موجودی همیشه در دید است، چون در اپی که با پول کار
+            می‌کند اولین چیزی است که کاربر دنبالش می‌گردد. */}
+        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-line/60 bg-ink/85 px-5 py-3 backdrop-blur-xl">
+          <div className="flex items-center gap-2">
+            <Logo className="h-6 w-auto" />
+            <span className="font-display text-[15px] font-black text-cream">
+              نارمون
             </span>
+          </div>
+          {player && (
+            <div className="flex items-center gap-1.5">
+              <span
+                dir="ltr"
+                className="rounded-full border border-gold/25 bg-gold/10 px-2.5 py-1 font-mono text-[10.5px] font-bold text-gold"
+              >
+                {player.credits.toLocaleString("en-US")} MOON
+              </span>
+              <span
+                dir="ltr"
+                className="rounded-full border border-gain/25 bg-gain/10 px-2.5 py-1 font-mono text-[10.5px] font-bold text-gain"
+              >
+                ${player.usdtBalance.toFixed(2)}
+              </span>
+            </div>
           )}
         </header>
 
         {/* فضای پایین برای نوار تب، وگرنه آخرین کارت زیرش پنهان می‌شود */}
-        <main className="flex-1 px-5 pb-28">
+        <main className="flex-1 px-5 pb-28 pt-4">
           {loading && (
             <div className="flex flex-col gap-3 pt-2">
               <Skeleton className="h-8 w-40" />
