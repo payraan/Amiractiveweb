@@ -82,6 +82,32 @@ export default function UsersTable() {
     return () => clearTimeout(t);
   }, [load, q]);
 
+  // قطع اتصال تلگرام. تأیید می‌گیریم چون تنها راه برگشتش، وصل‌کردن دوباره‌ی
+  // همان تلگرام است و پاداش عضویت گروه هم پاک می‌شود.
+  async function unlink(u: U) {
+    const ok = window.confirm(
+      `اتصال تلگرام حساب «${u.name}» قطع شود؟\n\n` +
+        `پس از این، آن تلگرام آزاد می‌شود و می‌تواند به حساب دیگری وصل شود. ` +
+        `پاداش عضویت گروه این حساب هم پاک می‌شود.`
+    );
+    if (!ok) return;
+    const r = await fetch("/api/admin/user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: u.id, action: "unlink_telegram" }),
+    });
+    const j = await r.json();
+    if (!j.ok) {
+      window.alert(
+        j.error === "not_linked"
+          ? "این حساب اصلا به تلگرام وصل نیست."
+          : `خطا: ${j.error}`
+      );
+      return;
+    }
+    load();
+  }
+
   return (
     <div>
       {totals && (
@@ -150,7 +176,17 @@ export default function UsersTable() {
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 font-mono text-muted" dir="ltr">
                     {u.tgLinked ? (
-                      <span className="text-gain">@{u.tg} ✓</span>
+                      <span className="inline-flex items-center gap-2">
+                        <span className="text-gain">@{u.tg} ✓</span>
+                        <button
+                          type="button"
+                          onClick={() => unlink(u)}
+                          title="قطع اتصال تلگرام"
+                          className="rounded border border-line px-1.5 text-[10px] text-muted transition hover:border-loss hover:text-loss"
+                        >
+                          قطع
+                        </button>
+                      </span>
                     ) : (
                       <span>@{u.tg}</span>
                     )}

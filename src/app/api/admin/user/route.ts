@@ -7,6 +7,51 @@ import { ensureIrTables } from "@/lib/iran";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * قطع اتصال تلگرام یک حساب.
+ *
+ * `tg_user_id` یکتاست، پس تا یک حساب رهایش نکند هیچ حساب دیگری نمی‌تواند به
+ * همان تلگرام وصل شود. بدون این مسیر، اشتباهِ اتصال فقط با دست‌بردن مستقیم
+ * در دیتابیس برمی‌گشت.
+ *
+ * عمدا فقط ادمین: اگر کاربر خودش می‌توانست قطع و وصل کند، «یک نفر = یک حساب»
+ * فقط در یک لحظه برقرار می‌ماند — یک تلگرام می‌توانست پشت سر هم حساب بسازد،
+ * پاداش هر کدام را بگیرد و برود. همان چیزی که کل ضدتقلب رویش ایستاده.
+ *
+ * پاداش عضویت گروه هم پاک می‌شود، وگرنه چرخه‌ی قطع/وصل آن را تکرارپذیر می‌کرد.
+ */
+export async function POST(req: Request) {
+  const jar = await cookies();
+  if (!verifyAdmin(jar.get(ADMIN_COOKIE)?.value)) {
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  }
+
+  let body: { id?: number; action?: string };
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ ok: false, error: "bad_json" }, { status: 400 });
+  }
+  const id = Number(body.id);
+  if (!Number.isInteger(id) || String(body.action) !== "unlink_telegram") {
+    return NextResponse.json({ ok: false, error: "bad_request" }, { status: 400 });
+  }
+
+  const pool = await db();
+  const r = await pool.query<{ tg_user_id: string | null }>(
+    `UPDATE players
+        SET tg_user_id = NULL, tg_handle = NULL, tg_linked_at = NULL,
+            group_bonus_at = NULL
+      WHERE id = $1 AND tg_user_id IS NOT NULL
+      RETURNING tg_user_id`,
+    [id]
+  );
+  if (!r.rowCount) {
+    return NextResponse.json({ ok: false, error: "not_linked" }, { status: 409 });
+  }
+  return NextResponse.json({ ok: true });
+}
+
 export async function GET(req: Request) {
   const jar = await cookies();
   if (!verifyAdmin(jar.get(ADMIN_COOKIE)?.value)) {
