@@ -83,6 +83,43 @@ export function showBackButton(onBack: () => void): () => void {
   };
 }
 
+/**
+ * دکمه‌ی اصلی خود تلگرام، پایین صفحه.
+ *
+ * برای عمل نهایی هر فرم از این استفاده می‌شود نه دکمه‌ی داخل صفحه: جایش
+ * همان‌جایی است که کاربر تلگرام انتظارش را دارد، بالای صفحه‌کلید می‌ماند و
+ * حالت «در حال ارسال» بومی دارد.
+ *
+ * برگرداندن تابع، دکمه را پاک می‌کند — حتما در cleanup افکت صدا زده شود،
+ * وگرنه دکمه روی صفحه‌ی بعدی هم می‌ماند و کار اشتباه می‌کند.
+ */
+/** آیا کلاینت کاربر MainButton دارد؟ نسخه‌های قدیمی ندارند. */
+export function hasMainButton(): boolean {
+  return Boolean(webApp()?.MainButton);
+}
+
+export function mainButton(opts: {
+  text: string;
+  enabled: boolean;
+  busy?: boolean;
+  onClick: () => void;
+}): () => void {
+  const b = webApp()?.MainButton;
+  if (!b) return () => {};
+  b.setText(opts.text);
+  if (opts.enabled) b.enable();
+  else b.disable();
+  if (opts.busy) b.showProgress(true);
+  else b.hideProgress();
+  b.onClick(opts.onClick);
+  b.show();
+  return () => {
+    b.offClick(opts.onClick);
+    b.hide();
+    b.hideProgress();
+  };
+}
+
 /** لینک بیرونی را در مرورگر باز می‌کند، نه داخل قاب مینی‌اپ. */
 export function openExternal(url: string) {
   const wa = webApp();
