@@ -31,7 +31,7 @@ export async function GET(req: Request) {
             : "p.created_at DESC";
 
   const { rows } = await pool.query(
-    `SELECT p.id, p.tg_username, p.display_name, p.credits, p.total_points, p.is_demo,
+    `SELECT p.id, p.tg_username, p.tg_handle, p.display_name, p.credits, p.total_points, p.is_demo,
             p.streak, p.last_played, p.created_at, p.tg_user_id,
             COALESCE(p.usdt_balance,0) AS usdt_balance,
             (SELECT count(*) FROM predictions   x WHERE x.player_id=p.id)::int AS pulse_preds,
@@ -43,6 +43,7 @@ export async function GET(req: Request) {
             (SELECT COALESCE(SUM(x.amount),0) FROM credit_topups x WHERE x.player_id=p.id)::int AS topup_credits
        FROM players p
       WHERE ($1 = '' OR lower(p.tg_username) LIKE '%'||$1||'%'
+             OR lower(p.tg_handle) LIKE '%'||$1||'%'
              OR lower(p.display_name) LIKE '%'||$1||'%')
       ORDER BY ${order}
       LIMIT 300`,
@@ -72,7 +73,8 @@ export async function GET(req: Request) {
     growth: growth.rows.map((r) => ({ day: String(r.day).slice(0, 10), n: Number(r.n) })),
     users: rows.map((r) => ({
       id: r.id,
-      tg: r.tg_username,
+      // حساب تلگرام‌زاد یوزرنیم ورود ندارد؛ هندل زنده‌اش را نشان می‌دهیم
+      tg: r.tg_username ?? r.tg_handle,
       name: r.display_name,
       credits: r.credits,
       points: r.total_points,

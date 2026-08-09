@@ -88,6 +88,30 @@ ALTER TABLE predictions ADD COLUMN IF NOT EXISTS charged INTEGER NOT NULL DEFAUL
 
 CREATE INDEX IF NOT EXISTS idx_predictions_round ON predictions(round_id);
 CREATE INDEX IF NOT EXISTS idx_predictions_player ON predictions(player_id);
+
+-- ── هویت: لنگر واقعی tg_user_id است، نه یوزرنیم ──────────────
+--
+-- تا امروز کلید هویت tg_username بود و NOT NULL UNIQUE. سه مشکل داشت:
+--   ۱. یوزرنیم در تلگرام اختیاری است — کاربر بدون یوزرنیم اصلا INSERT نمی‌شد.
+--   ۲. کاربر یوزرنیمش را عوض می‌کند و مقدار ذخیره‌شده بیات می‌شود.
+--   ۳. چون ثبت‌نام وب هیچ اثبات تلگرامی نمی‌خواست، ممکن است کسی هندل شخص
+--      دیگری را گرفته باشد؛ وقتی صاحب واقعی از مینی‌اپ بیاید تصادم می‌شود.
+--
+-- راه‌حل: سه ستون با سه نقش جدا.
+--   tg_user_id  → تنها کلید هویت (ایندکس یکتای شرطی، در telegram.ts)
+--   tg_username → فقط کلید ورود با رمز برای حساب‌های قدیمی، می‌تواند خالی باشد
+--   tg_handle   → هندل فعلی تلگرام، فقط برچسب، یکتا نیست، هر بار تازه می‌شود
+--
+-- حساب تلگرام‌زاد رمز ندارد؛ هویتش با initData اثبات می‌شود. پس رمز nullable
+-- می‌شود — و مسیر ورود با رمز باید حساب بدون رمز را صریحا رد کند.
+ALTER TABLE players ALTER COLUMN password_hash DROP NOT NULL;
+
+ALTER TABLE players ALTER COLUMN tg_username DROP NOT NULL;
+ALTER TABLE players DROP CONSTRAINT IF EXISTS players_tg_username_key;
+CREATE UNIQUE INDEX IF NOT EXISTS players_tg_username_uniq
+  ON players (tg_username) WHERE tg_username IS NOT NULL;
+
+ALTER TABLE players ADD COLUMN IF NOT EXISTS tg_handle TEXT;
 `;
 
 let ready: Promise<void> | null = null;

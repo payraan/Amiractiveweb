@@ -132,6 +132,27 @@ export async function grantGroupBonus(
   };
 }
 
+/**
+ * آیا این حساب هویت تلگرام اثبات‌شده دارد؟
+ *
+ * مرز مصوب مالک (۲۰۲۶/۰۸/۰۹): شرط هر عمل *پولی* — واریز، شرط، ساخت بازار،
+ * برداشت. بازی‌های امتیازی آزادند. مرز عمدا روی «ورود پول» است نه «خروج
+ * پول»: اگر فقط برداشت را قفل کنیم، کاربر واریز و شرط می‌کند و تازه آن‌وقت
+ * می‌فهمد پولش گیر کرده — بدترین حالت ممکن برای اعتماد.
+ *
+ * هنوز به هیچ روتی وصل نشده: تا وقتی مینی‌اپ راه نیفتاده، روشن‌کردنش پول
+ * همه را قفل می‌کند بدون اینکه راهی برای اتصال وجود داشته باشد.
+ */
+export async function hasLinkedTelegram(playerId: number): Promise<boolean> {
+  await ensureTelegramTables();
+  const pool = await db();
+  const r = await pool.query<{ tg_user_id: string | null }>(
+    "SELECT tg_user_id FROM players WHERE id=$1",
+    [playerId]
+  );
+  return Boolean(r.rows[0]?.tg_user_id);
+}
+
 export type TgStatus = {
   linked: boolean;
   bonusClaimed: boolean;

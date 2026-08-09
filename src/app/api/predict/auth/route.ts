@@ -100,6 +100,15 @@ export async function POST(req: Request) {
     if (!rows.length) {
       return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
     }
+    // حساب تلگرام‌زاد رمز ندارد و هرگز نباید از مسیر رمز وارد شود.
+    // خطای جدا می‌دهیم تا کاربر بداند باید از مینی‌اپ بیاید، نه اینکه
+    // فکر کند رمزش را اشتباه زده.
+    if (!rows[0].password_hash) {
+      return NextResponse.json(
+        { ok: false, error: "telegram_account" },
+        { status: 409 }
+      );
+    }
     const okPass = await verifyPassword(password, rows[0].password_hash);
     if (!okPass) {
       return NextResponse.json({ ok: false, error: "bad_credentials" }, { status: 401 });

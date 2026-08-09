@@ -8,6 +8,39 @@ import { ensureIrTables, moveFunds } from "@/lib/iran";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * قفل‌کردن ردیف بازیکن از روی یوزرنیم ورود یا هندل تلگرام.
+ *
+ * یوزرنیم ورود یکتاست ولی هندل تلگرام نیست — کاربر می‌تواند هندلش را عوض
+ * کند و همان رشته روی حساب دیگری بنشیند. پس اگر تطابق دقیقِ یوزرنیم نبود و
+ * چند حساب با همان هندل خوردند، عمدا شکست می‌خوریم: شارژ اشتباه یعنی پول
+ * واقعی روی حساب اشتباه.
+ */
+async function lockPlayerByName(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  client: any,
+  name: string
+): Promise<
+  | { ok: true; id: number; credits: number }
+  | { ok: false; error: "player_not_found" | "ambiguous_username" }
+> {
+  const r = await client.query(
+    `SELECT id, credits, COALESCE(tg_username=$1, false) AS exact FROM players
+      WHERE tg_username=$1 OR lower(tg_handle)=$1
+      -- NULLS LAST اجباری است: در حساب تلگرام‌زاد tg_username خالی است، پس
+      -- (tg_username=$1) نه false بلکه NULL می‌شود و در DESC پیش‌فرض اول
+      -- می‌نشیند — یعنی تطابق دقیقِ یوزرنیم را کنار می‌زند.
+      ORDER BY (tg_username=$1) DESC NULLS LAST
+      FOR UPDATE`,
+    [name]
+  );
+  if (!r.rowCount) return { ok: false, error: "player_not_found" };
+  if (!r.rows[0].exact && r.rowCount > 1) {
+    return { ok: false, error: "ambiguous_username" };
+  }
+  return { ok: true, id: r.rows[0].id, credits: r.rows[0].credits };
+}
+
 export async function POST(req: Request) {
   const jar = await cookies();
   if (!verifyAdmin(jar.get(ADMIN_COOKIE)?.value)) {
@@ -49,24 +82,22 @@ export async function POST(req: Request) {
     const client = await pool.connect();
     try {
       await client.query("BEGIN");
-      const pl = await client.query(
-        "SELECT id FROM players WHERE tg_username=$1 FOR UPDATE",
-        [username]
-      );
-      if (!pl.rowCount) {
+      const pl = await lockPlayerByName(client, username);
+      if (!pl.ok) {
         await client.query("ROLLBACK");
-        return NextResponse.json({ ok: false, error: "player_not_found" }, { status: 404 });
+        return NextResponse.json(
+          { ok: false, error: pl.error },
+          { status: pl.error === "player_not_found" ? 404 : 409 }
+        );
       }
       // شارژ دستی = پول دمو. پول واقعی فقط از وبهوک درگاه می‌آید، پس هر
       // حسابی که اینجا شارژ شود حساب تستی است و آمارش باید جدا بماند.
       if (amount > 0) {
-        await client.query("UPDATE players SET is_demo = true WHERE id=$1", [
-          pl.rows[0].id,
-        ]);
+        await client.query("UPDATE players SET is_demo = true WHERE id=$1", [pl.id]);
       }
       const after = await moveFunds(
         client,
-        pl.rows[0].id,
+        pl.id,
         amount,
         "admin_adjust",
         note || "manual"
@@ -91,15 +122,15 @@ export async function POST(req: Request) {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    const pl = await client.query(
-      "SELECT id, credits FROM players WHERE tg_username=$1 FOR UPDATE",
-      [username]
-    );
-    if (!pl.rowCount) {
+    const pl = await lockPlayerByName(client, username);
+    if (!pl.ok) {
       await client.query("ROLLBACK");
-      return NextResponse.json({ ok: false, error: "player_not_found" }, { status: 404 });
+      return NextResponse.json(
+        { ok: false, error: pl.error },
+        { status: pl.error === "player_not_found" ? 404 : 409 }
+      );
     }
-    const playerId = pl.rows[0].id;
+    const playerId = pl.id;
     const upd = await client.query(
       "UPDATE players SET credits = GREATEST(0, credits + $1) WHERE id=$2 RETURNING credits",
       [amount, playerId]

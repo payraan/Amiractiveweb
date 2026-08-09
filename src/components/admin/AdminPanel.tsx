@@ -222,6 +222,15 @@ function StatsView() {
   );
 }
 
+const TOPUP_ERRORS: Record<string, string> = {
+  player_not_found: "کاربری با این نام پیدا نشد.",
+  ambiguous_username:
+    "چند حساب با این هندل تلگرام وجود دارد. هندل تلگرام یکتا نیست — با نام کاربری دقیق جست‌وجو کن.",
+  insufficient_funds: "موجودی کاربر برای این کسر کافی نیست.",
+  bad_amount: "مبلغ معتبر نیست.",
+  bad_username: "نام کاربری وارد نشده است.",
+};
+
 function AdminHome() {
   const [username, setUsername] = useState("");
   const [found, setFound] = useState<Found | null>(null);
@@ -264,7 +273,7 @@ function AdminHome() {
       });
       const j = await res.json();
       if (!j.ok) {
-        setMsg({ ok: false, text: `خطا: ${j.error}` });
+        setMsg({ ok: false, text: TOPUP_ERRORS[j.error] ?? `خطا: ${j.error}` });
         return;
       }
       if (currency === "usdt") {

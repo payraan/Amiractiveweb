@@ -17,11 +17,19 @@ export async function hashPassword(password: string): Promise<string> {
   return `${salt.toString("hex")}:${derived.toString("hex")}`;
 }
 
-/** Constant-time verify against a stored "salt:hash". */
+/**
+ * Constant-time verify against a stored "salt:hash".
+ *
+ * `stored` is nullable because Telegram-native accounts have no password —
+ * they prove identity with signed initData instead. A null hash must never
+ * authenticate, so it fails here as well as at the login route (defense in
+ * depth: without this guard the split() below would throw a 500 instead).
+ */
 export async function verifyPassword(
   password: string,
-  stored: string
+  stored: string | null | undefined
 ): Promise<boolean> {
+  if (!stored) return false;
   const [saltHex, hashHex] = stored.split(":");
   if (!saltHex || !hashHex) return false;
   const salt = Buffer.from(saltHex, "hex");
