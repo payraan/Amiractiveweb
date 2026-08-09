@@ -23,6 +23,12 @@ const jbMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  // بدون این، Next آدرس‌های نسبیِ تصویر OG را نسبت به localhost حل می‌کند و
+  // پیش‌نمایش اشتراک‌گذاری بازارهای ایران روی تلگرام و شبکه‌ها می‌شکند.
+  metadataBase: new URL(
+    process.env.SITE_URL?.trim() ||
+      "https://amiractiveweb-production.up.railway.app"
+  ),
   title: "نارمون | معامله‌گری الگوریتمیک با اثبات زنده",
   description:
     "ربات معامله‌گر نارمون، تحلیل بازارهای مالی و معرفی بروکر — با نتایج شفاف و قابل راستی‌آزمایی، نه وعده.",

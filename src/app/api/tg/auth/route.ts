@@ -30,7 +30,12 @@ export async function POST(req: Request) {
   const check = verifyTelegramInitData(String(body.initData ?? ""));
   if (!check.ok) {
     const status = check.error === "not_configured" ? 503 : 401;
-    return NextResponse.json({ ok: false, error: check.error }, { status });
+    // فقط نام فیلدها، بدون هیچ مقداری — تا اگر امضا نخواند بشود فهمید
+    // تلگرام واقعا چه فرستاده، بدون اینکه داده‌ی کاربر جایی نشت کند.
+    return NextResponse.json(
+      { ok: false, error: check.error, fields: check.fields },
+      { status }
+    );
   }
 
   let player;

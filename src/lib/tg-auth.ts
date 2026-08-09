@@ -39,6 +39,8 @@ export type InitDataResult =
   | {
       ok: false;
       error: "not_configured" | "malformed" | "bad_hash" | "expired" | "no_user";
+      /** فقط *نام* فیلدهای دریافتی — برای عیب‌یابی. هیچ مقداری برنمی‌گردد. */
+      fields?: string[];
     };
 
 /**
@@ -57,38 +59,73 @@ export function verifyTelegramInitData(initData: string): InitDataResult {
   if (!BOT_TOKEN) return { ok: false, error: "not_configured" };
   if (!initData || initData.length > 4096) return { ok: false, error: "malformed" };
 
-  let params: URLSearchParams;
+  // ⚠️ عمدا از URLSearchParams استفاده نمی‌شود.
+  //
+  // تلگرام مقادیر را با encodeURIComponent کد می‌کند، ولی URLSearchParams
+  // طبق قواعد فرم HTML تجزیه می‌کند و `+` را به فاصله تبدیل می‌کند.
+  // encodeURIComponent هرگز `+` را کد نمی‌کند، پس هر مقداری که یک `+`
+  // واقعی داشته باشد (مثلا داخل photo_url) خراب می‌شد و هش هرگز نمی‌خواند.
+  // معکوس درستِ encodeURIComponent، خودِ decodeURIComponent است.
+  const fields: { key: string; value: string }[] = [];
+  let hash = "";
   try {
-    params = new URLSearchParams(initData);
+    for (const part of initData.split("&")) {
+      if (!part) continue;
+      const eq = part.indexOf("=");
+      if (eq < 0) return { ok: false, error: "malformed" };
+      const key = decodeURIComponent(part.slice(0, eq));
+      const value = decodeURIComponent(part.slice(eq + 1));
+      if (key === "hash") hash = value;
+      else fields.push({ key, value });
+    }
   } catch {
     return { ok: false, error: "malformed" };
   }
 
-  const hash = params.get("hash");
   if (!hash || !/^[a-f0-9]{64}$/i.test(hash)) {
     return { ok: false, error: "malformed" };
   }
 
-  // hash خودش در محاسبه نمی‌آید. signature هم کنار گذاشته می‌شود: فیلد
-  // تازه‌ی تلگرام برای تأیید شخص‌ثالث است و در data_check_string نمی‌نشیند.
-  const pairs: string[] = [];
-  for (const [k, v] of params) {
-    if (k === "hash" || k === "signature") continue;
-    pairs.push(`${k}=${v}`);
-  }
-  pairs.sort();
-  const dataCheckString = pairs.join("\n");
+  // مرتب‌سازی بر اساس *کلید*، نه بر اساس رشته‌ی `key=value`. در عمل برای
+  // کلیدهای فعلی تلگرام یکی درمی‌آید، ولی اگر روزی کلیدی پیشوند کلید دیگری
+  // باشد و کاراکتر بعدی‌اش از `=` کوچک‌تر (مثلا رقم)، ترتیب برعکس می‌شد.
+  const byKey = (a: { key: string }, b: { key: string }) =>
+    a.key < b.key ? -1 : a.key > b.key ? 1 : 0;
 
   const secretKey = createHmac("sha256", "WebAppData").update(BOT_TOKEN).digest();
-  const computed = createHmac("sha256", secretKey)
-    .update(dataCheckString)
-    .digest("hex");
+  const hmacOf = (list: { key: string; value: string }[]) =>
+    createHmac("sha256", secretKey)
+      .update(
+        [...list]
+          .sort(byKey)
+          .map((f) => `${f.key}=${f.value}`)
+          .join("\n")
+      )
+      .digest("hex");
 
-  const a = Buffer.from(computed, "hex");
-  const b = Buffer.from(hash.toLowerCase(), "hex");
-  if (a.length !== b.length || !timingSafeEqual(a, b)) {
-    return { ok: false, error: "bad_hash" };
+  // مستندات تلگرام می‌گوید «همه‌ی فیلدهای دریافتی به‌جز hash»، ولی درباره‌ی
+  // فیلد نسبتا تازه‌ی `signature` صریح نیست و کلاینت‌های مختلف فرق دارند.
+  // هر دو حالت سنجیده می‌شود. این امنیت را کم نمی‌کند: هر دو حالت نیازمند
+  // امضای معتبر با توکن ربات‌اند و `signature` را خودمان هیچ‌جا استفاده
+  // نمی‌کنیم، پس تفاوتشان فقط در سخت‌گیری روی یک فیلدِ بلااستفاده است.
+  const expected = hash.toLowerCase();
+  const withSignature = hmacOf(fields);
+  const withoutSignature =
+    fields.some((f) => f.key === "signature")
+      ? hmacOf(fields.filter((f) => f.key !== "signature"))
+      : withSignature;
+
+  const matches = (computed: string) => {
+    const a = Buffer.from(computed, "hex");
+    const b = Buffer.from(expected, "hex");
+    return a.length === b.length && timingSafeEqual(a, b);
+  };
+
+  if (!matches(withSignature) && !matches(withoutSignature)) {
+    return { ok: false, error: "bad_hash", fields: fields.map((f) => f.key) };
   }
+
+  const params = new Map(fields.map((f) => [f.key, f.value] as const));
 
   // امضای درست ولی کهنه هنوز خطرناک است: هرکسی که یک‌بار initData کسی را
   // ببیند (لاگ، اسکرین‌شات، پروکسی) می‌تواند تا ابد با آن وارد شود. پنجره‌ی
@@ -115,7 +152,7 @@ export function verifyTelegramInitData(initData: string): InitDataResult {
   return {
     ok: true,
     user,
-    startParam: params.get("start_param"),
+    startParam: params.get("start_param") ?? null,
     authDate,
   };
 }
