@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { db } from "@/lib/db";
-import { verifySession, SESSION_COOKIE } from "@/lib/session";
+import { currentPlayerId } from "@/lib/current-player";
 import { ensureComboTables, COMBO_FREE_PER_DAY } from "@/lib/combos";
 
 export const dynamic = "force-dynamic";
@@ -16,8 +15,7 @@ type LegRow = {
 };
 
 export async function GET() {
-  const jar = await cookies();
-  const playerId = verifySession(jar.get(SESSION_COOKIE)?.value);
+  const playerId = await currentPlayerId();
   if (!playerId) return NextResponse.json({ ok: true, tickets: [], freeLeft: 0 });
 
   await ensureComboTables();

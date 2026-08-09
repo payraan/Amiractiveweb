@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { db } from "@/lib/db";
-import { verifySession, SESSION_COOKIE } from "@/lib/session";
+import { currentPlayerId } from "@/lib/current-player";
 import {
   ensureIrTables,
   oddsFor,
@@ -54,8 +53,7 @@ export async function GET(req: Request) {
     };
   });
 
-  const jar = await cookies();
-  const playerId = verifySession(jar.get(SESSION_COOKIE)?.value);
+  const playerId = await currentPlayerId();
   let balance = 0;
   const myBets: Record<number, { side: string; stake: number }> = {};
   if (playerId) {

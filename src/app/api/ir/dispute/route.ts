@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { db } from "@/lib/db";
-import { verifySession, SESSION_COOKIE } from "@/lib/session";
+import { currentPlayerId } from "@/lib/current-player";
 import { ensureIrTables, DISPUTE_HOURS } from "@/lib/iran";
 
 export const dynamic = "force-dynamic";
@@ -14,8 +13,7 @@ export const dynamic = "force-dynamic";
  * ۲۴ ساعته پذیرفته می‌شود و هر کاربر روی هر بازار یک بار.
  */
 export async function POST(req: Request) {
-  const jar = await cookies();
-  const playerId = verifySession(jar.get(SESSION_COOKIE)?.value);
+  const playerId = await currentPlayerId();
   if (!playerId) {
     return NextResponse.json({ ok: false, error: "not_authed" }, { status: 401 });
   }
@@ -82,8 +80,7 @@ export async function POST(req: Request) {
 
 /** وضعیت اعتراض خودِ کاربر روی یک بازار — برای نمایش دکمه */
 export async function GET(req: Request) {
-  const jar = await cookies();
-  const playerId = verifySession(jar.get(SESSION_COOKIE)?.value);
+  const playerId = await currentPlayerId();
   const marketId = Number(new URL(req.url).searchParams.get("market"));
   if (!Number.isInteger(marketId)) {
     return NextResponse.json({ ok: false, error: "bad_market" }, { status: 400 });

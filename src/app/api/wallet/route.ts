@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { db } from "@/lib/db";
-import { verifySession, SESSION_COOKIE } from "@/lib/session";
+import { currentPlayerId } from "@/lib/current-player";
 import { ensureIrTables } from "@/lib/iran";
 import { getDepositAddress, gatewayReady, USDT_NETWORK } from "@/lib/zovix";
 
@@ -9,8 +8,7 @@ export const dynamic = "force-dynamic";
 
 /** موجودی، آدرس واریز و تاریخچه‌ی دفترکل */
 export async function GET() {
-  const jar = await cookies();
-  const playerId = verifySession(jar.get(SESSION_COOKIE)?.value);
+  const playerId = await currentPlayerId();
   if (!playerId) {
     return NextResponse.json({ ok: false, error: "not_authed" }, { status: 401 });
   }

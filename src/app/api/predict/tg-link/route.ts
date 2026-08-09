@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { verifySession, SESSION_COOKIE } from "@/lib/session";
+import { currentPlayerId } from "@/lib/current-player";
 import { botReady, createLinkCode, getTgStatus } from "@/lib/telegram";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const jar = await cookies();
-  const playerId = verifySession(jar.get(SESSION_COOKIE)?.value);
+  const playerId = await currentPlayerId();
   if (!playerId) {
     return NextResponse.json({ ok: true, authed: false, status: null });
   }
@@ -18,8 +16,7 @@ export async function GET() {
 }
 
 export async function POST() {
-  const jar = await cookies();
-  const playerId = verifySession(jar.get(SESSION_COOKIE)?.value);
+  const playerId = await currentPlayerId();
   if (!playerId) {
     return NextResponse.json({ ok: false, error: "not_authed" }, { status: 401 });
   }

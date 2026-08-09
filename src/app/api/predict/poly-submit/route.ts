@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { db, touchActivity } from "@/lib/db";
-import { verifySession, SESSION_COOKIE } from "@/lib/session";
+import { currentPlayerId } from "@/lib/current-player";
 import {
   getCuratedMarkets,
   findMarket,
@@ -15,8 +14,7 @@ export const dynamic = "force-dynamic";
 type Body = { marketId?: string; choice?: string };
 
 export async function POST(req: Request) {
-  const jar = await cookies();
-  const playerId = verifySession(jar.get(SESSION_COOKIE)?.value);
+  const playerId = await currentPlayerId();
   if (!playerId) {
     return NextResponse.json({ ok: false, error: "not_authed" }, { status: 401 });
   }
