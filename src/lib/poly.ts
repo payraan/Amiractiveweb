@@ -3,6 +3,7 @@
 // یعنی فقط «بهتر از بازار فهمیدن» امتیاز مثبت می‌سازد — مهارت، نه شانس.
 
 import { db } from "@/lib/db";
+import { winPoints, losePoints } from "@/lib/poly-scoring";
 
 export const POLY_FREE_PER_DAY = 5; // پیش‌بینی رایگان روزانه
 export const POLY_EXTRA_COST = 1; // هزینه‌ی هر پیش‌بینی اضافه (MOON)
@@ -47,12 +48,8 @@ function categoryFor(slugs: string[]): { id: string; label: string } {
   return { id: "other", label: "سایر" };
 }
 
-export function winPoints(probPct: number): number {
-  return Math.max(1, Math.round(100 - probPct));
-}
-export function losePoints(probPct: number): number {
-  return -Math.max(1, Math.round(probPct));
-}
+// از فایل مستقل می‌آید تا کلاینت هم بتواند همان فرمول را نشان بدهد.
+export { winPoints, losePoints };
 
 // ── curated markets cache ──────────────────────────────────────
 let marketsCache: { data: PolyMarket[]; ts: number } | null = null;
