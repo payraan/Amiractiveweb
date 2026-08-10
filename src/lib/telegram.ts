@@ -451,22 +451,56 @@ function faDate(iso: string): string {
   });
 }
 
+/**
+ * حالت کارت:
+ *  • forward — دکمه‌های لینک. موقع فوروارد باقی می‌مانند، ولی نسخه‌ی
+ *    فوروارد‌شده پیام مستقلی است که ربات نمی‌تواند ویرایشش کند، پس درصدهایش
+ *    برای همیشه روی همان لحظه یخ می‌زند. کارت این را صریح می‌گوید.
+ *  • live — دکمه‌های callback. رأی درجا می‌گیرند و ربات می‌تواند پیام را
+ *    ویرایش کند، ولی *در فوروارد حذف می‌شوند*. فقط وقتی معنی دارد که خودِ
+ *    ربات مستقیم در کانال پست کرده باشد، یعنی آنجا ادمین باشد.
+ *
+ * این دوگانگی انتخاب ما نیست؛ محدودیت خود تلگرام است. هر کدام یکی از دو
+ * چیز را می‌دهد و نمی‌شود هر دو را با هم داشت.
+ */
+export type PollMode = "forward" | "live";
+
 /** متن و دکمه‌های پیام نظرسنجی یک بازار. */
-export function marketPoll(m: MarketPollInput): {
-  text: string;
-  buttons: InlineButton[][];
-} {
+export function marketPoll(
+  m: MarketPollInput,
+  mode: PollMode = "forward"
+): { text: string; buttons: InlineButton[][] } {
   const noPct = Math.round((100 - m.yesPct) * 10) / 10;
   const app = BOT_USERNAME ? `https://t.me/${BOT_USERNAME}/market` : "";
   const deep = app ? `${app}?startapp=market_${m.id}` : "";
+
+  const freshness =
+    mode === "live"
+      ? "🔄 درصدها خودکار به‌روز می‌شوند"
+      : "📌 درصدها در لحظه‌ی اشتراک‌گذاری — برای عدد زنده دکمه را بزن";
 
   const text =
     `<b>${m.question}</b>\n\n` +
     `<code>${bar(m.yesPct)}</code>\n` +
     `بله ${m.yesPct}٪  ·  خیر ${noPct}٪\n\n` +
     `👥 ${m.bettors} شرکت‌کننده   💵 ${m.volume.toFixed(0)} تتر\n` +
-    `⏳ تا ${faDate(m.closesAt)}\n\n` +
+    `⏳ تا ${faDate(m.closesAt)}\n` +
+    `${freshness}\n\n` +
     `<i>پیش‌بینی با تتر واقعی — سود تضمینی نداریم و امتیاز خریدنی نیست.</i>`;
+
+  if (mode === "live") {
+    // callback_data سقف ۶۴ بایت دارد، پس کوتاه نگه داشته می‌شود.
+    return {
+      text,
+      buttons: [
+        [
+          { text: `✅ بله (${m.yesPct}٪)`, callback_data: `v:y:${m.id}` },
+          { text: `❌ خیر (${noPct}٪)`, callback_data: `v:n:${m.id}` },
+        ],
+        ...(deep ? [[{ text: "📊 باز کردن بازار", url: deep }]] : []),
+      ],
+    };
+  }
 
   // دو دکمه‌ی بالا برای کسی که حساب دارد، دکمه‌ی سوم برای تازه‌وارد.
   // تشخیصِ «حساب دارد یا نه» را خود تلگرام انجام نمی‌دهد، پس هر دو مسیر
@@ -489,18 +523,53 @@ export function marketPoll(m: MarketPollInput): {
 /** ارسال نظرسنجی یک بازار به یک کانال یا گروه. */
 export async function sendMarketPoll(
   chatId: string | number,
-  m: MarketPollInput
-): Promise<{ ok: boolean; error?: string }> {
-  const { text, buttons } = marketPoll(m);
+  m: MarketPollInput,
+  mode: PollMode = "forward"
+): Promise<{ ok: boolean; messageId?: number; error?: string }> {
+  const { text, buttons } = marketPoll(m, mode);
   if (!buttons.length) return { ok: false, error: "bot_not_configured" };
-  const r = await tgCall("sendMessage", {
+  const r = await tgCall<{ message_id: number }>("sendMessage", {
     chat_id: chatId,
     text,
     parse_mode: "HTML",
     link_preview_options: { is_disabled: true },
     reply_markup: { inline_keyboard: buttons },
   });
+  return r.ok
+    ? { ok: true, messageId: r.result.message_id }
+    : { ok: false, error: r.error };
+}
+
+/** ویرایش یک کارت منتشرشده با اعداد تازه. */
+export async function editMarketPoll(
+  chatId: string | number,
+  messageId: number,
+  m: MarketPollInput,
+  mode: PollMode = "live"
+): Promise<{ ok: boolean; error?: string }> {
+  const { text, buttons } = marketPoll(m, mode);
+  const r = await tgCall("editMessageText", {
+    chat_id: chatId,
+    message_id: messageId,
+    text,
+    parse_mode: "HTML",
+    link_preview_options: { is_disabled: true },
+    reply_markup: { inline_keyboard: buttons },
+  });
   return r.ok ? { ok: true } : { ok: false, error: r.error };
+}
+
+/** پاسخ فوری به لمس دکمه — توست کوچک بالای صفحه‌ی کاربر. */
+export async function answerCallback(
+  callbackId: string,
+  text: string,
+  alert = false
+): Promise<void> {
+  await tgCall("answerCallbackQuery", {
+    callback_query_id: callbackId,
+    text,
+    show_alert: alert,
+  });
 }
 
 /** پیام به کاربر بر اساس شناسه‌ی بازیکن (اگر تلگرامش وصل باشد). */

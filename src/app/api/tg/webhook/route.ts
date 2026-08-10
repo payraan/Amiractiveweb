@@ -5,6 +5,7 @@ import {
   playerByTgUserId,
   grantGroupBonus,
   sendTelegram,
+  answerCallback,
   type InlineButton,
 } from "@/lib/telegram";
 
@@ -152,6 +153,46 @@ async function handleMessage(tg: TgUser, chatId: number, text: string) {
   // هر چیز دیگر: بی‌سروصدا رد می‌شود. ربات نباید به هر پیام گروه جواب بدهد.
 }
 
+/**
+ * لمس «بله/خیر» روی کارتی که ربات مستقیم در کانال پست کرده.
+ *
+ * ⚠️ اینجا هیچ پولی جابه‌جا نمی‌شود و عمدا نمی‌شود: شرط تتری مبلغ لازم دارد و
+ * یک دکمه مبلغ ندارد. اگر مبلغ ثابتی فرض می‌کردیم، یک لمس اشتباه در کانال
+ * پول واقعی خرج می‌کرد، بدون هیچ تأییدی. پس لمس فقط «قصد» را ثبت می‌کند و
+ * تأیید مبلغ به چت خصوصی می‌رود.
+ */
+async function handleVote(
+  cbId: string,
+  tg: TgUser,
+  side: "yes" | "no",
+  marketId: number
+) {
+  const label = side === "yes" ? "بله" : "خیر";
+  const player = await playerByTgUserId(tg.id, tg.username);
+
+  if (!player) {
+    await answerCallback(
+      cbId,
+      "برای شرکت اول باید حساب بسازی. ربات را باز کن و Start بزن.",
+      true
+    );
+    return;
+  }
+
+  await answerCallback(cbId, `«${label}» انتخاب شد — ادامه در چت ربات`);
+
+  const deep = SITE_URL
+    ? `https://t.me/${process.env.TG_BOT_USERNAME}/market?startapp=market_${marketId}_${side}`
+    : "";
+  await sendTelegram(
+    tg.id,
+    `طرف <b>${label}</b> را انتخاب کردی.\n\n` +
+      `برای ثبت شرط، مبلغش را در اپ تأیید کن — از یک دکمه نمی‌شود مبلغ گرفت و ` +
+      `نمی‌خواهیم پول با یک لمس جابه‌جا شود.`,
+    deep ? [[{ text: `ثبت شرط روی ${label}`, url: deep }]] : []
+  );
+}
+
 export async function POST(req: Request) {
   if (!webhookSecretValid(req.headers.get("x-telegram-bot-api-secret-token"))) {
     return NextResponse.json({ ok: false }, { status: 401 });
@@ -168,6 +209,23 @@ export async function POST(req: Request) {
     const msg = update.message;
     if (msg?.from && typeof msg.text === "string") {
       await handleMessage(msg.from, msg.chat.id, msg.text);
+    }
+
+    const cb = update.callback_query;
+    if (cb?.data) {
+      const m = /^v:([yn]):(\d+)$/.exec(cb.data);
+      if (m) {
+        await handleVote(
+          cb.id,
+          cb.from,
+          m[1] === "y" ? "yes" : "no",
+          Number(m[2])
+        );
+      } else {
+        // دکمه‌ی ناشناخته را هم باید جواب داد، وگرنه تلگرام تا ۳۰ ثانیه
+        // ساعت شنی روی دکمه نگه می‌دارد و کاربر فکر می‌کند گیر کرده.
+        await answerCallback(cb.id, "");
+      }
     }
   } catch {
     // خطای ما نباید باعث شود تلگرام همان آپدیت را بی‌پایان دوباره بفرستد.

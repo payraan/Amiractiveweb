@@ -105,6 +105,44 @@ export default function IrMarkets() {
     load();
   }, [load]);
 
+  // انتشار در کانال. دو حالت، چون تلگرام اجازه نمی‌دهد هر دو را با هم داشت:
+  //  • live     — دکمه‌های callback، رأی درجا و درصدهای خودکار. ربات باید در
+  //               آن کانال ادمین باشد و کارت با فوروارد دکمه‌هایش را از دست
+  //               می‌دهد.
+  //  • forward  — دکمه‌های لینک، در فوروارد باقی می‌مانند، ولی درصدها روی
+  //               همان لحظه یخ می‌زنند و کارت هم همین را می‌نویسد.
+  async function publish(id: number, mode: "live" | "forward") {
+    const chatId = window.prompt(
+      mode === "live"
+        ? "شناسه‌ی کانال برای ارسال زنده (@username یا -100…).\nربات باید در آن کانال ادمین باشد."
+        : "شناسه‌ی کانال یا چت برای کارت فوروارد (@username یا -100…)."
+    );
+    if (!chatId?.trim()) return;
+    setBusy(id);
+    try {
+      const r = await fetch("/api/admin/ir-poll", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ marketId: id, chatId: chatId.trim(), mode }),
+      });
+      const j = await r.json();
+      window.alert(
+        j.ok
+          ? mode === "live"
+            ? "ارسال شد. درصدها هر ۱۵ دقیقه خودکار به‌روز می‌شوند."
+            : "ارسال شد. حالا می‌توانی فورواردش کنی."
+          : j.error === "market_not_open"
+            ? "فقط بازار باز را می‌شود منتشر کرد."
+            : `ارسال نشد: ${j.error}`
+      );
+      if (j.ok) load();
+    } catch {
+      window.alert("ارتباط با سرور برقرار نشد.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function act(id: number, action: string, extra?: Record<string, unknown>) {
     setBusy(id);
     setMsg(null);
@@ -329,9 +367,17 @@ export default function IrMarkets() {
                   </>
                 )}
                 {m.status === "open" && (
-                  <Btn busy={busy === m.id} onClick={() => act(m.id, "lock")}>
-                    بستن دستی
-                  </Btn>
+                  <>
+                    <Btn busy={busy === m.id} onClick={() => act(m.id, "lock")}>
+                      بستن دستی
+                    </Btn>
+                    <Btn busy={busy === m.id} onClick={() => publish(m.id, "live")}>
+                      ارسال زنده به کانال
+                    </Btn>
+                    <Btn busy={busy === m.id} onClick={() => publish(m.id, "forward")}>
+                      کارت فوروارد
+                    </Btn>
+                  </>
                 )}
                 {(m.status === "open" || m.status === "locked") && (
                   <>

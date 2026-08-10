@@ -170,6 +170,26 @@ export async function ensureIrTables(): Promise<void> {
       await pool.query(
         "CREATE INDEX IF NOT EXISTS prv_created_idx ON platform_revenue(created_at DESC)"
       );
+
+      // ── پست‌های کانال ────────────────────────────────────
+      // برای اینکه کرون بتواند درصدهای یک کارت منتشرشده را به‌روز کند، باید
+      // بداند آن کارت کجا و با کدام شناسه‌ی پیام نشسته. ربات فقط پیامی را
+      // می‌تواند ویرایش کند که خودش فرستاده و شناسه‌اش را دارد؛ نسخه‌ی
+      // فوروارد‌شده پیام مستقلی است و از دسترس بیرون.
+      await pool.query(
+        `CREATE TABLE IF NOT EXISTS ir_market_posts (
+           id BIGSERIAL PRIMARY KEY,
+           market_id INTEGER NOT NULL REFERENCES ir_markets(id) ON DELETE CASCADE,
+           chat_id TEXT NOT NULL,
+           message_id BIGINT NOT NULL,
+           last_yes_pct NUMERIC(5,1),
+           created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+           UNIQUE (chat_id, message_id)
+         )`
+      );
+      await pool.query(
+        "CREATE INDEX IF NOT EXISTS imp_market_idx ON ir_market_posts(market_id)"
+      );
     });
   }
   return ready;

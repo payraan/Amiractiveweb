@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { db } from "@/lib/db";
 import { verifyAdmin, ADMIN_COOKIE } from "@/lib/admin";
-import { ensureIrTables, impliedPct } from "@/lib/iran";
-import { botReady, sendMarketPoll } from "@/lib/telegram";
+import { botReady } from "@/lib/telegram";
+import { postMarket } from "@/lib/ir-posts";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +26,7 @@ export async function POST(req: Request) {
     );
   }
 
-  let body: { marketId?: number; chatId?: string };
+  let body: { marketId?: number; chatId?: string; mode?: string };
   try {
     body = await req.json();
   } catch {
@@ -36,41 +35,19 @@ export async function POST(req: Request) {
 
   const marketId = Number(body.marketId);
   const chatId = String(body.chatId ?? "").trim();
+  // live فقط وقتی کار می‌کند که ربات در آن کانال ادمین باشد؛ forward برای
+  // جایی است که نیست و کارت قرار است دست‌به‌دست شود.
+  const mode = body.mode === "live" ? "live" : "forward";
   if (!Number.isInteger(marketId) || !chatId) {
     return NextResponse.json({ ok: false, error: "bad_request" }, { status: 400 });
   }
 
-  await ensureIrTables();
-  const pool = await db();
-  const r = await pool.query(
-    `SELECT id, question, category, status, yes_total, no_total, bettors, closes_at
-       FROM ir_markets WHERE id=$1`,
-    [marketId]
-  );
-  if (!r.rowCount) {
-    return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
-  }
-  const m = r.rows[0];
-  // بازار بسته را نباید به‌عنوان نظرسنجی فرستاد؛ مخاطب روی چیزی کلیک می‌کند
-  // که دیگر نمی‌تواند در آن شرکت کند.
-  if (m.status !== "open") {
-    return NextResponse.json({ ok: false, error: "market_not_open" }, { status: 409 });
-  }
-
-  const yes = Number(m.yes_total);
-  const no = Number(m.no_total);
-  const sent = await sendMarketPoll(chatId, {
-    id: m.id,
-    question: m.question,
-    category: m.category,
-    yesPct: impliedPct(yes, no),
-    bettors: m.bettors,
-    volume: yes + no,
-    closesAt: m.closes_at,
-  });
-
+  const sent = await postMarket(marketId, chatId, mode);
   if (!sent.ok) {
-    return NextResponse.json({ ok: false, error: sent.error }, { status: 502 });
+    const status =
+      sent.error === "not_found" ? 404 : sent.error === "market_not_open" ? 409 : 502;
+    return NextResponse.json({ ok: false, error: sent.error }, { status });
   }
+
   return NextResponse.json({ ok: true });
 }

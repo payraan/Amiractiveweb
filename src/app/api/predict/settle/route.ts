@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { settleDueRounds } from "@/lib/settle";
 import { settlePolyDue } from "@/lib/poly";
 import { settleCombosDue } from "@/lib/combos";
+import { refreshMarketPosts } from "@/lib/ir-posts";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,14 @@ export async function POST(req: Request) {
     out.combos = await settleCombosDue();
   } catch (err) {
     out.combosError = err instanceof Error ? err.message : "error";
+  }
+
+  // کارت‌های منتشرشده در کانال هم روی همین کرون تازه می‌شوند — یک زمان‌بند
+  // کمتر برای نگهداری، و همان بازه‌ای که تسویه دارد برای درصدها هم کافی است.
+  try {
+    out.posts = await refreshMarketPosts();
+  } catch (err) {
+    out.postsError = err instanceof Error ? err.message : "error";
   }
 
   try {
