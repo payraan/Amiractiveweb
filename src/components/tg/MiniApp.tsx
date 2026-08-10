@@ -162,7 +162,7 @@ export default function MiniApp({ siteUrl }: { siteUrl: string }) {
                 </div>
               )}
 
-              {tab === "markets" && <MarketsScreen />}
+              {tab === "markets" && <MarketsScreen siteUrl={siteUrl} />}
               {tab === "trade" && <TradeScreen />}
               {tab === "wallet" && <WalletScreen />}
               {tab === "profile" && <ProfileScreen siteUrl={siteUrl} />}

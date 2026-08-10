@@ -416,6 +416,93 @@ export async function sendTelegram(
   return r.ok;
 }
 
+// ── نظرسنجی بازار در کانال ───────────────────────────────────
+//
+// عمدا poll بومی تلگرام نیست. poll بومی هویت رأی‌دهنده را نمی‌دهد، پس نه
+// می‌شود رأی را به حسابی وصل کرد و نه شرط تتری ثبت کرد — یعنی حلقه‌ی امتیاز
+// و پول بسته نمی‌شود. دکمه‌ی شیشه‌ای با لینک مینی‌اپ این را حل می‌کند:
+// کاربر روی همان بازار وارد اپ می‌شود و آنجا هویتش با initData اثبات است.
+//
+// دکمه‌ها لینک‌اند نه callback_query: با لینک، تلگرام خودش مینی‌اپ را روی
+// همان بازار باز می‌کند و ما یک رفت‌وبرگشت و یک حالت میانی کمتر داریم.
+
+export type MarketPollInput = {
+  id: number;
+  question: string;
+  category: string;
+  yesPct: number;
+  bettors: number;
+  volume: number;
+  closesAt: string;
+};
+
+function bar(yesPct: number): string {
+  const filled = Math.round((Math.max(0, Math.min(100, yesPct)) / 100) * 10);
+  return "█".repeat(filled) + "░".repeat(10 - filled);
+}
+
+function faDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("fa-IR", {
+    timeZone: "Asia/Tehran",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+/** متن و دکمه‌های پیام نظرسنجی یک بازار. */
+export function marketPoll(m: MarketPollInput): {
+  text: string;
+  buttons: InlineButton[][];
+} {
+  const noPct = Math.round((100 - m.yesPct) * 10) / 10;
+  const app = BOT_USERNAME ? `https://t.me/${BOT_USERNAME}/market` : "";
+  const deep = app ? `${app}?startapp=market_${m.id}` : "";
+
+  const text =
+    `<b>${m.question}</b>\n\n` +
+    `<code>${bar(m.yesPct)}</code>\n` +
+    `بله ${m.yesPct}٪  ·  خیر ${noPct}٪\n\n` +
+    `👥 ${m.bettors} شرکت‌کننده   💵 ${m.volume.toFixed(0)} تتر\n` +
+    `⏳ تا ${faDate(m.closesAt)}\n\n` +
+    `<i>پیش‌بینی با تتر واقعی — سود تضمینی نداریم و امتیاز خریدنی نیست.</i>`;
+
+  // دو دکمه‌ی بالا برای کسی که حساب دارد، دکمه‌ی سوم برای تازه‌وارد.
+  // تشخیصِ «حساب دارد یا نه» را خود تلگرام انجام نمی‌دهد، پس هر دو مسیر
+  // نشان داده می‌شود و مقصدشان یکی است — مینی‌اپ خودش می‌فهمد کاربر تازه
+  // است و حساب می‌سازد.
+  const buttons: InlineButton[][] = deep
+    ? [
+        [
+          { text: `✅ بله (${m.yesPct}٪)`, url: `${deep}_yes` },
+          { text: `❌ خیر (${noPct}٪)`, url: `${deep}_no` },
+        ],
+        [{ text: "📊 دیدن بازار و شرط‌بستن", url: deep }],
+        [{ text: "🆕 حساب ندارم — شروع کن", url: `${app}?startapp=join_${m.id}` }],
+      ]
+    : [];
+
+  return { text, buttons };
+}
+
+/** ارسال نظرسنجی یک بازار به یک کانال یا گروه. */
+export async function sendMarketPoll(
+  chatId: string | number,
+  m: MarketPollInput
+): Promise<{ ok: boolean; error?: string }> {
+  const { text, buttons } = marketPoll(m);
+  if (!buttons.length) return { ok: false, error: "bot_not_configured" };
+  const r = await tgCall("sendMessage", {
+    chat_id: chatId,
+    text,
+    parse_mode: "HTML",
+    link_preview_options: { is_disabled: true },
+    reply_markup: { inline_keyboard: buttons },
+  });
+  return r.ok ? { ok: true } : { ok: false, error: r.error };
+}
+
 /** پیام به کاربر بر اساس شناسه‌ی بازیکن (اگر تلگرامش وصل باشد). */
 export async function notifyPlayer(playerId: number, text: string): Promise<boolean> {
   await ensureTelegramTables();

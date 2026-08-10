@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/components/tg/api";
 import { haptic, hasMainButton, showBackButton } from "@/components/tg/telegram";
+import { shareText } from "@/components/tg/share";
 import { useMainButton } from "@/components/tg/useMainButton";
 
 // صفحه‌ی یک بازار و ثبت شرط — روی همان /api/ir/bet سایت.
@@ -41,6 +42,7 @@ const money = (n: number) =>
 
 export default function MarketDetail({
   market,
+  siteUrl,
   balance,
   minStake,
   commission,
@@ -49,6 +51,7 @@ export default function MarketDetail({
   onPlaced,
 }: {
   market: Market;
+  siteUrl: string;
   balance: number;
   minStake: number;
   commission: number;
@@ -180,6 +183,23 @@ export default function MarketDetail({
           </div>
         </div>
       )}
+
+      {/* اشتراک‌گذاری: لینک مستقیم به همان بازار روی سایت، که تصویر پیش‌نمایش
+          OG هم دارد. متن، اجماع فعلی را می‌برد تا گیرنده بدون باز کردن هم
+          بفهمد بازار سر چیست. */}
+      <button
+        type="button"
+        onClick={() => {
+          haptic.press();
+          shareText(
+            `${market.question}\n\nاجماع بازار: بله ${market.yesPct}٪ — ${market.bettors} شرکت‌کننده\nنظر تو چیست؟`,
+            `${siteUrl}/iran/m/${market.id}`
+          );
+        }}
+        className="mt-4 w-full rounded-xl border border-gold/30 bg-gold/10 py-3 text-[11.5px] font-bold text-gold transition active:border-gold"
+      >
+        اشتراک‌گذاری این بازار
+      </button>
 
       {!canBet ? (
         <p className="mt-4 rounded-xl border border-line bg-surface/30 p-4 text-center text-[11px] text-muted">

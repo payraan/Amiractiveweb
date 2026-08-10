@@ -63,7 +63,7 @@ function sortMarkets(list: Market[], sort: SortId): Market[] {
   });
 }
 
-export default function MarketsScreen() {
+export default function MarketsScreen({ siteUrl }: { siteUrl: string }) {
   const [cat, setCat] = useState("all");
   const [sort, setSort] = useState<SortId>("hot");
   const [onlyOpen, setOnlyOpen] = useState(false);
@@ -102,6 +102,7 @@ export default function MarketsScreen() {
     return (
       <MarketDetail
         market={open}
+        siteUrl={siteUrl}
         balance={data.balance}
         minStake={data.config.minStake}
         commission={data.config.commission}
