@@ -47,6 +47,7 @@ export default function MarketDetail({
   minStake,
   commission,
   myBet,
+  initialSide,
   onBack,
   onPlaced,
 }: {
@@ -56,10 +57,12 @@ export default function MarketDetail({
   minStake: number;
   commission: number;
   myBet?: { side: string; stake: number };
+  /** طرفی که کاربر در کانال رویش کلیک کرده — از پیش انتخاب می‌شود. */
+  initialSide?: "yes" | "no" | null;
   onBack: () => void;
   onPlaced: () => void;
 }) {
-  const [side, setSide] = useState<"yes" | "no" | null>(null);
+  const [side, setSide] = useState<"yes" | "no" | null>(initialSide ?? null);
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);

@@ -63,12 +63,21 @@ function sortMarkets(list: Market[], sort: SortId): Market[] {
   });
 }
 
-export default function MarketsScreen({ siteUrl }: { siteUrl: string }) {
+export default function MarketsScreen({
+  siteUrl,
+  deepLink,
+}: {
+  siteUrl: string;
+  deepLink?: { marketId: number; side: "yes" | "no" | null } | null;
+}) {
   const [cat, setCat] = useState("all");
   const [sort, setSort] = useState<SortId>("hot");
   const [onlyOpen, setOnlyOpen] = useState(false);
   const [proposing, setProposing] = useState(false);
-  const [openId, setOpenId] = useState<number | null>(null);
+  // مقصد deep link به‌عنوان مقدار اولیه‌ی state می‌نشیند، نه در یک افکت:
+  // این‌طور یک‌بار اعمال می‌شود، بازگشت کاربر آن را دوباره باز نمی‌کند، و
+  // setState داخل افکت هم لازم نمی‌شود.
+  const [openId, setOpenId] = useState<number | null>(deepLink?.marketId ?? null);
   const { data, error, reload } = useResource<MarketsResponse>(
     `/api/ir/markets?category=${encodeURIComponent(cat)}`
   );
@@ -107,6 +116,7 @@ export default function MarketsScreen({ siteUrl }: { siteUrl: string }) {
         minStake={data.config.minStake}
         commission={data.config.commission}
         myBet={data.myBets?.[open.id]}
+        initialSide={open.id === deepLink?.marketId ? deepLink.side : null}
         onBack={() => setOpenId(null)}
         onPlaced={() => {
           setOpenId(null);

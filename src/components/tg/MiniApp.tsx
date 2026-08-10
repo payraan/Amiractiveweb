@@ -19,6 +19,22 @@ import Logo from "@/components/Logo";
 //
 // هیچ روت اختصاصی مینی‌اپی وجود ندارد؛ صفحه‌ها همان API سایت را صدا می‌زنند.
 
+/**
+ * مقصد deep link از startapp.
+ *
+ * شکل‌ها: `market_42`، `market_42_yes`، `market_42_no`، `join_42`
+ * (`join_` از دکمه‌ی «حساب ندارم» می‌آید و مقصدش همان بازار است — کاربر باید
+ * ببیند سرِ چه چیزی ثبت‌نام می‌کند، نه اینکه در فهرست کلی رها شود.)
+ */
+function parseStartParam(
+  raw: string | null
+): { marketId: number; side: "yes" | "no" | null } | null {
+  if (!raw) return null;
+  const m = /^(?:market|join)_(\d+)(?:_(yes|no))?$/.exec(raw);
+  if (!m) return null;
+  return { marketId: Number(m[1]), side: (m[2] as "yes" | "no") ?? null };
+}
+
 const AUTH_ERRORS: Record<string, string> = {
   not_configured: "ربات روی سرور پیکربندی نشده است.",
   malformed: "داده‌ی ورود تلگرام ناقص است. اپ را ببند و دوباره باز کن.",
@@ -32,6 +48,10 @@ const AUTH_ERRORS: Record<string, string> = {
 export default function MiniApp({ siteUrl }: { siteUrl: string }) {
   const [tab, setTab] = useState<TabId>("markets");
   const [player, setPlayer] = useState<AuthedPlayer | null>(null);
+  const [deepLink, setDeepLink] = useState<{
+    marketId: number;
+    side: "yes" | "no" | null;
+  } | null>(null);
   const [created, setCreated] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [outside, setOutside] = useState(false);
@@ -54,9 +74,14 @@ export default function MiniApp({ siteUrl }: { siteUrl: string }) {
       }
       setPlayer(r.player);
       setCreated(r.created);
-      // deep link: ?startapp=market_42 بعدا کاربر را مستقیم به همان بازار
-      // می‌برد. فعلا فقط تب درست را باز می‌کند.
-      if (r.startParam?.startsWith("market_")) setTab("markets");
+      // کسی که از دکمه‌ی کانال آمده باید مستقیم داخل همان بازار بیفتد، نه
+      // در فهرست کلی — وگرنه باید بین ده‌ها بازار دنبال همانی بگردد که
+      // رویش کلیک کرده.
+      const target = parseStartParam(r.startParam);
+      if (target) {
+        setDeepLink(target);
+        setTab("markets");
+      }
       setErr(null);
     } catch {
       setErr("ارتباط با سرور برقرار نشد.");
@@ -162,7 +187,9 @@ export default function MiniApp({ siteUrl }: { siteUrl: string }) {
                 </div>
               )}
 
-              {tab === "markets" && <MarketsScreen siteUrl={siteUrl} />}
+              {tab === "markets" && (
+                <MarketsScreen siteUrl={siteUrl} deepLink={deepLink} />
+              )}
               {tab === "trade" && <TradeScreen />}
               {tab === "wallet" && <WalletScreen />}
               {tab === "profile" && <ProfileScreen siteUrl={siteUrl} />}
