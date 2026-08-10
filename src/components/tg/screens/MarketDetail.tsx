@@ -63,6 +63,8 @@ export default function MarketDetail({
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const [sentToBot, setSentToBot] = useState(false);
   const nativeButton = typeof window === "undefined" ? true : hasMainButton();
 
   useEffect(() => showBackButton(onBack), [onBack]);
@@ -184,9 +186,61 @@ export default function MarketDetail({
         </div>
       )}
 
-      {/* اشتراک‌گذاری: لینک مستقیم به همان بازار روی سایت، که تصویر پیش‌نمایش
-          OG هم دارد. متن، اجماع فعلی را می‌برد تا گیرنده بدون باز کردن هم
-          بفهمد بازار سر چیست. */}
+      {/* دو مسیر انتشار، عمدا جدا:
+          • «کارت برای کانال» → ربات کارت دکمه‌دار را در چت خصوصی می‌فرستد و
+            کاربر فورواردش می‌کند. ربات هیچ‌جا ادمین نمی‌شود و دکمه‌ها بعد از
+            فوروارد هم کار می‌کنند (چون از نوع لینک‌اند نه callback).
+          • «اشتراک‌گذاری» → لینک ساده، از طرف خودِ کاربر، برای چت شخصی. */}
+      {market.status === "open" && (
+        <button
+          type="button"
+          disabled={sending}
+          onClick={async () => {
+            haptic.press();
+            setSending(true);
+            try {
+              await api("/api/ir/poll-me", {
+                method: "POST",
+                body: JSON.stringify({ marketId: market.id }),
+              });
+              haptic.success();
+              setSentToBot(true);
+            } catch (e) {
+              haptic.error();
+              // تلگرام اجازه نمی‌دهد ربات به کسی پیام بدهد که هرگز چت را
+              // شروع نکرده. کاربری که مینی‌اپ را از لینک مستقیم باز کرده
+              // ممکن است هیچ‌وقت /start نزده باشد، پس این حالت واقعی است و
+              // باید بگوید چه کار کند، نه فقط «انجام نشد».
+              const code = e instanceof ApiError ? e.code : "";
+              setMsg(
+                code === "send_failed"
+                  ? "اول چت ربات را باز کن و Start را بزن، بعد دوباره امتحان کن."
+                  : code === "telegram_required"
+                    ? "برای این کار باید حسابت به تلگرام وصل باشد."
+                    : "ارسال کارت به ربات انجام نشد."
+              );
+            } finally {
+              setSending(false);
+            }
+          }}
+          className="mt-4 w-full rounded-xl border border-gold/40 bg-gold/10 py-3.5 text-[12px] font-bold text-gold transition active:border-gold disabled:opacity-50"
+        >
+          {sending
+            ? "در حال ارسال…"
+            : sentToBot
+              ? "✓ در ربات فرستاده شد — فورواردش کن"
+              : "📢 کارت برای کانال بفرست"}
+        </button>
+      )}
+
+      {sentToBot && (
+        <p className="mt-2 rounded-xl border border-gain/30 bg-gain/5 px-4 py-3 text-[10.5px] leading-6 text-gain">
+          کارت در چت ربات برایت فرستاده شد. آن را به هر کانال یا گروهی که
+          ادمینش هستی فوروارد کن — دکمه‌هایش بعد از فوروارد هم کار می‌کنند و
+          ربات لازم نیست جایی ادمین شود.
+        </p>
+      )}
+
       <button
         type="button"
         onClick={() => {
@@ -196,9 +250,9 @@ export default function MarketDetail({
             `${siteUrl}/iran/m/${market.id}`
           );
         }}
-        className="mt-4 w-full rounded-xl border border-gold/30 bg-gold/10 py-3 text-[11.5px] font-bold text-gold transition active:border-gold"
+        className="mt-2.5 w-full rounded-xl border border-line bg-surface/40 py-3 text-[11.5px] font-bold text-cream transition active:border-gold"
       >
-        اشتراک‌گذاری این بازار
+        اشتراک‌گذاری لینک
       </button>
 
       {!canBet ? (
