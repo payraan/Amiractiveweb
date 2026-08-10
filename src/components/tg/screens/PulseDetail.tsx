@@ -5,6 +5,9 @@ import { api, ApiError } from "@/components/tg/api";
 import { haptic, hasMainButton, showBackButton } from "@/components/tg/telegram";
 import { useMainButton } from "@/components/tg/useMainButton";
 import { AssetBadge, type Me } from "@/components/tg/screens/PulseScreen";
+// همان نمودار سایت — نه یک نسخه‌ی دوم. lightweight-charts از قبل در باندل
+// هست، پس هزینه‌ی اضافه‌ای ندارد و رفتار هر دو سطح یکی می‌ماند.
+import LiveChart from "@/components/predict/LiveChart";
 import {
   TIMEFRAMES,
   tf,
@@ -165,6 +168,22 @@ export default function PulseDetail({
           بازار این دارایی الان بسته است؛ راند تازه با بازگشایی بازار فعال می‌شود.
         </p>
       )}
+
+      {/* key اجباری است — بدون آن نمودار بین دارایی‌ها بازاستفاده می‌شود. */}
+      <div className="mt-4 overflow-hidden rounded-2xl border border-line bg-ink/30 px-2 py-2">
+        <LiveChart key={`${market.asset}-${tfId}`} asset={market.asset} interval={tfId} />
+        <div
+          className="flex justify-between px-1 font-mono text-[9px] text-muted"
+          dir="ltr"
+        >
+          <span>{tfId} candles</span>
+          <span>
+            vol{" "}
+            {market.dailyVolPct == null ? "—" : `${market.dailyVolPct.toFixed(2)}%`} ·
+            scale ×{volScale}
+          </span>
+        </div>
+      </div>
 
       <div className="mt-4 flex gap-2">
         {TIMEFRAMES.map((x) => {
