@@ -1,8 +1,13 @@
 "use client";
 
+import { useCallback, useState } from "react";
 import { useResource } from "@/components/tg/useResource";
 import { ErrorState, ScreenTitle, Skeleton } from "@/components/tg/ui";
 import { IconArrow } from "@/components/tg/icons";
+import { haptic } from "@/components/tg/telegram";
+import DepositScreen from "@/components/tg/screens/DepositScreen";
+import WithdrawScreen from "@/components/tg/screens/WithdrawScreen";
+import BuyMoonScreen from "@/components/tg/screens/BuyMoonScreen";
 
 // کیف پول — از همان /api/wallet سایت.
 //
@@ -52,10 +57,43 @@ function when(iso: string): string {
 const money = (n: number) =>
   n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+type View = "main" | "deposit" | "withdraw" | "buy";
+
 export default function WalletScreen() {
   const { data: w, error, reload } = useResource<Wallet>("/api/wallet");
+  const [view, setView] = useState<View>("main");
+
+  const back = useCallback(() => setView("main"), []);
+  const done = useCallback(() => {
+    setView("main");
+    reload();
+  }, [reload]);
 
   if (error) return <ErrorState message="اطلاعات کیف پول نیامد." onRetry={reload} />;
+
+  if (w && view === "deposit") {
+    return (
+      <DepositScreen
+        address={w.address ?? null}
+        network={w.network ?? "TRON"}
+        gatewayReady={Boolean(w.gatewayReady)}
+        onBack={back}
+      />
+    );
+  }
+  if (w && view === "withdraw") {
+    return (
+      <WithdrawScreen
+        balance={w.balance}
+        network={w.network ?? "TRON"}
+        onBack={back}
+        onDone={done}
+      />
+    );
+  }
+  if (w && view === "buy") {
+    return <BuyMoonScreen balance={w.balance} onBack={back} onDone={done} />;
+  }
 
   if (!w) {
     return (
@@ -91,25 +129,38 @@ export default function WalletScreen() {
         <div className="pointer-events-none absolute -left-10 -top-10 h-32 w-32 rounded-full bg-gold/10 blur-2xl" />
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-3">
+      <div className="mt-3 grid grid-cols-3 gap-2.5">
         <button
           type="button"
-          disabled
-          className="rounded-xl border border-line bg-surface/40 py-3 text-xs font-bold text-muted opacity-60"
+          onClick={() => {
+            haptic.press();
+            setView("deposit");
+          }}
+          className="rounded-xl border border-gain/30 bg-gain/10 py-3 text-xs font-bold text-gain transition active:border-gain"
         >
           واریز
         </button>
         <button
           type="button"
-          disabled
-          className="rounded-xl border border-line bg-surface/40 py-3 text-xs font-bold text-muted opacity-60"
+          onClick={() => {
+            haptic.press();
+            setView("withdraw");
+          }}
+          className="rounded-xl border border-line bg-surface/40 py-3 text-xs font-bold text-cream transition active:border-gold"
         >
           برداشت
         </button>
+        <button
+          type="button"
+          onClick={() => {
+            haptic.press();
+            setView("buy");
+          }}
+          className="rounded-xl border border-gold/30 bg-gold/10 py-3 text-xs font-bold text-gold transition active:border-gold"
+        >
+          خرید MOON
+        </button>
       </div>
-      <p className="mt-2 text-center text-[10px] text-muted">
-        واریز و برداشت در مرحله‌ی بعد فعال می‌شود
-      </p>
 
       <div className="mb-2 mt-6 flex items-baseline justify-between">
         <h3 className="text-xs font-bold text-cream">تاریخچه</h3>

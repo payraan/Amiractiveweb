@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { currentPlayerId } from "@/lib/current-player";
 import { ensureIrTables, moveFunds } from "@/lib/iran";
 import { createWithdrawal, gatewayReady, USDT_NETWORK } from "@/lib/zovix";
+import { notifyPlayer } from "@/lib/telegram";
 
 export const dynamic = "force-dynamic";
 
@@ -115,6 +116,19 @@ export async function POST(req: Request) {
     "UPDATE withdrawals SET status='submitted', gateway_uuid=$2 WHERE unique_param=$1",
     [uniqueParam, r.data.uuid]
   );
+
+  // اعلان تلگرام — تنها لایه‌ی هشدار روی برداشت.
+  //
+  // برداشت تنها عملی است که پول را از پلتفرم بیرون می‌برد و برگشت‌ناپذیر
+  // است، و هیچ تأیید دومی ندارد. این پیام جلوی سوءاستفاده را نمی‌گیرد، ولی
+  // به صاحب حساب فرصت می‌دهد بلافاصله بفهمد و خبر بدهد. خطایش عمدا بلعیده
+  // می‌شود: نرسیدن پیام نباید برداشتی را که در درگاه ثبت شده خراب کند.
+  notifyPlayer(
+    playerId,
+    `🔔 درخواست برداشت <b>${amount}</b> تتر از حساب نارمون ثبت شد.\n\n` +
+      `مقصد: <code>${toAddress.slice(0, 6)}…${toAddress.slice(-6)}</code>\n\n` +
+      `اگر این کار را تو نکرده‌ای، همین حالا به پشتیبانی خبر بده.`
+  ).catch(() => {});
 
   return NextResponse.json({ ok: true, uuid: r.data.uuid, amount });
 }
