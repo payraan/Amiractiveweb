@@ -446,3 +446,63 @@ export async function settleIrMarket(
     client.release();
   }
 }
+
+/**
+ * تسویه‌ی خودکار همه‌ی بازارهایی که آماده‌اند.
+ *
+ * چرا لازم است: تا پیش از این، `settleIrMarket` تنها از پنل ادمین و بازار به
+ * بازار صدا زده می‌شد. یعنی تنها بخشی از پلتفرم که پول واقعی دارد، تنها بخشی
+ * بود که ماشه‌ی خودکار نداشت و پول کاربر تا وقتی ادمین یادش نمی‌افتاد در
+ * وضعیت settling می‌ماند.
+ *
+ * تعیین نتیجه (`resolve`) عمدا دستی می‌ماند — آن قضاوت انسانی است. این تابع
+ * فقط بازاری را برمی‌دارد که نتیجه‌اش قبلا اعلام شده، پنجره‌ی اعتراضش تمام
+ * شده، و اعتراض رسیدگی‌نشده ندارد.
+ *
+ * انتخاب اولیه فقط یک فیلتر ارزان است؛ تصمیم واقعی داخل `settleIrMarket` پشت
+ * قفل ردیف دوباره گرفته می‌شود، پس اجرای همزمان دو کرون پرداخت دوباره نمی‌سازد.
+ */
+export async function settleDueIrMarkets(limit = 50): Promise<{
+  checked: number;
+  settled: number;
+  voided: number;
+  paid: number;
+  errors: { id: number; error: string }[];
+}> {
+  await ensureIrTables();
+  const pool = await db();
+  const due = await pool.query<{ id: number }>(
+    `SELECT m.id FROM ir_markets m
+      WHERE m.status = 'settling'
+        AND m.settled_at IS NOT NULL
+        AND m.settled_at < now() - ($1 || ' hours')::interval
+        AND NOT EXISTS (
+          SELECT 1 FROM ir_disputes d
+           WHERE d.market_id = m.id AND d.status = 'open'
+        )
+      ORDER BY m.settled_at
+      LIMIT $2`,
+    [String(DISPUTE_HOURS), limit]
+  );
+
+  let settled = 0;
+  let voided = 0;
+  let paid = 0;
+  const errors: { id: number; error: string }[] = [];
+
+  for (const row of due.rows) {
+    // هر بازار جدا؛ خطای یکی نباید بقیه را متوقف کند.
+    const r = await settleIrMarket(row.id);
+    if (!r.ok) {
+      errors.push({ id: row.id, error: r.error ?? "error" });
+      continue;
+    }
+    if (r.voided) voided++;
+    else {
+      settled++;
+      paid += r.paid ?? 0;
+    }
+  }
+
+  return { checked: due.rows.length, settled, voided, paid, errors };
+}

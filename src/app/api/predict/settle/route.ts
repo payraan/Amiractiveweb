@@ -3,6 +3,7 @@ import { settleDueRounds } from "@/lib/settle";
 import { settlePolyDue } from "@/lib/poly";
 import { settleCombosDue } from "@/lib/combos";
 import { refreshMarketPosts } from "@/lib/ir-posts";
+import { settleDueIrMarkets } from "@/lib/iran";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,15 @@ export async function POST(req: Request) {
     out.combos = await settleCombosDue();
   } catch (err) {
     out.combosError = err instanceof Error ? err.message : "error";
+  }
+
+  // بازار ایران — تنها بخش با پول واقعی، و تا پیش از این تنها بخشی که
+  // اینجا نبود. بدون این، بازارِ نتیجه‌اعلام‌شده تا کلیک دستی ادمین در
+  // وضعیت settling می‌ماند و پول کاربر قفل می‌شود.
+  try {
+    out.iran = await settleDueIrMarkets();
+  } catch (err) {
+    out.iranError = err instanceof Error ? err.message : "error";
   }
 
   // کارت‌های منتشرشده در کانال هم روی همین کرون تازه می‌شوند — یک زمان‌بند
