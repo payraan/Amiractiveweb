@@ -7,6 +7,8 @@ import { authenticate, type AuthedPlayer } from "@/components/tg/api";
 import TabBar, { type TabId } from "@/components/tg/TabBar";
 import MarketsScreen from "@/components/tg/screens/MarketsScreen";
 import TradeScreen from "@/components/tg/screens/TradeScreen";
+import PulseScreen from "@/components/tg/screens/PulseScreen";
+import ChallengeScreen from "@/components/tg/screens/ChallengeScreen";
 import WalletScreen from "@/components/tg/screens/WalletScreen";
 import ProfileScreen from "@/components/tg/screens/ProfileScreen";
 import { Skeleton } from "@/components/tg/ui";
@@ -209,6 +211,10 @@ export default function MiniApp({ siteUrl }: { siteUrl: string }) {
                 />
               )}
               {tab === "trade" && <TradeScreen key={`trade-${homeNonce}`} />}
+              {tab === "pulse" && <PulseScreen key={`pulse-${homeNonce}`} />}
+              {tab === "challenge" && (
+                <ChallengeScreen key={`challenge-${homeNonce}`} />
+              )}
               {tab === "wallet" && <WalletScreen key={`wallet-${homeNonce}`} />}
               {tab === "profile" && (
                 <ProfileScreen key={`profile-${homeNonce}`} siteUrl={siteUrl} />

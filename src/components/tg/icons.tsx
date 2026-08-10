@@ -113,3 +113,39 @@ export function IconExternal({ className = "h-3.5 w-3.5" }: P) {
     </svg>
   );
 }
+
+/** نبض بازار — ضربان، همان استعاره‌ی نام بخش. */
+export function IconPulse({ className = base }: P) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path
+        d="M2 12h4l2.5-6 4 12 3-9 2 3h4.5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+/** چلنج پراپ — سپر/نشان، یعنی صلاحیتِ اثبات‌شده. */
+export function IconChallenge({ className = base }: P) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path
+        d="M12 3l7 3v5.5c0 4.2-2.9 7.6-7 9.5-4.1-1.9-7-5.3-7-9.5V6l7-3z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M9 12.2l2.2 2.2L15.5 10"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
