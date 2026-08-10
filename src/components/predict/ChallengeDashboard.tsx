@@ -163,6 +163,33 @@ export default function ChallengeDashboard({ s }: { s: ChallengeStateView }) {
               <Stat label="روز باقی‌مانده" value={String(s.daysLeft)} tone="gold" />
             )}
           </div>
+
+          {/* بدون این، چلنجِ تازه‌خریداری‌شده فقط یک مشت صفر نشان می‌داد و
+              کاربر فکر می‌کرد پنل کار نمی‌کند — در حالی که هنوز هیچ
+              پیش‌بینیِ واجد شرایطی تسویه نشده بود. */}
+          {s.wins + s.losses === 0 && !failed && (
+            <div className="mt-4 rounded-xl border border-gold/30 bg-gold/5 p-4">
+              <p className="text-[12px] font-bold text-gold">
+                هنوز پیش‌بینی شمرده‌شده‌ای نداری
+              </p>
+              <ul className="mt-2 space-y-1 text-[11px] leading-6 text-muted">
+                <li>
+                  فقط پیش‌بینی‌های <b className="text-cream">ترید</b> در ارزیابی
+                  می‌آیند، آن هم پیش‌بینی‌هایی که{" "}
+                  <b className="text-cream">بعد از شروع چلنج</b> ثبت شده باشند.
+                </li>
+                <li>
+                  پیش‌بینی باید <b className="text-cream">تسویه شده</b> باشد؛ تا
+                  وقتی بازارش باز است در کارنامه نمی‌نشیند.
+                </li>
+                <li>
+                  فقط بازارهایی با احتمال بین{" "}
+                  <b className="text-cream">۲۵٪ تا ۷۵٪</b> شمرده می‌شوند —
+                  گزینه‌ی خیلی بعید قمار است و خیلی محتمل مهارتی نشان نمی‌دهد.
+                </li>
+              </ul>
+            </div>
+          )}
         </div>
 
         {/* شمارنده‌ی شرط‌ها */}

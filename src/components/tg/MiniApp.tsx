@@ -47,6 +47,18 @@ const AUTH_ERRORS: Record<string, string> = {
 
 export default function MiniApp({ siteUrl }: { siteUrl: string }) {
   const [tab, setTab] = useState<TabId>("markets");
+  // تپ دوباره روی همان تبِ فعال = برگشت به ریشه‌ی آن تب.
+  //
+  // هر تب زیرصفحه‌هایش (ساخت بازار، جزئیات بازار، جزئیات ترید) را داخل خودش
+  // نگه می‌دارد، پس setTab با همان مقدار قبلی هیچ کاری نمی‌کرد و کاربر داخل
+  // زیرصفحه گیر می‌افتاد و فقط دکمه‌ی back خود تلگرام نجاتش می‌داد. با بالا
+  // بردن این شمارنده، تب از نو mount می‌شود و به ریشه برمی‌گردد — همان
+  // رفتاری که کاربر از نوار تب هر اپ موبایلی انتظار دارد.
+  const [homeNonce, setHomeNonce] = useState(0);
+  const goTab = (t: TabId) => {
+    if (t === tab) setHomeNonce((n) => n + 1);
+    else setTab(t);
+  };
   const [player, setPlayer] = useState<AuthedPlayer | null>(null);
   const [deepLink, setDeepLink] = useState<{
     marketId: number;
@@ -188,16 +200,24 @@ export default function MiniApp({ siteUrl }: { siteUrl: string }) {
               )}
 
               {tab === "markets" && (
-                <MarketsScreen siteUrl={siteUrl} deepLink={deepLink} />
+                // deepLink فقط در اولین mount اعمال می‌شود؛ وگرنه برگشت به
+                // ریشه دوباره همان بازار را باز می‌کرد.
+                <MarketsScreen
+                  key={`markets-${homeNonce}`}
+                  siteUrl={siteUrl}
+                  deepLink={homeNonce === 0 ? deepLink : null}
+                />
               )}
-              {tab === "trade" && <TradeScreen />}
-              {tab === "wallet" && <WalletScreen />}
-              {tab === "profile" && <ProfileScreen siteUrl={siteUrl} />}
+              {tab === "trade" && <TradeScreen key={`trade-${homeNonce}`} />}
+              {tab === "wallet" && <WalletScreen key={`wallet-${homeNonce}`} />}
+              {tab === "profile" && (
+                <ProfileScreen key={`profile-${homeNonce}`} siteUrl={siteUrl} />
+              )}
             </>
           )}
         </main>
 
-        {player && <TabBar active={tab} onChange={setTab} />}
+        {player && <TabBar active={tab} onChange={goTab} />}
       </div>
     </>
   );

@@ -6,12 +6,38 @@ import type { Player, PredictedKey } from "@/components/predict/usePlayer";
 import { TIMEFRAMES, volScaleFor, isAssetOpen, tf, nextClose, settleFor } from "@/lib/game";
 import LiveChart from "@/components/predict/LiveChart";
 
-const CAT_ICON: Record<string, string> = {
-  crypto: "M9 4v16M9 4h4.5a3 3 0 010 6H9m0 0h5a3 3 0 010 6H9M11 2v2m3-2v2M11 20v2m3-2v2",
-  forex: "M4 18h16M7 15l3-4 3 3 4-6",
-  metal: "M12 3l7 4v10l-7 4-7-4V7z",
-  stock: "M4 19h16M6 16V9m5 7V5m5 11v-6",
-};
+// نشان هر دارایی — تیکر خودش، با رنگی که از شناسه‌اش ساخته می‌شود.
+//
+// قبلا اینجا یک آیکون به‌ازای هر «دسته» بود، پس هر ۲۰ رمزارز نشان یکسانی
+// می‌گرفتند و کاربر آن را لوگوی بیت‌کوین می‌دید. لوگوی واقعی هر کوین یعنی
+// درخواست به CDN بیرونی که هم برای بازدیدکننده‌ی ایرانی بسته است و هم اصل
+// «هیچ چیزی مستقیم از upstream گرفته نمی‌شود» را می‌شکند. تیکرِ رنگی هم
+// یکتاست، هم آفلاین، هم بدون وزن اضافه.
+function assetHue(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 360;
+  return h;
+}
+
+function AssetBadge({ id }: { id: string }) {
+  const hue = assetHue(id);
+  // تیکرهای بلند (مثل EURUSD) به سه حرف کوتاه می‌شوند تا در نشان جا شوند.
+  const short = id.replace(/[^A-Za-z0-9]/g, "").slice(0, 4);
+  return (
+    <span
+      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border font-mono text-[10px] font-bold tracking-tight"
+      style={{
+        borderColor: `hsl(${hue} 70% 55% / 0.45)`,
+        background: `hsl(${hue} 70% 50% / 0.12)`,
+        color: `hsl(${hue} 80% 72%)`,
+      }}
+      dir="ltr"
+      aria-hidden
+    >
+      {short}
+    </span>
+  );
+}
 
 function fmt(n: number | null, decimals: number): string {
   if (n == null) return "—";
@@ -142,21 +168,7 @@ export default function AssetCard({
     <div className="min-w-0 rounded-2xl border border-line bg-surface/50 p-5 sm:p-6">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-gold/30 bg-gold/10 text-gold">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              className="h-5 w-5"
-            >
-              <path
-                d={CAT_ICON[data.category] ?? CAT_ICON.crypto}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </span>
+          <AssetBadge id={asset} />
           <div className="min-w-0">
             <h2 className="truncate font-display text-lg font-extrabold">
               {data.label}
@@ -197,7 +209,10 @@ export default function AssetCard({
       </div>
 
       <div className="mt-4 rounded-xl border border-line bg-ink/30 px-3 py-2">
-        <LiveChart asset={asset} interval={tfId} />
+        {/* key اجباری است: بدون آن، تعویض دارایی همان نمونه‌ی نمودار را
+            نگه می‌داشت و اگر یک بار در وضعیت خالی می‌نشست، دارایی بعدی هم
+            خالی می‌ماند. با key، هر دارایی نمودار تازه‌ی خودش را می‌گیرد. */}
+        <LiveChart key={`${asset}-${tfId}`} asset={asset} interval={tfId} />
         <div className="flex justify-between font-mono text-[9px] text-muted" dir="ltr">
           <span>{tfId} candles</span>
           <span>
