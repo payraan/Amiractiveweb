@@ -6,20 +6,15 @@ import { IR_CATEGORIES } from "@/lib/ir-categories";
 import { ErrorState, EmptyState, ScreenTitle, Skeleton } from "@/components/tg/ui";
 import { haptic } from "@/components/tg/telegram";
 import ProposeScreen from "@/components/tg/screens/ProposeScreen";
+import MarketDetail, { type Market } from "@/components/tg/screens/MarketDetail";
 
 // فهرست بازارهای ایران — از همان /api/ir/markets که سایت استفاده می‌کند.
 
-type Market = {
-  id: number;
-  question: string;
-  category: string;
-  closesAt: string;
-  status: string;
-  yesPct: number;
-  yesOdds: number;
-  noOdds: number;
-  volume: number;
-  bettors: number;
+type MarketsResponse = {
+  markets: Market[];
+  balance: number;
+  myBets: Record<number, { side: string; stake: number }>;
+  config: { minStake: number; commission: number };
 };
 
 const STATUS: Record<string, { label: string; cls: string }> = {
@@ -45,7 +40,8 @@ const compact = (n: number) =>
 export default function MarketsScreen() {
   const [cat, setCat] = useState("all");
   const [proposing, setProposing] = useState(false);
-  const { data, error, reload } = useResource<{ markets: Market[] }>(
+  const [openId, setOpenId] = useState<number | null>(null);
+  const { data, error, reload } = useResource<MarketsResponse>(
     `/api/ir/markets?category=${encodeURIComponent(cat)}`
   );
   const markets = data?.markets ?? null;
@@ -58,6 +54,26 @@ export default function MarketsScreen() {
         onBack={() => setProposing(false)}
         onDone={() => {
           setProposing(false);
+          reload();
+        }}
+      />
+    );
+  }
+
+  // بازار باز شده را از همان فهرست برمی‌داریم — با شناسه نگه می‌داریم نه با
+  // خودِ شیء، تا بعد از reload داده‌ی تازه نشان داده شود نه نسخه‌ی کهنه.
+  const open = markets?.find((m) => m.id === openId) ?? null;
+  if (open && data) {
+    return (
+      <MarketDetail
+        market={open}
+        balance={data.balance}
+        minStake={data.config.minStake}
+        commission={data.config.commission}
+        myBet={data.myBets?.[open.id]}
+        onBack={() => setOpenId(null)}
+        onPlaced={() => {
+          setOpenId(null);
           reload();
         }}
       />
@@ -128,7 +144,13 @@ export default function MarketsScreen() {
             return (
               <article
                 key={m.id}
-                className="overflow-hidden rounded-2xl border border-line bg-surface/40"
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  haptic.press();
+                  setOpenId(m.id);
+                }}
+                className="cursor-pointer overflow-hidden rounded-2xl border border-line bg-surface/40 transition active:border-gold/50"
               >
                 <div className="p-4">
                   <div className="mb-2.5 flex items-center gap-2">
