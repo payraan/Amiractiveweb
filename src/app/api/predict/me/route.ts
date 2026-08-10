@@ -11,7 +11,10 @@ export async function GET() {
 
   const pool = await db();
   const { rows } = await pool.query(
-    `SELECT id, display_name, total_points, streak, credits FROM players WHERE id=$1`,
+    // امتیاز در دیتابیس اعشاری است؛ برای نمایش گرد و به عدد تبدیل می‌شود
+    // (بدون cast، درایور pg مقدار NUMERIC را رشته برمی‌گرداند).
+    `SELECT id, display_name, ROUND(total_points)::int AS total_points, streak, credits
+       FROM players WHERE id=$1`,
     [playerId]
   );
   if (!rows.length) return NextResponse.json({ ok: true, player: null });
@@ -45,7 +48,8 @@ export async function GET() {
 
   // recent settled results for this player (last 8)
   const results = await pool.query(
-    `SELECT r.asset, p.timeframe, p.guess, r.settle_price, p.error_pct, p.points, r.settle_at
+    `SELECT r.asset, p.timeframe, p.guess, r.settle_price, p.error_pct,
+            ROUND(p.points)::int AS points, r.settle_at
        FROM predictions p
        JOIN rounds r ON r.id = p.round_id
       WHERE p.player_id = $1 AND r.status = 'settled'

@@ -112,6 +112,19 @@ CREATE UNIQUE INDEX IF NOT EXISTS players_tg_username_uniq
   ON players (tg_username) WHERE tg_username IS NOT NULL;
 
 ALTER TABLE players ADD COLUMN IF NOT EXISTS tg_handle TEXT;
+
+-- امتیاز اعشاری می‌شود.
+--
+-- چرا: امتیاز ترید و کمبو از احتمالِ پیوسته می‌آید ولی در ستون INTEGER
+-- می‌نشست، پس برد و باخت جدا گرد می‌شدند. چون احتمال دو طرف مکمل‌اند، در هر
+-- بازار همیشه یک طرف بود که گرد کردن به نفعش تمام می‌شد. شبیه‌سازی ۲۰۰ هزار
+-- باری نشان داد کسی که همیشه آن طرف را بزند به‌طور میانگین +۰.۴۵ امتیاز در هر
+-- پیش‌بینی می‌گیرد — بدون ذره‌ای مهارت. این دقیقا خاصیت صفر-انتظار را نقض
+-- می‌کرد.
+--
+-- با NUMERIC دیگر گرد کردنی در کار نیست و EV برای هر احتمالی دقیقا صفر است.
+-- نمایش همچنان گردشده است (روت‌ها ROUND می‌کنند)، پس رابط کاربری عوض نمی‌شود.
+ALTER TABLE players ALTER COLUMN total_points TYPE NUMERIC(14,4);
 `;
 
 let ready: Promise<void> | null = null;

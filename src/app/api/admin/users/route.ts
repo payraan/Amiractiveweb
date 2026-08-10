@@ -31,7 +31,8 @@ export async function GET(req: Request) {
             : "p.created_at DESC";
 
   const { rows } = await pool.query(
-    `SELECT p.id, p.tg_username, p.tg_handle, p.display_name, p.credits, p.total_points, p.is_demo,
+    `SELECT p.id, p.tg_username, p.tg_handle, p.display_name, p.credits,
+            ROUND(p.total_points)::int AS total_points, p.is_demo,
             p.streak, p.last_played, p.created_at, p.tg_user_id,
             COALESCE(p.usdt_balance,0) AS usdt_balance,
             (SELECT count(*) FROM predictions   x WHERE x.player_id=p.id)::int AS pulse_preds,

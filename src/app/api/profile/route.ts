@@ -28,7 +28,8 @@ export async function GET() {
   const [me, wallet, ledger, irPnl, irOpen, pulse, poly, rank, streakDays, mkts, chPassed] =
     await Promise.all([
       pool.query(
-        `SELECT id, tg_username, display_name, total_points, streak, credits,
+        `SELECT id, tg_username, display_name,
+                ROUND(total_points)::int AS total_points, streak, credits,
                 usdt_balance, created_at, tg_user_id, showcase
            FROM players WHERE id=$1`,
         [playerId]

@@ -231,6 +231,12 @@ export async function ensurePolyTables(): Promise<void> {
             "ALTER TABLE poly_predictions ADD COLUMN IF NOT EXISTS settled_at TIMESTAMPTZ"
           )
         )
+        // امتیاز اعشاری — دلیلش در بلوک اسکیمای db.ts نوشته شده.
+        .then(() =>
+          pool.query(
+            "ALTER TABLE poly_predictions ALTER COLUMN points TYPE NUMERIC(14,4)"
+          )
+        )
         .then(() => undefined)
     );
   }

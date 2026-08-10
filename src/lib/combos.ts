@@ -37,11 +37,13 @@ export function leverageFor(x: unknown): LeverageTier {
 const UA = { "User-Agent": "Mozilla/5.0" };
 const GAMMA = "https://gamma-api.polymarket.com";
 
+// بدون گرد کردن — همان دلیل poly-scoring.ts، ولی اینجا سوگیری در اهرم هم ضرب
+// می‌شد، پس تا ۰.۵×اهرم امتیاز مجانی می‌داد.
 export function comboWin(n: number, prob: number, lev = 1): number {
-  return Math.max(1, Math.round(100 * n * (1 - prob))) * lev;
+  return 100 * n * (1 - prob) * lev;
 }
 export function comboLose(n: number, prob: number, lev = 1): number {
-  return -Math.max(1, Math.round(100 * n * prob)) * lev;
+  return -100 * n * prob * lev;
 }
 
 // ── tables ─────────────────────────────────────────────────────
@@ -64,6 +66,10 @@ export async function ensureComboTables(): Promise<void> {
       );
       await pool.query(
         "ALTER TABLE combo_tickets ADD COLUMN IF NOT EXISTS leverage INTEGER NOT NULL DEFAULT 1"
+      );
+      // امتیاز اعشاری — دلیلش در بلوک اسکیمای db.ts نوشته شده.
+      await pool.query(
+        "ALTER TABLE combo_tickets ALTER COLUMN points TYPE NUMERIC(14,4)"
       );
       await pool.query(
         `CREATE TABLE IF NOT EXISTS combo_legs (

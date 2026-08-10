@@ -14,7 +14,8 @@ export async function GET() {
 
   const [preds, cnt] = await Promise.all([
     pool.query(
-      `SELECT market_id, question, choice, prob, points, status, created_at
+      `SELECT market_id, question, choice, prob,
+              ROUND(points)::int AS points, status, created_at
          FROM poly_predictions
         WHERE player_id=$1
         ORDER BY created_at DESC

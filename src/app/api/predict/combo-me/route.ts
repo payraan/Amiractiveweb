@@ -23,7 +23,8 @@ export async function GET() {
 
   const [tk, cnt] = await Promise.all([
     pool.query(
-      `SELECT id, prob, legs_count, charged, points, status, created_at
+      `SELECT id, prob, legs_count, charged,
+              ROUND(points)::int AS points, status, created_at
          FROM combo_tickets
         WHERE player_id=$1
         ORDER BY created_at DESC

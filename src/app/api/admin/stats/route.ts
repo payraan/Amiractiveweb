@@ -24,7 +24,8 @@ export async function GET() {
          (SELECT count(*) FROM rounds WHERE status='settled')::int AS settled_rounds`
     ),
     pool.query(
-      `SELECT tg_username, display_name, credits, total_points, created_at,
+      `SELECT tg_username, display_name, credits,
+              ROUND(total_points)::int AS total_points, created_at,
               (SELECT count(*) FROM predictions p WHERE p.player_id = players.id)::int AS plays
          FROM players ORDER BY created_at DESC LIMIT 20`
     ),

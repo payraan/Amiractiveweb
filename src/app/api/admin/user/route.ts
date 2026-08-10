@@ -65,7 +65,8 @@ export async function GET(req: Request) {
   await ensureIrTables(); // ستون usdt_balance اینجا ساخته می‌شود
   const pool = await db();
   const { rows } = await pool.query(
-    `SELECT tg_username, tg_handle, display_name, credits, total_points, streak, created_at,
+    `SELECT tg_username, tg_handle, display_name, credits,
+            ROUND(total_points)::int AS total_points, streak, created_at,
             usdt_balance
        FROM players
       WHERE tg_username=$1 OR lower(tg_handle)=$1
