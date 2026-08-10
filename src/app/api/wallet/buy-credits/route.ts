@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentPlayerId } from "@/lib/current-player";
+import { requireLinkedTelegram } from "@/lib/money-guard";
 import { ensureIrTables, moveFunds, recordRevenue } from "@/lib/iran";
 import { creditPack } from "@/lib/game";
 import { payReferralCommission } from "@/lib/referral";
@@ -24,6 +25,8 @@ export async function POST(req: Request) {
   if (!playerId) {
     return NextResponse.json({ ok: false, error: "not_authed" }, { status: 401 });
   }
+  const linked = await requireLinkedTelegram(playerId);
+  if (!linked.ok) return linked.response;
 
   let body: { packId?: string };
   try {

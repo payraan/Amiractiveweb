@@ -5,6 +5,7 @@ import { currentPlayerId } from "@/lib/current-player";
 import { ensureIrTables, moveFunds } from "@/lib/iran";
 import { createWithdrawal, gatewayReady, USDT_NETWORK } from "@/lib/zovix";
 import { notifyPlayer } from "@/lib/telegram";
+import { requireLinkedTelegram } from "@/lib/money-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,8 @@ export async function POST(req: Request) {
   if (!playerId) {
     return NextResponse.json({ ok: false, error: "not_authed" }, { status: 401 });
   }
+  const linked = await requireLinkedTelegram(playerId);
+  if (!linked.ok) return linked.response;
   if (!gatewayReady()) {
     return NextResponse.json({ ok: false, error: "gateway_off" }, { status: 503 });
   }

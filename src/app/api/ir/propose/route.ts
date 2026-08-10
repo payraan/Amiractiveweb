@@ -8,6 +8,7 @@ import {
   PROPOSE_FEE_USDT,
 } from "@/lib/iran";
 import { isIrCategory } from "@/lib/ir-categories";
+import { requireLinkedTelegram } from "@/lib/money-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,8 @@ export async function POST(req: Request) {
   if (!playerId) {
     return NextResponse.json({ ok: false, error: "not_authed" }, { status: 401 });
   }
+  const linked = await requireLinkedTelegram(playerId);
+  if (!linked.ok) return linked.response;
 
   let body: {
     question?: string;

@@ -32,6 +32,8 @@ const KIND: Record<string, { label: string; tone: "in" | "out" }> = {
 };
 
 const ERR: Record<string, string> = {
+  telegram_required:
+    "برای هر عملیات مالی باید حساب تلگرامت را وصل کنی. از صفحه‌ی دعوت وصلش کن یا مینی‌اپ را باز کن.",
   gateway_off: "درگاه پرداخت هنوز فعال نشده است.",
   amount_too_low: "مبلغ کمتر از حداقل برداشت است.",
   bad_address: "آدرس مقصد معتبر نیست.",

@@ -12,11 +12,13 @@ export default function DepositScreen({
   address,
   network,
   gatewayReady,
+  telegramLinked = true,
   onBack,
 }: {
   address: string | null;
   network: string;
   gatewayReady: boolean;
+  telegramLinked?: boolean;
   onBack: () => void;
 }) {
   const [copied, setCopied] = useState(false);
@@ -42,7 +44,15 @@ export default function DepositScreen({
         شبکه‌ی {network} — پس از تأیید شبکه، موجودی خودکار شارژ می‌شود
       </p>
 
-      {!gatewayReady ? (
+      {!telegramLinked ? (
+        <div className="rounded-2xl border border-gold/40 bg-gold/5 p-5 text-center">
+          <p className="text-sm font-bold text-gold">اول تلگرامت را وصل کن</p>
+          <p className="mt-2 text-[11px] leading-6 text-muted">
+            هر عملیات مالی به حساب تلگرام وصل‌شده نیاز دارد. اگر از مینی‌اپ آمده‌ای
+            این خودکار انجام شده؛ وگرنه از صفحه‌ی دعوت در سایت وصلش کن.
+          </p>
+        </div>
+      ) : !gatewayReady ? (
         <div className="rounded-2xl border border-loss/40 bg-loss/5 p-5 text-center">
           <p className="text-sm font-bold text-loss">درگاه پرداخت فعال نیست</p>
           <p className="mt-2 text-[11px] leading-6 text-muted">

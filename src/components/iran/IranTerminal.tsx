@@ -43,6 +43,8 @@ const SORTS = [
 type SortId = (typeof SORTS)[number]["id"];
 
 const ERR: Record<string, string> = {
+  telegram_required:
+    "برای هر عملیات مالی باید حساب تلگرامت را وصل کنی. از صفحه‌ی دعوت وصلش کن یا مینی‌اپ را باز کن.",
   not_authed: "برای ثبت پیش‌بینی وارد شوید.",
   insufficient_funds: "موجودی کیف پول کافی نیست.",
   stake_too_low: "مبلغ کمتر از حداقل مجاز است.",

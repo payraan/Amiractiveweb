@@ -7,6 +7,8 @@ import { IR_CATEGORIES as CATS } from "@/lib/ir-categories";
 import JalaliDateTime from "@/components/iran/JalaliDateTime";
 
 const ERR: Record<string, string> = {
+  telegram_required:
+    "برای هر عملیات مالی باید حساب تلگرامت را وصل کنی. از صفحه‌ی دعوت وصلش کن یا مینی‌اپ را باز کن.",
   not_authed: "برای پیشنهاد بازار وارد شوید.",
   bad_question: "سؤال باید بین ۱۵ تا ۲۰۰ کاراکتر باشد.",
   source_required: "منبع تسویه اجباری است و باید دقیق باشد.",

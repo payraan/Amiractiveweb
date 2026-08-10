@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentPlayerId } from "@/lib/current-player";
+import { hasLinkedTelegram } from "@/lib/telegram";
 import { ensureIrTables } from "@/lib/iran";
 import { getDepositAddress, gatewayReady, USDT_NETWORK } from "@/lib/zovix";
 
@@ -26,10 +27,15 @@ export async function GET() {
     ),
   ]);
 
-  // آدرس واریز فقط وقتی درگاه پیکربندی شده باشد.
+  // آدرس واریز فقط وقتی درگاه پیکربندی شده *و* حساب به تلگرام وصل باشد.
+  //
+  // خودِ صفحه‌ی کیف پول قفل نمی‌شود — موجودی و تاریخچه همیشه دیده می‌شوند.
+  // فقط آدرس واریز داده نمی‌شود، چون همان‌جاست که پول *وارد* می‌شود و مرز
+  // مصوب روی ورود پول است.
+  const linked = await hasLinkedTelegram(playerId);
   let address: string | null = null;
   let addressError: string | null = null;
-  if (gatewayReady()) {
+  if (gatewayReady() && linked) {
     const r = await getDepositAddress(playerId);
     if (r.ok) address = r.data.address;
     else addressError = r.error;
@@ -42,6 +48,7 @@ export async function GET() {
     address,
     addressError,
     gatewayReady: gatewayReady(),
+    telegramLinked: linked,
     ledger: ledger.rows.map((r) => ({
       amount: Number(r.amount),
       kind: r.kind,

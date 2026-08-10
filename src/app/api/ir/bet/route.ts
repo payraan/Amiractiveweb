@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db, touchActivity } from "@/lib/db";
 import { currentPlayerId } from "@/lib/current-player";
 import { ensureIrTables, moveFunds, MIN_STAKE_USDT } from "@/lib/iran";
+import { requireLinkedTelegram } from "@/lib/money-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,8 @@ export async function POST(req: Request) {
   if (!playerId) {
     return NextResponse.json({ ok: false, error: "not_authed" }, { status: 401 });
   }
+  const linked = await requireLinkedTelegram(playerId);
+  if (!linked.ok) return linked.response;
 
   let body: { marketId?: number; side?: string; stake?: number };
   try {

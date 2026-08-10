@@ -29,6 +29,7 @@ type Wallet = {
   address?: string | null;
   network?: string;
   gatewayReady?: boolean;
+  telegramLinked?: boolean;
 };
 
 const KIND: Record<string, string> = {
@@ -77,6 +78,7 @@ export default function WalletScreen() {
         address={w.address ?? null}
         network={w.network ?? "TRON"}
         gatewayReady={Boolean(w.gatewayReady)}
+        telegramLinked={w.telegramLinked !== false}
         onBack={back}
       />
     );
