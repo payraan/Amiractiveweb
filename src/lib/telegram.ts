@@ -397,6 +397,27 @@ export async function getTgStatus(playerId: number): Promise<TgStatus> {
   };
 }
 
+/**
+ * فرار دادن متنِ کاربر قبل از رفتن داخل پیام HTML تلگرام.
+ *
+ * همه‌ی پیام‌های ربات با parse_mode=HTML می‌روند، و سؤال بازار را کاربر
+ * می‌نویسد. بدون این، دو چیز خراب می‌شد:
+ *
+ *  ۱. شکستن: سؤالی مثل «قیمت > ۹۰ هزار» تگ نامعتبر می‌ساخت، تلگرام کل پیام
+ *     را رد می‌کرد و کارت بازار بی‌سروصدا منتشر نمی‌شد.
+ *  ۲. جعل: تلگرام در حالت HTML تگ <a href> را می‌پذیرد، پس می‌شد لینک
+ *     دلخواه با متن دلخواه داخل پستِ کانال رسمی نارمون جا داد — یعنی
+ *     فیشینگ با اعتبار کانال خودمان.
+ *
+ * فقط همین سه کاراکتر: تلگرام برای HTML خودش دقیقا همین‌ها را می‌خواهد.
+ */
+export function escapeHtml(s: string): string {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 /** دکمه‌های شیشه‌ای زیر پیام — همان چیزی که هویت رأی‌دهنده را می‌دهد. */
 export type InlineButton = { text: string; url?: string; callback_data?: string };
 
@@ -480,7 +501,7 @@ export function marketPoll(
       : "📌 درصدها در لحظه‌ی اشتراک‌گذاری — برای عدد زنده دکمه را بزن";
 
   const text =
-    `<b>${m.question}</b>\n\n` +
+    `<b>${escapeHtml(m.question)}</b>\n\n` +
     `<code>${bar(m.yesPct)}</code>\n` +
     `بله ${m.yesPct}٪  ·  خیر ${noPct}٪\n\n` +
     `👥 ${m.bettors} شرکت‌کننده   💵 ${m.volume.toFixed(0)} تتر\n` +

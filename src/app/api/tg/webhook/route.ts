@@ -6,6 +6,7 @@ import {
   grantGroupBonus,
   sendTelegram,
   answerCallback,
+  escapeHtml,
   type InlineButton,
 } from "@/lib/telegram";
 
@@ -51,7 +52,7 @@ async function handleStart(chatId: number, player: Player | null) {
   if (player) {
     await sendTelegram(
       chatId,
-      `<b>${player.displayName}</b> عزیز، خوش برگشتی 👋\n\n` +
+      `<b>${escapeHtml(player.displayName)}</b> عزیز، خوش برگشتی 👋\n\n` +
         `حسابت به تلگرام وصل است. از دکمه‌های زیر وارد شو.`,
       siteButtons()
     );
@@ -74,7 +75,7 @@ async function handleLink(tg: TgUser, chatId: number, code: string) {
   if (r.ok) {
     await sendTelegram(
       chatId,
-      `✅ حساب <b>${r.displayName}</b> با موفقیت به تلگرام وصل شد.\n\n` +
+      `✅ حساب <b>${escapeHtml(r.displayName)}</b> با موفقیت به تلگرام وصل شد.\n\n` +
         `از این به بعد نتیجه‌ی بازارها و وضعیت حسابت را همین‌جا می‌گیری.`,
       siteButtons()
     );
