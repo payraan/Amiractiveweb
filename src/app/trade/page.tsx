@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Nav from "@/components/Nav";
 import TradeTerminal from "@/components/predict/TradeTerminal";
+import ChallengeRecap from "@/components/predict/ChallengeRecap";
 import { settlePolyDue } from "@/lib/poly";
 
 export const metadata: Metadata = {
@@ -22,6 +23,9 @@ export default async function TradePage({ searchParams }: Props) {
       <Nav />
       <main className="min-h-screen px-3 pb-8 pt-24 md:px-5">
         <TradeTerminal initialId={market} />
+        {/* ارزیابی چلنج فقط از پیش‌بینی‌های ترید می‌آید، پس کارنامه همین‌جا
+            دیده می‌شود. برای کاربر بدون چلنج چیزی رندر نمی‌کند. */}
+        <ChallengeRecap />
       </main>
     </>
   );

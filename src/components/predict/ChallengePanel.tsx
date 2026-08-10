@@ -63,6 +63,7 @@ export default function ChallengePanel() {
   const { player, refresh } = usePlayer();
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [state, setState] = useState<State>(null);
+  const [authed, setAuthed] = useState(true);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -74,6 +75,7 @@ export default function ChallengePanel() {
       .then((j) => {
         setTiers(j.tiers ?? []);
         setState(j.state ?? null);
+        setAuthed(Boolean(j.authed));
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -121,7 +123,13 @@ export default function ChallengePanel() {
   // ── چلنج فعال / نتیجه ──
   // جزئیات به ChallengeDashboard منتقل شد: نوارهای قبلی فقط عدد نشان می‌دادند و
   // نمی‌گفتند «قبول شدی یا نه». حالا جدول شرط‌ها + کارنامه‌ی برد و باخت هست.
-  if (state && state.status !== "failed") {
+  //
+  // چلنج ناموفق هم کارنامه‌اش را نشان می‌دهد. قبلا شرط `status !== "failed"`
+  // بود و کاربری که چلنجش شکست خورده بود هیچ ردی از عملکردش نمی‌دید — فقط یک
+  // نوار یک‌خطی که «ناموفق شد». دقیقا همان لحظه‌ای که بیشترین نیاز را به دیدن
+  // کارنامه دارد. حالا کارنامه می‌ماند و فهرست تیرها زیرش می‌آید تا بتواند
+  // دوباره شروع کند.
+  if (state) {
     return (
       <div className="flex flex-col gap-5">
         <ChallengeDashboard s={state} />
@@ -149,23 +157,82 @@ export default function ChallengePanel() {
             جایزه‌ی پاس‌شدن: {state.prize}
           </p>
         )}
+
+        {state.status === "failed" && (
+          <div className="rounded-2xl border border-loss/40 bg-loss/5 px-5 py-4 text-xs leading-6">
+            <b className="text-loss">چلنج {state.label} ناموفق شد: </b>
+            <span className="text-muted">
+              {FAIL_TEXT[state.failReason ?? ""] ?? "شرایط چلنج برقرار نماند."}
+            </span>
+          </div>
+        )}
+
+        {state.status !== "active" && (
+          <details className="rounded-2xl border border-line bg-surface/40 p-5">
+            <summary className="cursor-pointer text-xs font-bold text-gold">
+              شروع چلنج تازه
+            </summary>
+            <div className="mt-4">
+              <TierPicker
+                tiers={tiers}
+                track={track}
+                setTrack={setTrack}
+                busy={busy}
+                err={err}
+                onStart={start}
+              />
+            </div>
+          </details>
+        )}
       </div>
     );
   }
 
-  // ── انتخاب تیر (بدون چلنج فعال، یا بعد از شکست) ──
+  // ── انتخاب تیر (هیچ چلنجی تا حالا خریداری نشده) ──
   return (
     <div>
-      {state && state.status === "failed" && (
-        <div className="mb-5 rounded-2xl border border-loss/40 bg-loss/5 px-5 py-4 text-xs leading-6">
-          <b className="text-loss">چلنج {state.label} ناموفق شد: </b>
+      {!authed && (
+        <div className="mb-5 rounded-2xl border border-gold/40 bg-gold/5 px-5 py-4 text-xs leading-6">
+          <b className="text-gold">وارد حساب نشده‌اید.</b>
           <span className="text-muted">
-            {FAIL_TEXT[state.failReason ?? ""] ?? "شرایط چلنج برقرار نماند."}
+            {" "}
+            اگر قبلا چلنج خریده‌اید، برای دیدن کارنامه‌تان اول وارد شوید — کارنامه
+            به حساب گره خورده است، نه به این مرورگر.
           </span>
-          <span className="text-muted"> می‌توانید چلنج جدیدی شروع کنید.</span>
         </div>
       )}
+      <TierPicker
+        tiers={tiers}
+        track={track}
+        setTrack={setTrack}
+        busy={busy}
+        err={err}
+        onStart={start}
+      />
+    </div>
+  );
+}
 
+/** انتخاب مسیر و تیر — از بدنه‌ی پنل جدا شد تا هم برای کاربر بدون چلنج و هم
+ *  زیر کارنامه‌ی چلنج تمام‌شده استفاده شود. */
+function TierPicker({
+  tiers,
+  track,
+  setTrack,
+  busy,
+  err,
+  onStart,
+}: {
+  tiers: Tier[];
+  track: "forex" | "predict";
+  setTrack: (t: "forex" | "predict") => void;
+  busy: string | null;
+  err: string | null;
+  onStart: (id: string) => void;
+}) {
+  const start = onStart;
+  return (
+    <div>
       {/* تب دو مسیر پراپ */}
       <div className="mb-5 flex flex-wrap items-center gap-2">
         {(
@@ -298,11 +365,6 @@ export default function ChallengePanel() {
         حداکثر ۳ بار در ۳۰ روز ممکن است.
       </p>
 
-      {!player && (
-        <p className="mt-4 text-[11px] text-muted">
-          برای شروع چلنج، از بالای صفحه وارد حساب شوید یا ثبت‌نام کنید.
-        </p>
-      )}
       {err && <p className="mt-3 text-xs text-loss">{err}</p>}
     </div>
   );
