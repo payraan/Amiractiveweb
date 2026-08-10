@@ -128,12 +128,28 @@ export async function payReferralCommission(
   await ensureReferralTables();
   const pool = await db();
 
-  const row = await pool.query<{ referred_by: number | null }>(
-    "SELECT referred_by FROM players WHERE id=$1",
+  // هویت دعوت‌کننده هم لازم است، نه فقط دعوت‌شده.
+  //
+  // پورسانت، MOON را از هیچ می‌سازد (از کسی کم نمی‌شود). ثبت‌نام سایت هیچ
+  // اعتبارسنجی تلگرامی ندارد، پس بدون این شرط زنجیره‌ی زیر باز بود:
+  // حساب بی‌هویت A بساز → با کد A حساب B بساز و تلگرام واقعی را به B وصل کن
+  // → B خرید کند → A بی‌نهایت MOON مجانی بگیرد. آن MOON بعد خرج ورود به
+  // چلنج پراپ می‌شد که جایزه‌اش حساب واقعی است.
+  const row = await pool.query<{
+    referred_by: number | null;
+    referrer_tg: string | null;
+  }>(
+    `SELECT p.referred_by, r.tg_user_id AS referrer_tg
+       FROM players p
+       LEFT JOIN players r ON r.id = p.referred_by
+      WHERE p.id = $1`,
     [referredId]
   );
   const referrerId = row.rows[0]?.referred_by ?? null;
   if (!referrerId || topupCredits <= 0) return { paid: 0, referrerId: null };
+  // دعوت‌کننده‌ی بدون تلگرام پورسانت نمی‌گیرد. رابطه‌ی دعوت پاک نمی‌شود —
+  // اگر بعدا تلگرامش را وصل کند، از شارژهای بعدی پورسانت می‌گیرد.
+  if (!row.rows[0].referrer_tg) return { paid: 0, referrerId };
 
   const commission = Math.floor((topupCredits * REFERRAL_PERCENT) / 100);
   if (commission <= 0) return { paid: 0, referrerId };

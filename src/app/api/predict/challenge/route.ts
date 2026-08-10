@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { currentPlayerId } from "@/lib/current-player";
 import { CHALLENGES, getChallengeState, startChallenge } from "@/lib/challenge";
+import { requireLinkedTelegram } from "@/lib/money-guard";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,12 @@ export async function POST(req: Request) {
   if (!playerId) {
     return NextResponse.json({ ok: false, error: "not_authed" }, { status: 401 });
   }
+  // ورود به چلنج با MOON پرداخت می‌شود ولی جایزه‌اش حساب واقعی است، پس از
+  // نظر ضدتقلب هم‌رده‌ی مسیرهای پولی است. بدون این قفل، حسابِ بی‌هویتِ سایتی
+  // می‌توانست با MOONـی که از پورسانت رفرال گرفته وارد چلنج شود.
+  const linked = await requireLinkedTelegram(playerId);
+  if (!linked.ok) return linked.response;
+
   let body: { tierId?: string };
   try {
     body = await req.json();
