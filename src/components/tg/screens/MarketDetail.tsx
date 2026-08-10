@@ -2,12 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/components/tg/api";
-import {
-  haptic,
-  hasMainButton,
-  mainButton,
-  showBackButton,
-} from "@/components/tg/telegram";
+import { haptic, hasMainButton, showBackButton } from "@/components/tg/telegram";
+import { useMainButton } from "@/components/tg/useMainButton";
 
 // صفحه‌ی یک بازار و ثبت شرط — روی همان /api/ir/bet سایت.
 //
@@ -107,19 +103,17 @@ export default function MarketDetail({
     }
   }, [valid, side, stake, market.id, onPlaced]);
 
-  useEffect(() => {
-    if (!nativeButton || !canBet) return;
-    return mainButton({
-      text: busy
-        ? "در حال ثبت…"
-        : side && stakeOk
-          ? `ثبت شرط — $${money(stake)} روی ${side === "yes" ? "بله" : "خیر"}`
-          : "مبلغ و طرف را انتخاب کن",
-      enabled: valid,
-      busy,
-      onClick: submit,
-    });
-  }, [nativeButton, canBet, valid, busy, side, stakeOk, stake, submit]);
+  useMainButton({
+    visible: nativeButton && canBet,
+    text: busy
+      ? "در حال ثبت…"
+      : side && stakeOk
+        ? `ثبت شرط — $${money(stake)} روی ${side === "yes" ? "بله" : "خیر"}`
+        : "مبلغ و طرف را انتخاب کن",
+    enabled: valid,
+    busy,
+    onClick: submit,
+  });
 
   const noPct = Math.round((100 - market.yesPct) * 10) / 10;
   const quick = [minStake, 5, 10, 25].filter((v) => v <= balance);

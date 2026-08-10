@@ -3,12 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/components/tg/api";
 import { winPoints, losePoints } from "@/lib/poly-scoring";
-import {
-  haptic,
-  hasMainButton,
-  mainButton,
-  showBackButton,
-} from "@/components/tg/telegram";
+import { haptic, hasMainButton, showBackButton } from "@/components/tg/telegram";
+import { useMainButton } from "@/components/tg/useMainButton";
 
 // یک بازار ترید و ثبت پیش‌بینی — روی همان /api/predict/poly-submit سایت.
 //
@@ -78,19 +74,17 @@ export default function TradeDetail({
     }
   }, [valid, choice, market.id, onDone]);
 
-  useEffect(() => {
-    if (!nativeButton || already) return;
-    return mainButton({
-      text: busy
-        ? "در حال ثبت…"
-        : choice
-          ? `ثبت پیش‌بینی — ${choice === "yes" ? "بله" : "خیر"}`
-          : "بله یا خیر را انتخاب کن",
-      enabled: valid,
-      busy,
-      onClick: submit,
-    });
-  }, [nativeButton, already, valid, busy, choice, submit]);
+  useMainButton({
+    visible: nativeButton && !already,
+    text: busy
+      ? "در حال ثبت…"
+      : choice
+        ? `ثبت پیش‌بینی — ${choice === "yes" ? "بله" : "خیر"}`
+        : "بله یا خیر را انتخاب کن",
+    enabled: valid,
+    busy,
+    onClick: submit,
+  });
 
   const noPct = Math.round((100 - market.yesPct) * 10) / 10;
   const sides = [

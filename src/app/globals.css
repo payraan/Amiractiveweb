@@ -491,6 +491,28 @@ main .rounded-2xl.border-line:not(.no-lift):hover::after,
   .prop-path { animation: none; stroke-dashoffset: 0; }
 }
 
+/* ── ناحیه‌ی امن مینی‌اپ تلگرام ──────────────────────────────
+   در حالت Fullscreen، تلگرام دکمه‌های خودش (بستن، منو، ساعت) را روی همان
+   بالای صفحه می‌نشاند و ناچ گوشی هم اضافه می‌شود. سه منبع باید با هم حساب
+   شوند، چون هیچ‌کدام به‌تنهایی کافی نیست:
+     env(safe-area-inset-*)          → ناچ سخت‌افزاری، حتی بیرون تلگرام
+     --tg-safe-area-inset-*          → همان، ولی از دید خود تلگرام
+     --tg-content-safe-area-inset-*  → ارتفاع کنترل‌های خود تلگرام
+   کلاینت‌های قدیمی متغیرهای tg را ست نمی‌کنند و مقدارشان صفر می‌شود؛ آن‌وقت
+   env تنها مرجع می‌ماند و باز هم درست کار می‌کند.
+
+   نکته‌ی پیاده‌سازی: به‌جای max() از fallback خودِ var() استفاده می‌شود —
+   یعنی «اگر تلگرام مقدار داده از آن استفاده کن، وگرنه env». هم دقیقا همان
+   معنی را می‌دهد، هم جمع دوباره‌ی ناچ را در تلگرام حذف می‌کند، و هم بر خلاف
+   calc(max(env(), var())) از پارسر CSS سالم رد می‌شود — نسخه‌ی قبلی اصلا به
+   خروجی نمی‌رسید و padding صفر می‌ماند. */
+.tg-safe-top {
+  padding-top: calc(var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px) + 0.75rem);
+}
+.tg-safe-bottom {
+  padding-bottom: calc(var(--tg-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) + var(--tg-content-safe-area-inset-bottom, 0px));
+}
+
 /* نوار اسکرول افقی در ردیف دسته‌ها و تب‌ها — در اپ موبایل دیده‌شدنش
    ناهماهنگ است و ارتفاع را هم جابه‌جا می‌کند. */
 .no-scrollbar {

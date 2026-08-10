@@ -31,10 +31,9 @@ export default function TabBar({
   return (
     // ثابت پایین صفحه، با احترام به ناحیه‌ی امن آیفون — بدون آن، نوار زیر
     // نوار خانه‌ی آیفون گیر می‌کند و نصف دکمه‌ها قابل زدن نیست.
-    <nav
-      className="fixed inset-x-0 bottom-0 z-20 border-t border-line/80 bg-ink/90 backdrop-blur-xl"
-      style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
-    >
+    // در حالت Fullscreen، تلگرام پایین صفحه را هم اشغال می‌کند؛ tg-safe-bottom
+    // هر سه منبعِ ناحیه‌ی امن را با هم حساب می‌کند.
+    <nav className="tg-safe-bottom fixed inset-x-0 bottom-0 z-20 border-t border-line/80 bg-ink/90 backdrop-blur-xl">
       <div className="mx-auto flex max-w-md">
         {TABS.map(({ id, label, Icon }) => {
           const on = id === active;
@@ -46,21 +45,21 @@ export default function TabBar({
                 if (id !== active) haptic.tap();
                 onChange(id);
               }}
-              className="relative flex flex-1 flex-col items-center gap-1 pb-2 pt-2.5"
+              className="relative flex flex-1 flex-col items-center gap-1.5 pb-2.5 pt-3"
             >
               {/* نشانگر تب فعال بالای آیکون — خوانا بدون شلوغ‌کردن */}
               <span
-                className={`absolute inset-x-5 top-0 h-0.5 rounded-full transition ${
+                className={`absolute inset-x-4 top-0 h-[3px] rounded-full transition ${
                   on ? "bg-gold" : "bg-transparent"
                 }`}
               />
               <Icon
-                className={`h-[21px] w-[21px] transition ${
+                className={`h-[26px] w-[26px] transition ${
                   on ? "text-gold" : "text-muted"
                 }`}
               />
               <span
-                className={`text-[10px] transition ${
+                className={`text-[11px] transition ${
                   on ? "font-bold text-gold" : "text-muted"
                 }`}
               >

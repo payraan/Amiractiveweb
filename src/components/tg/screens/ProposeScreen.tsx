@@ -4,12 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/components/tg/api";
 import { IR_CATEGORIES } from "@/lib/ir-categories";
 import JalaliDateTime from "@/components/iran/JalaliDateTime";
-import {
-  haptic,
-  hasMainButton,
-  mainButton,
-  showBackButton,
-} from "@/components/tg/telegram";
+import { haptic, hasMainButton, showBackButton } from "@/components/tg/telegram";
+import { useMainButton } from "@/components/tg/useMainButton";
 
 // ساخت بازار ایران — همان قواعد و همان روت سایت (/api/ir/propose).
 //
@@ -90,15 +86,13 @@ export default function ProposeScreen({
     }
   }, [valid, busy, question, sourceNote, category, closesAt, onDone]);
 
-  useEffect(() => {
-    if (!nativeButton) return;
-    return mainButton({
-      text: busy ? "در حال ثبت…" : "ثبت پیشنهاد — ۱ تتر",
-      enabled: valid && !busy,
-      busy,
-      onClick: submit,
-    });
-  }, [nativeButton, valid, busy, submit]);
+  useMainButton({
+    visible: nativeButton,
+    text: busy ? "در حال ثبت…" : "ثبت پیشنهاد — ۱ تتر",
+    enabled: valid && !busy,
+    busy,
+    onClick: submit,
+  });
 
   return (
     <div>

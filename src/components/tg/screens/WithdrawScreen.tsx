@@ -2,12 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/components/tg/api";
-import {
-  haptic,
-  hasMainButton,
-  mainButton,
-  showBackButton,
-} from "@/components/tg/telegram";
+import { haptic, hasMainButton, showBackButton } from "@/components/tg/telegram";
+import { useMainButton } from "@/components/tg/useMainButton";
 
 // برداشت تتر — روی همان /api/wallet/withdraw سایت.
 //
@@ -80,15 +76,13 @@ export default function WithdrawScreen({
     }
   }, [valid, value, address, onDone]);
 
-  useEffect(() => {
-    if (!nativeButton) return;
-    return mainButton({
-      text: busy ? "در حال ثبت…" : "ثبت درخواست برداشت",
-      enabled: valid,
-      busy,
-      onClick: submit,
-    });
-  }, [nativeButton, valid, busy, submit]);
+  useMainButton({
+    visible: nativeButton,
+    text: busy ? "در حال ثبت…" : "ثبت درخواست برداشت",
+    enabled: valid,
+    busy,
+    onClick: submit,
+  });
 
   return (
     <div>

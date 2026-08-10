@@ -29,8 +29,17 @@ const compact = (n: number) =>
       ? `${Math.round(n / 1000)}k`
       : String(Math.round(n));
 
+const SORTS = [
+  { id: "hot", label: "پرحجم‌ترین" },
+  { id: "closing", label: "نزدیک به پایان" },
+  { id: "close", label: "نزدیک به ۵۰٪" },
+] as const;
+type SortId = (typeof SORTS)[number]["id"];
+
 export default function TradeScreen() {
   const [cat, setCat] = useState("all");
+  const [sort, setSort] = useState<SortId>("hot");
+  const [hideDone, setHideDone] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
 
   const markets = useResource<{ markets: PolyMarket[] }>("/api/predict/poly-markets");
@@ -64,8 +73,24 @@ export default function TradeScreen() {
     label: (list ?? []).find((m) => m.category === id)?.categoryLabel ?? id,
   }));
 
-  const shown =
-    cat === "all" ? list : (list ?? []).filter((m) => m.category === cat);
+  const shown = (() => {
+    if (!list) return null;
+    let out = cat === "all" ? [...list] : list.filter((m) => m.category === cat);
+    if (hideDone) out = out.filter((m) => !doneIds.has(m.id));
+    return out.sort((a, b) => {
+      if (sort === "closing") {
+        return (
+          new Date(a.endDate ?? 0).getTime() - new Date(b.endDate ?? 0).getTime()
+        );
+      }
+      // نزدیک به ۵۰٪ یعنی بازاری که خودِ بازار هم مطمئن نیست — جایی که
+      // اختلاف‌نظر بیشترین است و امتیاز دو طرف نزدیک به هم.
+      if (sort === "close") {
+        return Math.abs(a.yesPct - 50) - Math.abs(b.yesPct - 50);
+      }
+      return b.volume - a.volume;
+    });
+  })();
 
   return (
     <div>
@@ -103,6 +128,42 @@ export default function TradeScreen() {
             {c.label}
           </button>
         ))}
+      </div>
+
+      <div className="mb-4 flex items-center gap-2">
+        <div className="no-scrollbar flex flex-1 gap-2 overflow-x-auto">
+          {SORTS.map((sOpt) => (
+            <button
+              key={sOpt.id}
+              type="button"
+              onClick={() => {
+                haptic.tap();
+                setSort(sOpt.id);
+              }}
+              className={`shrink-0 rounded-lg border px-2.5 py-1.5 text-[10.5px] transition ${
+                sort === sOpt.id
+                  ? "border-gold/60 bg-gold/10 text-gold font-bold"
+                  : "border-line bg-surface/40 text-muted"
+              }`}
+            >
+              {sOpt.label}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            haptic.tap();
+            setHideDone((v) => !v);
+          }}
+          className={`shrink-0 rounded-lg border px-2.5 py-1.5 text-[10.5px] transition ${
+            hideDone
+              ? "border-gain/60 bg-gain/10 text-gain font-bold"
+              : "border-line bg-surface/40 text-muted"
+          }`}
+        >
+          ثبت‌نشده
+        </button>
       </div>
 
       {markets.error && (

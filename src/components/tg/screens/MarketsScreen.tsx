@@ -37,8 +37,36 @@ function remaining(iso: string): string {
 const compact = (n: number) =>
   n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(Math.round(n));
 
+// بازارهای باز همیشه اول. وقتی هزاران بازار ساخته شود، بازارِ قابلِ شرط‌بستن
+// نباید لای بازارهای بسته و در انتظار نتیجه گم شود — و ترتیبِ داخل هر گروه را
+// کاربر انتخاب می‌کند.
+const STATUS_RANK: Record<string, number> = { open: 0, settling: 1, locked: 2 };
+
+const SORTS = [
+  { id: "hot", label: "داغ‌ترین" },
+  { id: "closing", label: "نزدیک به پایان" },
+  { id: "new", label: "تازه‌ترین" },
+] as const;
+type SortId = (typeof SORTS)[number]["id"];
+
+function sortMarkets(list: Market[], sort: SortId): Market[] {
+  return [...list].sort((a, b) => {
+    const rank = (STATUS_RANK[a.status] ?? 9) - (STATUS_RANK[b.status] ?? 9);
+    if (rank !== 0) return rank;
+    if (sort === "closing") {
+      return new Date(a.closesAt).getTime() - new Date(b.closesAt).getTime();
+    }
+    if (sort === "new") return b.id - a.id;
+    // داغ‌ترین: مشارکت مهم‌تر از حجم است، چون یک نفر با پول زیاد نباید
+    // بازارِ کم‌مخاطب را بالای فهرست بنشاند.
+    return b.bettors - a.bettors || b.volume - a.volume;
+  });
+}
+
 export default function MarketsScreen() {
   const [cat, setCat] = useState("all");
+  const [sort, setSort] = useState<SortId>("hot");
+  const [onlyOpen, setOnlyOpen] = useState(false);
   const [proposing, setProposing] = useState(false);
   const [openId, setOpenId] = useState<number | null>(null);
   const { data, error, reload } = useResource<MarketsResponse>(
@@ -62,6 +90,13 @@ export default function MarketsScreen() {
 
   // بازار باز شده را از همان فهرست برمی‌داریم — با شناسه نگه می‌داریم نه با
   // خودِ شیء، تا بعد از reload داده‌ی تازه نشان داده شود نه نسخه‌ی کهنه.
+  const shown = markets
+    ? sortMarkets(
+        onlyOpen ? markets.filter((m) => m.status === "open") : markets,
+        sort
+      )
+    : null;
+
   const open = markets?.find((m) => m.id === openId) ?? null;
   if (open && data) {
     return (
@@ -116,6 +151,42 @@ export default function MarketsScreen() {
         ))}
       </div>
 
+      <div className="mb-4 flex items-center gap-2">
+        <div className="no-scrollbar flex flex-1 gap-2 overflow-x-auto">
+          {SORTS.map((sOpt) => (
+            <button
+              key={sOpt.id}
+              type="button"
+              onClick={() => {
+                haptic.tap();
+                setSort(sOpt.id);
+              }}
+              className={`shrink-0 rounded-lg border px-2.5 py-1.5 text-[10.5px] transition ${
+                sort === sOpt.id
+                  ? "border-gold/60 bg-gold/10 text-gold font-bold"
+                  : "border-line bg-surface/40 text-muted"
+              }`}
+            >
+              {sOpt.label}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            haptic.tap();
+            setOnlyOpen((v) => !v);
+          }}
+          className={`shrink-0 rounded-lg border px-2.5 py-1.5 text-[10.5px] transition ${
+            onlyOpen
+              ? "border-gain/60 bg-gain/10 text-gain font-bold"
+              : "border-line bg-surface/40 text-muted"
+          }`}
+        >
+          فقط باز
+        </button>
+      </div>
+
       {error && <ErrorState message="فهرست بازارها نیامد." onRetry={reload} />}
 
       {!error && markets === null && (
@@ -126,16 +197,16 @@ export default function MarketsScreen() {
         </div>
       )}
 
-      {!error && markets?.length === 0 && (
+      {!error && shown?.length === 0 && (
         <EmptyState
           title="بازاری در این دسته نیست"
           hint="دسته‌ی دیگری را امتحان کن یا بعدا سر بزن."
         />
       )}
 
-      {!error && markets && markets.length > 0 && (
+      {!error && shown && shown.length > 0 && (
         <div className="flex flex-col gap-3">
-          {markets.map((m) => {
+          {shown.map((m) => {
             const st = STATUS[m.status] ?? {
               label: m.status,
               cls: "border-line bg-raised text-muted",

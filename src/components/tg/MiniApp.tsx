@@ -89,7 +89,7 @@ export default function MiniApp({ siteUrl }: { siteUrl: string }) {
       <div className="mx-auto flex min-h-[100dvh] max-w-md flex-col">
         {/* هدر چسبان: موجودی همیشه در دید است، چون در اپی که با پول کار
             می‌کند اولین چیزی است که کاربر دنبالش می‌گردد. */}
-        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-line/60 bg-ink/85 px-5 py-3 backdrop-blur-xl">
+        <header className="tg-safe-top sticky top-0 z-10 flex items-center justify-between border-b border-line/60 bg-ink/85 px-5 pb-3 backdrop-blur-xl">
           <div className="flex items-center gap-2">
             <Logo className="h-6 w-auto" />
             <span className="font-display text-[15px] font-black text-cream">
@@ -115,7 +115,7 @@ export default function MiniApp({ siteUrl }: { siteUrl: string }) {
         </header>
 
         {/* فضای پایین برای نوار تب، وگرنه آخرین کارت زیرش پنهان می‌شود */}
-        <main className="flex-1 px-5 pb-28 pt-4">
+        <main className="flex-1 px-5 pb-32 pt-4">
           {loading && (
             <div className="flex flex-col gap-3 pt-2">
               <Skeleton className="h-8 w-40" />
