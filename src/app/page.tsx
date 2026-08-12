@@ -21,7 +21,9 @@ export default function Home() {
         <TradeSection />
         <PredictTicker variant="ending" reverse />
         <MarketPulseSection />
+        <PredictTicker variant="volume" />
         <ComboSection />
+        <PredictTicker variant="ending" reverse />
         <PropSection />
         <Ticker />
         <Faq />

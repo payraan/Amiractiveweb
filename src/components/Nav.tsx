@@ -209,14 +209,17 @@ export default function Nav() {
               </Link>
             )}
 
-            {player && tgLinked === false ? (
-              <Link
-                href="/referral#telegram"
-                className="hidden items-center gap-2 rounded-lg border border-loss/60 bg-loss/10 px-4 py-2 text-sm font-bold text-loss transition hover:bg-loss hover:text-ink lg:flex"
-              >
+            {/* دکمه‌ی وضعیت تلگرام.
+                کاربر واردنشده هم دکمه‌ی «اتصال تلگرام» می‌بیند، منتها مقصدش
+                ورود است — چون اتصال بدون حساب معنا ندارد و پنهان‌کردن دکمه
+                یعنی تازه‌وارد اصلا نمی‌فهمد چنین کاری لازم است.
+                حالت null یعنی هنوز در حال خواندن وضعیت است؛ آنجا دکمه‌ی خنثی
+                نشان می‌دهیم تا قرمزِ کاذب یک لحظه چشمک نزند. */}
+            {player && tgLinked === null ? (
+              <span className="hidden items-center gap-2 rounded-lg border border-line px-4 py-2 text-sm text-muted lg:flex">
                 <TgIcon />
-                اتصال تلگرام
-              </Link>
+                تلگرام
+              </span>
             ) : player && tgLinked ? (
               <span
                 className="hidden items-center gap-2 rounded-lg border border-gain/50 bg-gain/10 px-4 py-2 text-sm font-bold text-gain lg:flex"
@@ -226,15 +229,18 @@ export default function Nav() {
                 تلگرام متصل
               </span>
             ) : (
-              <a
-                href={TELEGRAM}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hidden items-center gap-2 rounded-lg border border-gold/40 px-4 py-2 text-sm text-gold transition hover:bg-gold hover:text-ink lg:flex"
+              <Link
+                href={player ? "/referral#telegram" : "/login"}
+                className="hidden items-center gap-2 rounded-lg border border-loss/60 bg-loss/10 px-4 py-2 text-sm font-bold text-loss transition hover:bg-loss hover:text-ink lg:flex"
+                title={
+                  player
+                    ? "حساب تلگرام شما متصل نیست"
+                    : "برای اتصال تلگرام ابتدا وارد شوید"
+                }
               >
                 <TgIcon />
-                تلگرام
-              </a>
+                اتصال تلگرام
+              </Link>
             )}
 
             <button

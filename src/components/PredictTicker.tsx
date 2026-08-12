@@ -103,10 +103,15 @@ export default async function PredictTicker({
           from { transform: translate3d(-50%, 0, 0); }
           to { transform: translate3d(0, 0, 0); }
         }
-        /* توقف روی هاور — قاعده‌ی قبلی به کلاس دیگری بسته بود و
-           هرگز روی این نوار اعمال نمی‌شد. */
-        .narmoon-ticker:hover .narmoon-track {
-          animation-play-state: paused;
+        /* توقف روی هاور.
+           !important اجباری است: انیمیشن با style درون‌خطی ست می‌شود و
+           شورتهندِ animation، خودِ animation-play-state را هم به running
+           برمی‌گرداند. استایل درون‌خطی بر قاعده‌ی این استایل‌شیت مقدم است،
+           پس بدون !important این قاعده هرگز برنده نمی‌شد و نوار زیر موس
+           هم به حرکت ادامه می‌داد. */
+        .narmoon-ticker:hover .narmoon-track,
+        .narmoon-ticker:focus-within .narmoon-track {
+          animation-play-state: paused !important;
         }
         @media (prefers-reduced-motion: reduce) {
           .narmoon-track { animation: none !important; }

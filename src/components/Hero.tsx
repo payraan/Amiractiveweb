@@ -16,7 +16,7 @@ export default async function Hero() {
   }
 
   return (
-    <section className="relative overflow-hidden px-6 pb-40 pt-24 md:flex md:h-[calc(100svh-2.75rem)] md:min-h-[600px] md:flex-col md:justify-center md:pb-[24vh] md:pt-[8vh]">
+    <section className="relative overflow-hidden px-6 pb-40 pt-24 md:flex md:h-[calc(100svh-2.75rem)] md:min-h-[600px] md:flex-col md:justify-center md:pb-[24vh] md:pt-[max(9rem,10vh)]">
       <ProbabilityHorizon />
 
       <div className="relative mx-auto max-w-3xl text-center">
