@@ -13,8 +13,8 @@ const QUICK: { href: string; label: string }[] = [
   { href: "/predict", label: "نبض بازار" },
   { href: "/combos", label: "کمبو" },
   { href: "/#bot", label: "ربات معامله‌گر" },
-  { href: "/#results", label: "نتایج زنده" },
-  { href: "/#broker", label: "بروکر" },
+  { href: "/bot#results", label: "کارنامه‌ی زنده" },
+  { href: "/bot#broker", label: "بروکر همکار" },
   { href: "/referral", label: "دعوت دوستان" },
 ];
 
