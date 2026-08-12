@@ -4,6 +4,7 @@ import {
   consumeLinkCode,
   playerByTgUserId,
   grantGroupBonus,
+  clearTelegramBlocked,
   sendTelegram,
   answerCallback,
   escapeHtml,
@@ -210,6 +211,12 @@ export async function POST(req: Request) {
   }
 
   try {
+    // هر آپدیتی از یک کاربر یعنی چت با ربات باز است، پس اگر قبلا «بلاک»
+    // علامت خورده بود همین‌جا برداشته می‌شود. مسیر اصلی بازگشت همین است و
+    // هیچ تماسی با تلگرام لازم ندارد.
+    const who = update.message?.from ?? update.callback_query?.from;
+    if (who) await clearTelegramBlocked(who.id);
+
     const msg = update.message;
     if (msg?.from && typeof msg.text === "string") {
       await handleMessage(msg.from, msg.chat.id, msg.text);

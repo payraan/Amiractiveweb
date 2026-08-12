@@ -3,7 +3,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { usePlayer } from "@/components/predict/usePlayer";
 
-type Status = { linked: boolean; bonusClaimed: boolean; bonusCredits: number };
+type Status = {
+  linked: boolean;
+  blocked: boolean;
+  bonusClaimed: boolean;
+  bonusCredits: number;
+};
 
 const CHANNEL = "https://t.me/CashflowFactorys";
 
@@ -49,6 +54,39 @@ export default function TelegramConnect() {
   // ربات پیکربندی نشده: کارت اتصال را نشان نده. حساب‌های وصل‌شده همچنان
   // وضعیتشان را می‌بینند، ولی دعوت به اتصالی که کار نمی‌کند نمایش داده نمی‌شود.
   if (!botReady && !status?.linked) return null;
+
+  // بلاک‌شده: نباید «متصل ✓» ببیند. حسابش وصل است ولی هیچ پیامی به او
+  // نمی‌رسد و مسیرهای ورودِ پول قفل‌اند — این باید همین‌جا گفته شود، نه در
+  // لحظه‌ای که وسط خرید با خطا روبه‌رو می‌شود.
+  if (status?.linked && status.blocked) {
+    return (
+      <div className="rounded-2xl border border-loss/40 bg-loss/5 p-5">
+        <div className="flex items-center gap-2 text-sm font-bold text-loss">
+          <span>⚠</span> ربات نارمون را بلاک کرده‌اید
+        </div>
+        <p className="mt-2 text-[11px] leading-6 text-muted">
+          حساب شما وصل است، ولی چون ربات بلاک شده هیچ اعلانی — از جمله هشدار
+          برداشت وجه — به شما نمی‌رسد. تا زمان آنبلاک‌کردن، شارژ کیف پول،
+          پیش‌بینی در بازار ایران، ساخت بازار و ورود به چالش انجام نمی‌شود.
+          <b className="text-cream"> برداشت وجه بسته نیست.</b>
+        </p>
+        <p className="mt-2 text-[11px] leading-6 text-muted">
+          ربات را در تلگرام باز کنید، Unblock بزنید و یک پیام (مثلاً /start)
+          بفرستید. بلافاصله باز می‌شود.
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            load();
+            refresh();
+          }}
+          className="no-zoom mt-3 block text-[11px] text-gold transition hover:underline"
+        >
+          آنبلاک کردم؛ بررسی وضعیت
+        </button>
+      </div>
+    );
+  }
 
   if (status?.linked) {
     return (

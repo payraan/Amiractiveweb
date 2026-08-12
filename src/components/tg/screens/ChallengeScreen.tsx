@@ -58,6 +58,8 @@ type State = {
 type Data = { authed: boolean; tiers: Tier[]; state: State | null };
 
 const ERR: Record<string, string> = {
+  telegram_blocked:
+    "ربات نارمون را در تلگرام بلاک کرده‌اید. اعلان‌های امنیتی حساب از همان ربات می‌آید، پس تا آنبلاک نکنید این عملیات انجام نمی‌شود. برداشت وجه بسته نیست.",
   rate_limited: "درخواست‌های پیاپی بیش از حد بود. کمی صبر کنید و دوباره تلاش کنید.",
   not_authed: "ابتدا وارد شوید.",
   telegram_required: "برای ورود به چالش باید حساب شما به تلگرام وصل باشد.",

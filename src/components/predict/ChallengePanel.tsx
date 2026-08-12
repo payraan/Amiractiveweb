@@ -26,6 +26,8 @@ type Tier = {
 type State = ChallengeStateView | null;
 
 const START_ERRORS: Record<string, string> = {
+  telegram_blocked:
+    "ربات نارمون را در تلگرام بلاک کرده‌اید. اعلان‌های امنیتی حساب از همان ربات می‌آید، پس تا آنبلاک نکنید این عملیات انجام نمی‌شود. برداشت وجه بسته نیست.",
   rate_limited: "درخواست‌های پیاپی بیش از حد بود. کمی صبر کنید و دوباره تلاش کنید.",
   active_exists: "یک چالش فعال دارید؛ ابتدا آن را کامل کنید.",
   entry_limit:

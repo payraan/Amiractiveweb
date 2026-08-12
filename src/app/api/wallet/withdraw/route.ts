@@ -16,7 +16,10 @@ export async function POST(req: Request) {
   if (!playerId) {
     return NextResponse.json({ ok: false, error: "not_authed" }, { status: 401 });
   }
-  const linked = await requireLinkedTelegram(playerId);
+  // تنها مسیری که بلاک‌بودن ربات قفلش نمی‌کند. اگر اینجا هم قفل می‌شد، یک
+  // بلاک‌کردن ساده پول کاربر را در پلتفرم حبس می‌کرد — و راه بازکردنش بیرون
+  // از دست ما بود. اتصال تلگرام همچنان لازم است، فقط بلاک‌بودن مانع نیست.
+  const linked = await requireLinkedTelegram(playerId, { evenIfBlocked: true });
   if (!linked.ok) return linked.response;
   if (!gatewayReady()) {
     return NextResponse.json({ ok: false, error: "gateway_off" }, { status: 503 });

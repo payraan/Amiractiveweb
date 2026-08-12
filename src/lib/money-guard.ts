@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { hasLinkedTelegram } from "@/lib/telegram";
+import { checkTelegramLink } from "@/lib/telegram";
 
 // ═══ شرط اتصال تلگرام برای اعمال پولی ═══════════════════════
 //
@@ -16,17 +16,44 @@ import { hasLinkedTelegram } from "@/lib/telegram";
 // چرا اصلا: ضدتقلبِ رفرال، چالش، لیدربورد و پاداش‌ها همه روی «یک نفر = یک
 // حساب» ایستاده‌اند، و تنها لنگر واقعی این ادعا هویت تلگرام است.
 
+// ── بلاک‌کردن ربات ──
+//
+// اتصال تلگرام وقتی کاربر ربات را بلاک می‌کند بی‌صدا بی‌اثر می‌شود: آیدی در
+// دیتابیس می‌ماند ولی هیچ پیامی — از جمله اعلان برداشت — دیگر نمی‌رسد. پس
+// حساب بلاک‌شده برای مسیرهای *ورودِ* پول مثل حساب وصل‌نشده رفتار می‌کند.
+//
+// ⚠️ **برداشت هرگز به این دلیل قفل نمی‌شود.** همان مرزی که این فایل رویش
+// نوشته شده: قفل روی ورود پول است، نه خروج. کسی نباید بین خودش و پولش
+// دیوار ببیند — مخصوصا دیواری که برداشتنش به یک اپ سوم وابسته است.
+// روت برداشت با `evenIfBlocked` صریحا از این قاعده خارج می‌شود.
+
 export type MoneyGuardResult = { ok: true } | { ok: false; response: Response };
 
 export async function requireLinkedTelegram(
-  playerId: number
+  playerId: number,
+  opts: { evenIfBlocked?: boolean } = {}
 ): Promise<MoneyGuardResult> {
-  if (await hasLinkedTelegram(playerId)) return { ok: true };
-  return {
-    ok: false,
-    response: NextResponse.json(
-      { ok: false, error: "telegram_required" },
-      { status: 403 }
-    ),
-  };
+  const link = await checkTelegramLink(playerId);
+
+  if (!link.linked) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { ok: false, error: "telegram_required" },
+        { status: 403 }
+      ),
+    };
+  }
+
+  if (link.blocked && !opts.evenIfBlocked) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { ok: false, error: "telegram_blocked" },
+        { status: 403 }
+      ),
+    };
+  }
+
+  return { ok: true };
 }

@@ -139,6 +139,7 @@ export async function ensureTelegramTables(): Promise<void> {
       await pool.query("ALTER TABLE players ADD COLUMN IF NOT EXISTS tg_user_id BIGINT");
       await pool.query("ALTER TABLE players ADD COLUMN IF NOT EXISTS tg_linked_at TIMESTAMPTZ");
       await pool.query("ALTER TABLE players ADD COLUMN IF NOT EXISTS group_bonus_at TIMESTAMPTZ");
+      await pool.query("ALTER TABLE players ADD COLUMN IF NOT EXISTS tg_blocked_at TIMESTAMPTZ");
       await pool.query(
         `CREATE UNIQUE INDEX IF NOT EXISTS players_tg_user_id_key
            ON players (tg_user_id) WHERE tg_user_id IS NOT NULL`
@@ -379,6 +380,8 @@ export async function hasLinkedTelegram(playerId: number): Promise<boolean> {
 
 export type TgStatus = {
   linked: boolean;
+  /** ربات بلاک شده — مسیرهای ورودِ پول قفل‌اند تا آنبلاک شود. */
+  blocked: boolean;
   bonusClaimed: boolean;
   bonusCredits: number;
 };
@@ -386,12 +389,17 @@ export type TgStatus = {
 export async function getTgStatus(playerId: number): Promise<TgStatus> {
   await ensureTelegramTables();
   const pool = await db();
-  const r = await pool.query<{ tg_user_id: string | null; group_bonus_at: string | null }>(
-    "SELECT tg_user_id, group_bonus_at FROM players WHERE id=$1",
+  const r = await pool.query<{ group_bonus_at: string | null }>(
+    "SELECT group_bonus_at FROM players WHERE id=$1",
     [playerId]
   );
+  // همان بازبینی زنده‌ی مسیر پولی، تا صفحه‌ی وضعیت با آنچه هنگام خرج‌کردن
+  // اتفاق می‌افتد یکی باشد. کاربری که تازه آنبلاک کرده نباید اینجا «بلاک»
+  // ببیند و آنجا آزاد باشد.
+  const link = await checkTelegramLink(playerId);
   return {
-    linked: Boolean(r.rows[0]?.tg_user_id),
+    linked: link.linked,
+    blocked: link.blocked,
     bonusClaimed: Boolean(r.rows[0]?.group_bonus_at),
     bonusCredits: GROUP_BONUS_CREDITS,
   };
@@ -434,7 +442,108 @@ export async function sendTelegram(
     link_preview_options: { is_disabled: true },
     ...(buttons?.length ? { reply_markup: { inline_keyboard: buttons } } : {}),
   });
+  if (!r.ok) await noteSendFailure(tgUserId, r.error);
   return r.ok;
+}
+
+// ═══ تشخیص بلاک‌شدن ربات ═════════════════════════════════════
+//
+// ضدتقلبِ همه‌ی مکانیزم‌های پاداش روی «یک نفر = یک حساب» ایستاده و تنها
+// لنگر آن، حساب تلگرام است. اگر کاربر بعد از اتصال ربات را بلاک کند، آن
+// لنگر عملا از بین می‌رود: نه اعلان برداشت به او می‌رسد، نه هیچ پیام
+// امنیتی دیگری. پس تا وقتی از پلتفرم استفاده می‌کند باید ربات را نگه دارد.
+//
+// ── تشخیص رایگان است ──
+// وقتی ربات بلاک شده باشد، تلگرام به sendMessage خطای
+// «Forbidden: bot was blocked by the user» می‌دهد. یعنی همان پیام‌هایی که
+// به‌هرحال می‌فرستیم، خودشان آشکارساز‌اند و هیچ تماس اضافه‌ای لازم نیست.
+// بررسی دوره‌ای با getChat روی ده‌ها هزار حساب عمدا ساخته نشد.
+//
+// ⚠️ فقط همین یک خطا علامت می‌زند. «chat not found» و «user is deactivated»
+// عمدا کنار گذاشته شده‌اند: اولی مبهم است و دومی حسابی است که کاربر هیچ
+// راهی برای درست‌کردنش ندارد، پس قفل‌کردنش فقط یک بن‌بست می‌سازد.
+const BLOCKED_RE = /bot was blocked by the user/i;
+
+/** خطای ارسال را می‌بیند و اگر «بلاک» بود، حساب را علامت می‌زند. */
+async function noteSendFailure(tgUserId: number, error: string): Promise<void> {
+  if (!BLOCKED_RE.test(error)) return;
+  try {
+    await markTelegramBlocked(tgUserId);
+  } catch {
+    // علامت‌زدن نباید مسیر اصلی را بشکند.
+  }
+}
+
+export async function markTelegramBlocked(tgUserId: number): Promise<void> {
+  await ensureTelegramTables();
+  const pool = await db();
+  await pool.query(
+    "UPDATE players SET tg_blocked_at=now() WHERE tg_user_id=$1 AND tg_blocked_at IS NULL",
+    [tgUserId]
+  );
+}
+
+/**
+ * علامت بلاک را برمی‌دارد.
+ *
+ * از وبهوک صدا زده می‌شود: هر پیام یا کلیکی که از کاربر برسد یعنی چت باز
+ * است. این مسیر اصلی بازگشت است و هیچ هزینه‌ای ندارد.
+ */
+export async function clearTelegramBlocked(tgUserId: number): Promise<void> {
+  await ensureTelegramTables();
+  const pool = await db();
+  await pool.query(
+    "UPDATE players SET tg_blocked_at=NULL WHERE tg_user_id=$1 AND tg_blocked_at IS NOT NULL",
+    [tgUserId]
+  );
+}
+
+/**
+ * بازبینی زنده‌ی بلاک‌بودن، بدون فرستادن هیچ پیامی.
+ *
+ * sendChatAction فقط نشانگر «در حال تایپ» را روشن می‌کند — چیزی در چت
+ * نمی‌ماند — ولی اگر ربات بلاک باشد همان ۴۰۳ را می‌دهد. getChat به این کار
+ * نمی‌آید چون برای کاربرِ بلاک‌کننده هم موفق برمی‌گردد.
+ *
+ * `true` یعنی هنوز بلاک است.
+ */
+async function stillBlocked(tgUserId: number): Promise<boolean> {
+  const r = await tgCall("sendChatAction", {
+    chat_id: tgUserId,
+    action: "typing",
+  });
+  if (r.ok) return false;
+  // خطای شبکه یا ربات پیکربندی‌نشده نباید کاربر را آزاد کند؛ فقط خطای
+  // صریحِ «بلاک» و هر خطای دیگری را محتاطانه «هنوز بلاک» می‌گیریم مگر
+  // اینکه تماس اصلا انجام نشده باشد.
+  return r.error !== "bot_not_configured";
+}
+
+export type TgLink = { linked: boolean; blocked: boolean };
+
+/**
+ * وضعیت اتصال تلگرام برای تصمیم‌های پولی.
+ *
+ * اگر حساب قبلا بلاک علامت خورده باشد، *یک بار* زنده بازبینی می‌شود تا
+ * کاربری که ربات را آنبلاک کرده بلافاصله آزاد شود و مجبور نباشد اول به ربات
+ * پیام بدهد. هزینه‌ی این تماس فقط روی حساب‌های علامت‌خورده است.
+ */
+export async function checkTelegramLink(playerId: number): Promise<TgLink> {
+  await ensureTelegramTables();
+  const pool = await db();
+  const r = await pool.query<{ tg_user_id: string | null; tg_blocked_at: string | null }>(
+    "SELECT tg_user_id, tg_blocked_at FROM players WHERE id=$1",
+    [playerId]
+  );
+  const row = r.rows[0];
+  if (!row?.tg_user_id) return { linked: false, blocked: false };
+  if (!row.tg_blocked_at) return { linked: true, blocked: false };
+
+  if (await stillBlocked(Number(row.tg_user_id))) {
+    return { linked: true, blocked: true };
+  }
+  await clearTelegramBlocked(Number(row.tg_user_id));
+  return { linked: true, blocked: false };
 }
 
 // ── نظرسنجی بازار در کانال ───────────────────────────────────

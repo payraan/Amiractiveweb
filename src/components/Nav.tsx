@@ -95,7 +95,11 @@ export default function Nav() {
     fetch("/api/predict/tg-link", { cache: "no-store" })
       .then((r) => r.json())
       .then((j) => {
-        if (alive) setTgLinked(Boolean(j?.status?.linked));
+        // حساب بلاک‌شده «وصل» حساب نمی‌شود: نشان سبز در نوار بالا یعنی
+        // اعلان‌ها می‌رسند، و برای کاربری که ربات را بلاک کرده نمی‌رسند.
+        if (alive) {
+          setTgLinked(Boolean(j?.status?.linked) && !j?.status?.blocked);
+        }
       })
       .catch(() => {});
     return () => {
