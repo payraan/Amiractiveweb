@@ -65,7 +65,12 @@ type Rule = {
 };
 
 export default function ChallengeDashboard({ s }: { s: ChallengeStateView }) {
-  const rules: Rule[] = [
+  // تیر ناشناخته یعنی آستانه‌ای نداریم. نشان‌دادن «۰» در جای آستانه بدتر از
+  // نشان‌ندادن است: کاربر می‌خواند «باید به ۰ امتیاز برسی» و آن را یک عدد
+  // واقعی می‌فهمد. پس در این حالت آستانه‌ها «نامعلوم» می‌شوند و جدول شرایط
+  // قبولی اصلا رندر نمی‌شود — چیزی که نمی‌دانیم را ادعا نمی‌کنیم.
+  const unknown = s.tierKnown === false;
+  const rules: Rule[] = unknown ? [] : [
     {
       label: "هدف امتیاز",
       hint: `باید به ${s.target} امتیاز برسی`,
@@ -207,25 +212,30 @@ export default function ChallengeDashboard({ s }: { s: ChallengeStateView }) {
         </div>
 
         {/* شمارنده‌ی شرط‌ها */}
-        <div className="mt-4 flex items-center gap-3">
-          <div className="h-2 flex-1 overflow-hidden rounded-full bg-line/40">
-            <div
-              className={`h-full rounded-full transition-all duration-700 ${
-                passedCount === rules.length ? "bg-gain" : "bg-gold"
-              }`}
-              style={{ width: `${(passedCount / rules.length) * 100}%` }}
-            />
-          </div>
-          <span className="shrink-0 font-mono text-[11px] text-muted" dir="ltr">
-            {passedCount}/{rules.length}
-          </span>
-        </div>
-        <p className="mt-2 text-[10px] text-muted">
-          {passedCount} شرط از {rules.length} شرط قبولی برقرار است.
-        </p>
+        {rules.length > 0 && (
+          <>
+            <div className="mt-4 flex items-center gap-3">
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-line/40">
+                <div
+                  className={`h-full rounded-full transition-all duration-700 ${
+                    passedCount === rules.length ? "bg-gain" : "bg-gold"
+                  }`}
+                  style={{ width: `${(passedCount / rules.length) * 100}%` }}
+                />
+              </div>
+              <span className="shrink-0 font-mono text-[11px] text-muted" dir="ltr">
+                {passedCount}/{rules.length}
+              </span>
+            </div>
+            <p className="mt-2 text-[10px] text-muted">
+              {passedCount} شرط از {rules.length} شرط قبولی برقرار است.
+            </p>
+          </>
+        )}
       </div>
 
-      {/* جدول شرط‌ها */}
+      {/* جدول شرط‌ها — با تیر ناشناخته اصلا رندر نمی‌شود */}
+      {rules.length > 0 && (
       <div className="no-lift rounded-2xl border border-line bg-surface/40 p-5 md:p-6">
         <h3 className="font-display text-base font-black">شرایط قبولی</h3>
         <div className="mt-4 overflow-x-auto">
@@ -292,6 +302,7 @@ export default function ChallengeDashboard({ s }: { s: ChallengeStateView }) {
           حد بگذری. بقیه هدف‌اند و باید به آن‌ها برسی.
         </p>
       </div>
+      )}
 
       {/* کارنامه‌ی روزانه */}
       {s.dailyPnl.length > 0 && (

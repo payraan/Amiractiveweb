@@ -3,13 +3,14 @@
 import { useCallback, useState } from "react";
 import { api, ApiError } from "@/components/tg/api";
 import { useResource } from "@/components/tg/useResource";
-import { Card, ErrorState, ScreenTitle, Skeleton, Stat } from "@/components/tg/ui";
+import { Card, ErrorState, ScreenTitle, Skeleton } from "@/components/tg/ui";
 import { haptic } from "@/components/tg/telegram";
 
 // چلنج پراپ در مینی‌اپ — همان /api/predict/challenge سایت.
 //
-// دو حالت: اگر چلنج فعالی هست، کارنامه‌اش را نشان می‌دهد (امتیاز، برد و باخت،
-// دراودان، سود و زیان روزانه). اگر نیست، تیرها را برای خرید نشان می‌دهد.
+// طراحی برای صفحه‌ی باریک تلگرام: یک حلقه‌ی پیشرفت که در یک نگاه می‌گوید چقدر
+// تا هدف مانده، بعد سنجه‌ها، بعد چک‌لیست شرط‌ها، بعد نمودار میله‌ای روزانه.
+// جدول‌های چندستونی سایت اینجا کار نمی‌کنند و به اسکرول افقی می‌افتند.
 
 type Tier = {
   id: string;
@@ -28,6 +29,7 @@ type Tier = {
 
 type State = {
   tierId: string;
+  tierKnown?: boolean;
   label: string;
   status: string;
   failReason: string | null;
@@ -41,6 +43,9 @@ type State = {
   minPreds: number;
   activeDays: number;
   minDays: number;
+  bestDayPct: number;
+  consistencyPct: number;
+  consistencyOk: boolean;
   daysLeft: number;
   prize: string;
   wins: number;
@@ -57,21 +62,181 @@ const ERR: Record<string, string> = {
   telegram_required: "برای ورود به چلنج باید حسابت به تلگرام وصل باشد.",
   active_exists: "همین حالا یک چلنج فعال داری.",
   entry_limit: "سقف ورود در ۳۰ روز گذشته پر شده است.",
-  insufficient_credits: "MOON کافی نداری.",
+  insufficient_credits: "MOON کافی نداری. از کیف پول MOON بخر.",
   bad_tier: "این تیر معتبر نیست.",
 };
 
 const FAIL: Record<string, string> = {
   drawdown: "عبور از سقف افت سرمایه",
-  daily: "عبور از سقف زیان روزانه",
+  daily_loss: "عبور از سقف زیان روزانه",
   expired: "پایان مهلت بدون رسیدن به هدف",
   consistency: "تمرکز بیش از حد سود در یک روز",
 };
+
+/** حلقه‌ی پیشرفت — در یک نگاه می‌گوید چقدر تا هدف مانده. */
+function Ring({
+  pct,
+  points,
+  target,
+  tone,
+}: {
+  pct: number;
+  points: number;
+  target: number | null;
+  tone: "gold" | "gain" | "loss";
+}) {
+  const R = 46;
+  const C = 2 * Math.PI * R;
+  const color =
+    tone === "gain" ? "#3ecf8e" : tone === "loss" ? "#e5484d" : "#e8c46a";
+  return (
+    <div className="relative h-[120px] w-[120px] shrink-0">
+      <svg viewBox="0 0 120 120" className="h-full w-full -rotate-90">
+        <circle cx="60" cy="60" r={R} fill="none" stroke="#26262e" strokeWidth="9" />
+        <circle
+          cx="60"
+          cy="60"
+          r={R}
+          fill="none"
+          stroke={color}
+          strokeWidth="9"
+          strokeLinecap="round"
+          strokeDasharray={C}
+          strokeDashoffset={C * (1 - Math.max(0, Math.min(1, pct)))}
+          className="transition-all duration-700"
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="font-mono text-[19px] font-bold" style={{ color }} dir="ltr">
+          {points}
+        </span>
+        <span className="mt-0.5 text-[9px] text-muted" dir="ltr">
+          {target === null ? "هدف نامعلوم" : `از ${target}`}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function Metric({
+  label,
+  value,
+  sub,
+  tone,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  tone?: "gain" | "loss" | "gold";
+}) {
+  const color =
+    tone === "gain"
+      ? "text-gain"
+      : tone === "loss"
+        ? "text-loss"
+        : tone === "gold"
+          ? "text-gold"
+          : "text-cream";
+  return (
+    <div className="rounded-xl border border-line bg-surface/40 px-3 py-2.5">
+      <p className="text-[10px] text-muted">{label}</p>
+      <p className={`mt-1 font-mono text-[15px] font-bold ${color}`} dir="ltr">
+        {value}
+      </p>
+      {sub && (
+        <p className="mt-0.5 font-mono text-[9px] text-muted" dir="ltr">
+          {sub}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** یک شرط قبولی با نوار پیشرفت. */
+function Cond({
+  label,
+  value,
+  ok,
+  progress,
+  isLimit,
+}: {
+  label: string;
+  value: string;
+  ok: boolean;
+  progress: number;
+  isLimit?: boolean;
+}) {
+  return (
+    <div className="py-2">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[11px] text-cream">{label}</span>
+        <span className="flex items-center gap-2">
+          <span className="font-mono text-[10px] text-muted" dir="ltr">
+            {value}
+          </span>
+          <span
+            className={`rounded-full px-1.5 py-0.5 text-[9px] ${
+              ok ? "bg-gain/15 text-gain" : "bg-line/40 text-muted"
+            }`}
+          >
+            {ok ? "✓" : isLimit ? "!" : "…"}
+          </span>
+        </span>
+      </div>
+      <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-line/40">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ${
+            isLimit ? (ok ? "bg-gold/60" : "bg-loss") : ok ? "bg-gain" : "bg-gold/60"
+          }`}
+          style={{ width: `${Math.min(100, Math.max(0, progress * 100))}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+/** نمودار میله‌ای سود و زیان روزانه. */
+function DailyBars({ rows }: { rows: { day: string; points: number }[] }) {
+  const max = Math.max(1, ...rows.map((r) => Math.abs(r.points)));
+  return (
+    <div className="flex items-end justify-between gap-1" style={{ height: 84 }}>
+      {rows.map((r) => {
+        const h = Math.max(3, (Math.abs(r.points) / max) * 34);
+        const up = r.points >= 0;
+        return (
+          <div key={r.day} className="flex flex-1 flex-col items-center gap-1">
+            <div className="flex h-[38px] w-full items-end justify-center">
+              {up && (
+                <div
+                  className="w-full max-w-[18px] rounded-t bg-gain/70"
+                  style={{ height: h }}
+                />
+              )}
+            </div>
+            <div className="h-px w-full bg-line" />
+            <div className="flex h-[38px] w-full items-start justify-center">
+              {!up && (
+                <div
+                  className="w-full max-w-[18px] rounded-b bg-loss/70"
+                  style={{ height: h }}
+                />
+              )}
+            </div>
+            <span className="font-mono text-[8px] text-muted" dir="ltr">
+              {r.day.slice(5)}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function ChallengeScreen() {
   const res = useResource<Data>("/api/predict/challenge");
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [track, setTrack] = useState<"predict" | "forex">("predict");
 
   const start = useCallback(
     async (tierId: string) => {
@@ -99,7 +264,7 @@ export default function ChallengeScreen() {
   if (!res.data)
     return (
       <div className="space-y-2">
-        <Skeleton className="h-24 rounded-2xl" />
+        <Skeleton className="h-40 rounded-2xl" />
         <Skeleton className="h-24 rounded-2xl" />
       </div>
     );
@@ -109,15 +274,60 @@ export default function ChallengeScreen() {
   if (s) {
     const passed = s.status === "passed";
     const failed = s.status === "failed";
-    const pct = Math.max(0, Math.min(100, (s.points / s.target) * 100));
+    const unknown = s.tierKnown === false;
     const counted = s.wins + s.losses;
 
+    const conds = unknown
+      ? []
+      : [
+          {
+            label: "هدف امتیاز",
+            value: `${s.points} / ${s.target}`,
+            ok: s.points >= s.target,
+            progress: s.target > 0 ? Math.max(0, s.points) / s.target : 0,
+          },
+          {
+            label: "افت از سقف",
+            value: `${s.drawdown} / ${s.maxDrawdown}`,
+            ok: s.drawdown <= s.maxDrawdown,
+            progress: s.maxDrawdown > 0 ? s.drawdown / s.maxDrawdown : 0,
+            isLimit: true,
+          },
+          {
+            label: "سقف ضرر روزانه",
+            value: `${s.worstDay} / −${s.dailyLoss}`,
+            ok: s.worstDay >= -s.dailyLoss,
+            progress: s.dailyLoss > 0 ? Math.abs(s.worstDay) / s.dailyLoss : 0,
+            isLimit: true,
+          },
+          {
+            label: "حداقل پیش‌بینی",
+            value: `${s.settledCount} / ${s.minPreds}`,
+            ok: s.settledCount >= s.minPreds,
+            progress: s.minPreds > 0 ? s.settledCount / s.minPreds : 0,
+          },
+          {
+            label: "حداقل روز فعال",
+            value: `${s.activeDays} / ${s.minDays}`,
+            ok: s.activeDays >= s.minDays,
+            progress: s.minDays > 0 ? s.activeDays / s.minDays : 0,
+          },
+          {
+            label: "قانون ثبات",
+            value: `${s.bestDayPct}٪ / ${s.consistencyPct}٪`,
+            ok: s.consistencyOk,
+            progress: s.consistencyPct > 0 ? s.bestDayPct / s.consistencyPct : 0,
+            isLimit: true,
+          },
+        ];
+    const okCount = conds.filter((c) => c.ok).length;
+
     return (
-      <div>
-        <ScreenTitle title="چلنج پراپ" subtitle={s.label} />
+      <div className="space-y-3">
+        <ScreenTitle title="کارنامه‌ی چلنج پراپ" subtitle={s.label} />
 
         {failed && (
-          <div className="mb-3 rounded-2xl border border-loss/40 bg-loss/5 p-4">
+          <div className="rounded-2xl border border-loss/40 bg-loss/5 p-4">
             <p className="text-[12px] font-bold text-loss">چلنج ناموفق شد</p>
             {s.failReason && (
               <p className="mt-1 text-[11px] text-muted">
@@ -127,42 +337,96 @@ export default function ChallengeScreen() {
           </div>
         )}
         {passed && (
-          <div className="mb-3 rounded-2xl border border-gain/40 bg-gain/5 p-4">
-            <p className="text-[12px] font-bold text-gain">
-              چلنج با موفقیت تمام شد — {s.prize}
+          <div className="rounded-2xl border border-gain/40 bg-gain/5 p-4">
+            <p className="text-[12px] font-bold text-gain">چلنج پاس شد 🎉</p>
+            <p className="mt-1 text-[11px] text-muted">جایزه: {s.prize}</p>
+          </div>
+        )}
+
+        {/* حلقه‌ی پیشرفت + سنجه‌های کلیدی */}
+        <Card>
+          <div className="flex items-center gap-4">
+            <Ring
+              pct={unknown || s.target <= 0 ? 0 : Math.max(0, s.points) / s.target}
+              points={s.points}
+              target={unknown ? null : s.target}
+              tone={failed ? "loss" : passed ? "gain" : "gold"}
+            />
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <div className="flex items-baseline justify-between">
+                <span className="text-[11px] text-muted">برد / باخت</span>
+                <span className="font-mono text-[13px]" dir="ltr">
+                  <b className="text-gain">{s.wins}</b>
+                  <span className="text-muted"> / </span>
+                  <b className="text-loss">{s.losses}</b>
+                </span>
+              </div>
+              <div className="flex items-baseline justify-between">
+                <span className="text-[11px] text-muted">نرخ برد</span>
+                <span className="font-mono text-[13px] text-cream" dir="ltr">
+                  {s.winRate === null ? "—" : `${s.winRate}٪`}
+                </span>
+              </div>
+              {!passed && !failed && (
+                <div className="flex items-baseline justify-between">
+                  <span className="text-[11px] text-muted">روز باقی‌مانده</span>
+                  <span className="font-mono text-[13px] text-gold" dir="ltr">
+                    {s.daysLeft}
+                  </span>
+                </div>
+              )}
+              {conds.length > 0 && (
+                <div className="flex items-baseline justify-between">
+                  <span className="text-[11px] text-muted">شرط‌های برقرار</span>
+                  <span className="font-mono text-[13px] text-cream" dir="ltr">
+                    {okCount}/{conds.length}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        </Card>
+
+        {unknown && (
+          <div className="rounded-2xl border border-loss/40 bg-loss/5 p-4">
+            <p className="text-[12px] font-bold text-loss">
+              تیر قدیمی «{s.tierId}»
+            </p>
+            <p className="mt-1 text-[11px] leading-6 text-muted">
+              این تیر دیگر در فهرست نیست، پس آستانه‌های هدف و افت نامعلوم‌اند و
+              وضعیت خودکار به‌روز نمی‌شود. کارنامه‌ی پیش‌بینی‌ها درست است. برای
+              تعیین تکلیف با پشتیبانی تماس بگیر.
             </p>
           </div>
         )}
 
-        <Card>
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-            <Stat
-              label="امتیاز"
-              value={String(s.points)}
-              tone={s.points >= 0 ? "gain" : "loss"}
-            />
-            <Stat label="هدف" value={String(s.target)} tone="gold" />
-            <Stat label="برد" value={String(s.wins)} tone="gain" />
-            <Stat label="باخت" value={String(s.losses)} tone="loss" />
-            <Stat
-              label="نرخ برد"
-              value={s.winRate === null ? "—" : `${s.winRate}٪`}
-            />
-            {!passed && !failed && (
-              <Stat label="روز مانده" value={String(s.daysLeft)} tone="gold" />
-            )}
-          </div>
-
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-ink/60">
-            <div
-              className="h-full rounded-full bg-gold transition-all"
-              style={{ width: `${pct}%` }}
-            />
-          </div>
-        </Card>
+        <div className="grid grid-cols-2 gap-2">
+          <Metric
+            label="افت سرمایه"
+            value={String(s.drawdown)}
+            sub={unknown ? "سقف نامعلوم" : `سقف ${s.maxDrawdown}`}
+            tone={!unknown && s.drawdown > s.maxDrawdown ? "loss" : undefined}
+          />
+          <Metric
+            label="بدترین روز"
+            value={String(s.worstDay)}
+            sub={unknown ? "سقف نامعلوم" : `سقف −${s.dailyLoss}`}
+            tone={s.worstDay < 0 ? "loss" : undefined}
+          />
+          <Metric
+            label="پیش‌بینی شمرده‌شده"
+            value={String(s.settledCount)}
+            sub={unknown ? "حداقل نامعلوم" : `حداقل ${s.minPreds}`}
+          />
+          <Metric
+            label="روز فعال"
+            value={String(s.activeDays)}
+            sub={unknown ? "حداقل نامعلوم" : `حداقل ${s.minDays}`}
+          />
+        </div>
 
         {counted === 0 && !failed && (
-          <div className="mt-3 rounded-2xl border border-gold/30 bg-gold/5 p-4">
+          <div className="rounded-2xl border border-gold/30 bg-gold/5 p-4">
             <p className="text-[12px] font-bold text-gold">
               هنوز پیش‌بینی شمرده‌شده‌ای نداری
             </p>
@@ -173,63 +437,46 @@ export default function ChallengeScreen() {
               </li>
               <li>پیش‌بینی باید تسویه شده باشد.</li>
               <li>
-                فقط بازارهایی با احتمال{" "}
-                <b className="text-cream">۲۵٪ تا ۷۵٪</b>.
+                فقط بازارهایی با احتمال <b className="text-cream">۲۵٪ تا ۷۵٪</b>.
               </li>
             </ul>
           </div>
         )}
 
-        <div className="mt-3 grid grid-cols-2 gap-2">
+        {conds.length > 0 && (
           <Card>
-            <p className="text-[10px] text-muted">افت سرمایه</p>
-            <p className="mt-1 font-mono text-[13px] text-cream" dir="ltr">
-              {s.drawdown} / {s.maxDrawdown}
+            <p className="text-[11px] font-bold text-cream">شرایط قبولی</p>
+            <div className="mt-1 divide-y divide-line/60">
+              {conds.map((c) => (
+                <Cond key={c.label} {...c} />
+              ))}
+            </div>
+            <p className="mt-2 text-[9px] leading-5 text-muted">
+              «افت از سقف»، «سقف ضرر روزانه» و «ثبات» سقف‌اند — نباید از حد بگذری.
+              بقیه هدف‌اند.
             </p>
           </Card>
-          <Card>
-            <p className="text-[10px] text-muted">بدترین روز</p>
-            <p className="mt-1 font-mono text-[13px] text-cream" dir="ltr">
-              {s.worstDay} / -{s.dailyLoss}
-            </p>
-          </Card>
-          <Card>
-            <p className="text-[10px] text-muted">پیش‌بینی شمرده‌شده</p>
-            <p className="mt-1 font-mono text-[13px] text-cream" dir="ltr">
-              {s.settledCount} / {s.minPreds}
-            </p>
-          </Card>
-          <Card>
-            <p className="text-[10px] text-muted">روز فعال</p>
-            <p className="mt-1 font-mono text-[13px] text-cream" dir="ltr">
-              {s.activeDays} / {s.minDays}
-            </p>
-          </Card>
-        </div>
+        )}
 
         {s.dailyPnl.length > 0 && (
-          <Card className="mt-3">
-            <p className="text-[11px] font-bold text-cream">سود و زیان روزانه</p>
-            <div className="mt-2 space-y-1">
-              {s.dailyPnl.map((d) => (
-                <div
-                  key={d.day}
-                  className="flex items-center justify-between font-mono text-[10px]"
-                  dir="ltr"
-                >
-                  <span className="text-muted">{d.day}</span>
-                  <span className={d.points >= 0 ? "text-gain" : "text-loss"}>
-                    {d.points > 0 ? "+" : ""}
-                    {d.points}
-                  </span>
-                </div>
-              ))}
+          <Card>
+            <div className="flex items-baseline justify-between">
+              <p className="text-[11px] font-bold text-cream">سود و زیان روزانه</p>
+              <span className="font-mono text-[9px] text-muted" dir="ltr">
+                best {s.bestDay} · worst {s.worstDay}
+              </span>
+            </div>
+            <div className="mt-3">
+              <DailyBars rows={s.dailyPnl} />
             </div>
           </Card>
         )}
       </div>
     );
   }
+
+  // ── هنوز چلنجی ندارد ──
+  const tiers = res.data.tiers.filter((t) => t.track === track);
 
   return (
     <div>
@@ -238,30 +485,68 @@ export default function ChallengeScreen() {
         subtitle="ورودی با MOON، جایزه حساب واقعی — امتیاز خریدنی نیست"
       />
 
+      {!res.data.authed && (
+        <div className="mb-3 rounded-2xl border border-gold/40 bg-gold/5 p-4 text-[11px] leading-6">
+          <b className="text-gold">وارد نشده‌ای.</b>
+          <span className="text-muted">
+            {" "}
+            کارنامه به حساب گره خورده است؛ اگر قبلا چلنج خریده‌ای اول وارد شو.
+          </span>
+        </div>
+      )}
+
       {msg && (
         <p className="mb-3 rounded-xl border border-loss/40 bg-loss/5 px-4 py-3 text-[11px] text-loss">
           {msg}
         </p>
       )}
 
+      <div className="mb-3 flex gap-2">
+        {(
+          [
+            { id: "predict" as const, label: "حساب پیش‌بینی" },
+            { id: "forex" as const, label: "حساب معاملاتی" },
+          ]
+        ).map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => {
+              haptic.tap();
+              setTrack(t.id);
+            }}
+            className={`flex-1 rounded-xl border px-3 py-2 text-[11px] transition ${
+              track === t.id
+                ? "border-gold/60 bg-gold/10 font-bold text-gold"
+                : "border-line text-muted"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       <div className="space-y-2">
-        {res.data.tiers.map((t) => (
+        {tiers.map((t) => (
           <Card key={t.id}>
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[13px] font-bold text-cream">{t.label}</p>
-                <p className="mt-0.5 text-[10px] text-muted">{t.prize}</p>
+                <p className="mt-0.5 text-[10px] leading-5 text-muted">{t.prize}</p>
               </div>
               <span className="shrink-0 rounded-full border border-gold/40 bg-gold/10 px-2.5 py-1 font-mono text-[11px] font-bold text-gold">
                 {t.fee} MOON
               </span>
             </div>
 
-            <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 font-mono text-[10px] text-muted" dir="ltr">
-              <span>هدف: {t.target}</span>
-              <span>افت مجاز: {t.maxDrawdown}</span>
-              <span>زیان روزانه: {t.dailyLoss}</span>
-              <span>مهلت: {t.days} روز</span>
+            <div
+              className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 font-mono text-[10px] text-muted"
+              dir="ltr"
+            >
+              <span>هدف {t.target}</span>
+              <span>افت مجاز {t.maxDrawdown}</span>
+              <span>زیان روزانه {t.dailyLoss}</span>
+              <span>{t.days} روز</span>
             </div>
 
             <button
