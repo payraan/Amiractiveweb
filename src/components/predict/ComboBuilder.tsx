@@ -404,17 +404,29 @@ export default function ComboBuilder() {
       </div>
 
       {/* تیکت‌های قبلی */}
-      {tickets.length > 0 && (
-        <div className="mt-12">
-          <h2 className="mb-4 text-sm font-bold">کمبوهای شما</h2>
+      <div className="mt-12">
+        <h2 className="mb-4 text-sm font-bold">کمبوهای شما</h2>
+        {tickets.length === 0 ? (
+          <p className="rounded-2xl border border-line bg-surface/30 px-5 py-8 text-center text-[12px] leading-7 text-muted">
+            هنوز کمبویی نساخته‌اید. پس از ثبت اولین تیکت، تاریخچه‌ی کمبوها
+            به همراه وضعیت هر بازار همین‌جا نمایش داده می‌شود.
+          </p>
+        ) : (
           <div className="flex flex-col gap-3">
             {tickets.map((t) => (
               <div
                 key={t.id}
                 className="rounded-2xl border border-line bg-surface/50 p-4 transition-all duration-300 hover:border-gold/50"
               >
-                <div className="flex items-center justify-between gap-3">
-                  <span className="flex items-center gap-2 text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <span className="flex flex-wrap items-center gap-2 text-xs">
+                    {/* شماره‌ی تیکت — تا کاربر بتواند موقع پیگیری به آن ارجاع بدهد */}
+                    <span
+                      className="rounded-full border border-line bg-ink/40 px-2.5 py-0.5 font-mono text-[10px] text-muted"
+                      dir="ltr"
+                    >
+                      #{t.id}
+                    </span>
                     <span
                       className="rounded-full border border-gold/40 px-2.5 py-0.5 font-mono text-[10px] text-gold"
                       dir="ltr"
@@ -427,20 +439,45 @@ export default function ComboBuilder() {
                         {t.probPct.toFixed(1)}%
                       </b>
                     </span>
+                    {/* ضریب نهایی: عکسِ شانس ترکیبی. همان عددی که پاداش را
+                        بزرگ می‌کند، و ملموس‌تر از درصد است. */}
+                    <span className="text-muted">
+                      ضریب نهایی:{" "}
+                      <b className="font-mono text-cream" dir="ltr">
+                        ×{t.probPct > 0 ? (100 / t.probPct).toFixed(2) : "—"}
+                      </b>
+                    </span>
                   </span>
-                  {t.status === "open" ? (
-                    <span className="text-[11px] text-muted">در انتظار نتیجه</span>
-                  ) : (
-                    <b
-                      className={`font-mono text-sm ${
-                        (t.points ?? 0) >= 0 ? "text-gain" : "text-loss"
+
+                  <span className="flex items-center gap-2">
+                    {/* وضعیت صریح، نه فقط عدد امتیاز */}
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                        t.status === "open"
+                          ? "bg-line/50 text-muted"
+                          : (t.points ?? 0) >= 0
+                            ? "bg-gain/15 text-gain"
+                            : "bg-loss/15 text-loss"
                       }`}
-                      dir="ltr"
                     >
-                      {(t.points ?? 0) >= 0 ? "+" : ""}
-                      {t.points}
-                    </b>
-                  )}
+                      {t.status === "open"
+                        ? "باز"
+                        : (t.points ?? 0) >= 0
+                          ? "برنده"
+                          : "بازنده"}
+                    </span>
+                    {t.status !== "open" && (
+                      <b
+                        className={`font-mono text-sm ${
+                          (t.points ?? 0) >= 0 ? "text-gain" : "text-loss"
+                        }`}
+                        dir="ltr"
+                      >
+                        {(t.points ?? 0) >= 0 ? "+" : ""}
+                        {t.points}
+                      </b>
+                    )}
+                  </span>
                 </div>
                 <div className="mt-3 flex flex-col gap-1.5">
                   {t.legs.map((l, i) => (
@@ -470,8 +507,8 @@ export default function ComboBuilder() {
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* تری پایین */}
       {legs.length > 0 && (

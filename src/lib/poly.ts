@@ -99,6 +99,17 @@ export async function getCuratedMarkets(): Promise<PolyMarket[]> {
     // برای پوشش همه‌ی کتگوری‌ها، علاوه بر پرحجم‌ترین‌های کلی،
     // هر کتگوری را جداگانه با tag_slug از Gamma می‌کشیم و ادغام می‌کنیم.
     // پرحجم‌ترین‌ها + جدیدترین‌ها + پوشش تک‌تک کتگوری‌ها
+    // حداقل حجم استخر. بازار با نقدینگی نزدیک صفر (مثل «نتیجه‌ی دقیق» یک
+    // مسابقه‌ی ناشناخته) درصدش معنا ندارد: با چند دلار جابه‌جا می‌شود، پس نه
+    // سیگنالی در آن هست و نه امتیازی که از آن دربیاید ارزش دارد. این‌ها فهرست
+    // را شلوغ می‌کردند و کاربر چالش پراپ را وادار می‌کردند بین نویز بگردد.
+    const MIN_VOLUME_USD = 10_000;
+
+    // افق زمانی. قبلا فهرست عملا به بازارهای نزدیک محدود می‌شد و کسی که در
+    // چالش ۳۰ روزه است، انتخاب کافی نداشت. حالا تا ۶ ماه آینده هم واکشی
+    // می‌شود تا تنوع برای بازه‌ی چالش کافی باشد.
+    const MAX_HORIZON_MS = 6 * 30 * 24 * 3600_000;
+
     const sources: { slug: string; limit: number; order?: string }[] = [
       { slug: "", limit: 40 },
       { slug: "", limit: 40, order: "startDate" }, // تازه‌ترین بازارها
@@ -157,6 +168,24 @@ export async function getCuratedMarkets(): Promise<PolyMarket[]> {
         if (outcomes.length !== 2 || outcomes[0] !== "Yes") continue;
         const yes = prices[0];
         if (!Number.isFinite(yes) || yes < 0.03 || yes > 0.97) continue;
+
+        // حجم روی خودِ رویداد است، نه تک‌تک بازارها؛ همان چیزی که در فهرست
+        // هم نشان داده می‌شود.
+        const vol = Number(ev.volume) || 0;
+        if (vol < MIN_VOLUME_USD) continue;
+
+        // بازارِ بسته یا تسویه‌شده اصلا وارد فهرست نمی‌شود.
+        if (m?.closed || m?.archived || ev?.closed) continue;
+
+        // سررسیدِ گذشته یا دورتر از افق: اولی مرده است، دومی برای چالش
+        // ۳۰ روزه بی‌فایده و برای فهرست فقط اشغال جا.
+        const endRaw = String(m.endDate ?? ev.endDate ?? "");
+        const endMs = endRaw ? new Date(endRaw).getTime() : NaN;
+        if (Number.isFinite(endMs)) {
+          const dt = endMs - Date.now();
+          if (dt <= 0 || dt > MAX_HORIZON_MS) continue;
+        }
+
         const q = String(m.question ?? "").trim();
         if (!q || seen.has(q)) continue;
         seen.add(q);
@@ -184,9 +213,9 @@ export async function getCuratedMarkets(): Promise<PolyMarket[]> {
         });
         perEvent++;
         if (perEvent >= 6) break;
-        if (out.length >= 260) break;
+        if (out.length >= 400) break;
       }
-      if (out.length >= 260) break;
+      if (out.length >= 400) break;
     }
 
     out.sort((a, b) => b.volume - a.volume);
