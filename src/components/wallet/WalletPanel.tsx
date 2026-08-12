@@ -208,14 +208,12 @@ export default function WalletPanel() {
                 <div className="mt-4 rounded-xl border border-loss/30 bg-loss/5 p-4">
                   <h4 className="text-[11px] font-bold text-loss">قبل از واریز</h4>
                   <ul className="mt-2 flex flex-col gap-1.5 text-[11px] leading-6 text-muted">
-                    <li>
-                      — فقط <b className="text-cream">USDT</b> روی شبکه‌ی{" "}
+                    <li>• فقط <b className="text-cream">USDT</b> روی شبکه‌ی{" "}
                       <b className="text-cream">{d.network}</b> بفرستید. ارز یا شبکه‌ی
                       دیگر قابل بازگشت نیست.
                     </li>
-                    <li>— این آدرس مخصوص حساب شماست و تغییر نمی‌کند.</li>
-                    <li>
-                      — پس از تأیید شبکه، موجودی خودکار شارژ می‌شود. معمولاً چند
+                    <li>• این آدرس مخصوص حساب شماست و تغییر نمی‌کند.</li>
+                    <li>• پس از تأیید شبکه، موجودی خودکار شارژ می‌شود. معمولاً چند
                       دقیقه طول می‌کشد.
                     </li>
                   </ul>

@@ -54,7 +54,7 @@ export default function ProposeScreen({
   if (sourceNote.trim().length < 10) {
     issues.push(`منبع تسویه حداقل ۱۰ کاراکتر (الان ${sourceNote.trim().length})`);
   }
-  if (!closesAt) issues.push("زمان بسته‌شدن را انتخاب کن");
+  if (!closesAt) issues.push("زمان بسته‌شدن را انتخاب کنید");
   const valid = issues.length === 0;
 
   useEffect(() => showBackButton(onBack), [onBack]);
@@ -104,20 +104,17 @@ export default function ProposeScreen({
       <div className="rounded-2xl border border-gold/25 bg-gold/5 p-4">
         <h3 className="text-[12px] font-extrabold text-gold">قبل از پیشنهاد بخوان</h3>
         <ul className="mt-2.5 flex flex-col gap-2 text-[11px] leading-6 text-muted">
-          <li>
-            — سؤال باید <b className="text-cream">دقیق و دوحالته</b> باشد. «آیا
+          <li>• سؤال باید <b className="text-cream">دقیق و دوحالته</b> باشد. «آیا
             اوضاع بهتر می‌شود؟» بازار نیست؛ «آیا دلار تا ۳۰ آذر بالای X بسته
             می‌شود؟» بازار است.
           </li>
-          <li>
-            — <b className="text-cream">منبع تسویه اجباری است.</b> یک سایت مشخص،
+          <li>• <b className="text-cream">منبع تسویه اجباری است.</b> یک سایت مشخص،
             یک عدد مشخص، یک ساعت مشخص.
           </li>
-          <li>
-            — هر پیشنهاد <b className="text-cream">۱ تتر</b> هزینه دارد. اگر بازار
+          <li>• هر پیشنهاد <b className="text-cream">۱ تتر</b> هزینه دارد. اگر بازار
             رد شود، کامل برمی‌گردد.
           </li>
-          <li>— بازار مبهم یا غیرقابل‌اثبات رد می‌شود.</li>
+          <li>• بازار مبهم یا غیرقابل‌اثبات رد می‌شود.</li>
         </ul>
       </div>
 

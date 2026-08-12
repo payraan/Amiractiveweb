@@ -14,12 +14,12 @@ import { useMainButton } from "@/components/tg/useMainButton";
 const MIN_WITHDRAW = 10;
 
 const ERR: Record<string, string> = {
-  not_authed: "ابتدا وارد شو.",
+  not_authed: "ابتدا وارد شوید.",
   gateway_off: "درگاه پرداخت فعال نیست.",
   amount_too_low: `حداقل برداشت ${MIN_WITHDRAW} تتر است.`,
   bad_address: "آدرس مقصد معتبر نیست.",
   insufficient_funds: "موجودی کافی نیست.",
-  server_error: "خطای سرور. کمی بعد دوباره امتحان کن.",
+  server_error: "خطای سرور. کمی بعد دوباره امتحان کنید.",
 };
 
 const money = (n: number) =>
@@ -146,7 +146,7 @@ export default function WithdrawScreen({
       {amount && !amountOk && (
         <p className="mt-3 text-[11px] text-loss">
           {value > balance
-            ? "بیشتر از موجودی‌ات است."
+            ? "بیشتر از موجودی شما است."
             : `حداقل برداشت ${MIN_WITHDRAW} تتر است.`}
         </p>
       )}

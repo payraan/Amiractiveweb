@@ -39,12 +39,12 @@ function parseStartParam(
 
 const AUTH_ERRORS: Record<string, string> = {
   not_configured: "ربات روی سرور پیکربندی نشده است.",
-  malformed: "داده‌ی ورود تلگرام ناقص است. اپ را ببند و دوباره باز کن.",
-  bad_hash: "امضای تلگرام معتبر نیست. اپ را ببند و دوباره باز کن.",
-  expired: "نشست تلگرام کهنه شده. اپ را ببند و دوباره باز کن.",
+  malformed: "داده‌ی ورود تلگرام ناقص است. اپ را ببندید و دوباره باز کنید.",
+  bad_hash: "امضای تلگرام معتبر نیست. اپ را ببندید و دوباره باز کنید.",
+  expired: "نشست تلگرام کهنه شده. اپ را ببندید و دوباره باز کنید.",
   no_user: "اطلاعات کاربر از تلگرام نرسید.",
   no_init_data: "این صفحه باید داخل تلگرام باز شود.",
-  server_error: "خطای سرور. کمی بعد دوباره امتحان کن.",
+  server_error: "خطای سرور. کمی بعد دوباره امتحان کنید.",
 };
 
 export default function MiniApp({ siteUrl }: { siteUrl: string }) {
@@ -171,7 +171,7 @@ export default function MiniApp({ siteUrl }: { siteUrl: string }) {
               <p className="mt-2 text-[11px] leading-6 text-muted">
                 ورود بدون رمز فقط از طریق مینی‌اپ ممکن است، چون هویت را خودِ
                 تلگرام امضا می‌کند. ربات{" "}
-                <span className="font-mono">@NarmoonMarketBot</span> را باز کن.
+                <span className="font-mono">@NarmoonMarketBot</span> را باز کنید.
               </p>
               <a
                 href="/login"
@@ -196,7 +196,7 @@ export default function MiniApp({ siteUrl }: { siteUrl: string }) {
                     خوش آمدی، {player.displayName}
                   </p>
                   <p className="mt-1 text-[11px] leading-6 text-muted">
-                    حسابت ساخته شد و {player.credits} MOON هدیه گرفتی.
+                    حساب شما ساخته شد و {player.credits} MOON هدیه گرفتی.
                   </p>
                 </div>
               )}

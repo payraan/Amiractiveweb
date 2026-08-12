@@ -11,10 +11,10 @@ import { haptic, showBackButton } from "@/components/tg/telegram";
 // game.ts می‌آیند نه از یک فهرست دوم، تا قیمت‌ها در دو رابط یکی بماند.
 
 const ERR: Record<string, string> = {
-  not_authed: "ابتدا وارد شو.",
+  not_authed: "ابتدا وارد شوید.",
   bad_pack: "این بسته معتبر نیست.",
   insufficient_funds: "موجودی تتر کافی نیست.",
-  server_error: "خطای سرور. کمی بعد دوباره امتحان کن.",
+  server_error: "خطای سرور. کمی بعد دوباره امتحان کنید.",
 };
 
 const money = (n: number) =>

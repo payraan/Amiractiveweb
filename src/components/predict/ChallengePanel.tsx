@@ -287,12 +287,12 @@ function TierPicker({
             </div>
 
             <ul className="mt-4 flex flex-col gap-1.5 text-[11px] leading-5 text-muted">
-              <li>— هدف: <b className="font-mono text-gain" dir="ltr">+{t.target}</b> پوینت</li>
-              <li>— حداکثر افت از سقف: <b className="font-mono text-loss" dir="ltr">{t.maxDrawdown}</b></li>
-              <li>— سقف ضرر روزانه: <b className="font-mono text-loss" dir="ltr">{t.dailyLoss}</b></li>
-              <li>— حداقل {t.minPreds} پیش‌بینی در {t.minDays} روز مختلف</li>
-              <li>— قانون ثبات: هیچ روزی بیش از ۳۵٪ سود نباشد</li>
-              <li>— مهلت {t.days} روزه</li>
+              <li>• هدف: <b className="font-mono text-gain" dir="ltr">+{t.target}</b> پوینت</li>
+              <li>• حداکثر افت از سقف: <b className="font-mono text-loss" dir="ltr">{t.maxDrawdown}</b></li>
+              <li>• سقف ضرر روزانه: <b className="font-mono text-loss" dir="ltr">{t.dailyLoss}</b></li>
+              <li>• حداقل {t.minPreds} پیش‌بینی در {t.minDays} روز مختلف</li>
+              <li>• قانون ثبات: هیچ روزی بیش از ۳۵٪ سود نباشد</li>
+              <li>• مهلت {t.days} روزه</li>
               <li className="text-cream">🏆 {t.prize}</li>
               {t.payoutNote && (
                 <li className="text-[10px] text-gold/80">{t.payoutNote}</li>

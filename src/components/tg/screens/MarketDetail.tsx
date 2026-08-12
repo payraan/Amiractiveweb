@@ -29,7 +29,7 @@ export type Market = {
 };
 
 const ERR: Record<string, string> = {
-  not_authed: "ابتدا وارد شو.",
+  not_authed: "ابتدا وارد شوید.",
   stake_too_low: "مبلغ شرط از حداقل کمتر است.",
   insufficient_funds: "موجودی تتر کافی نیست.",
   market_closed: "این بازار دیگر باز نیست.",
@@ -117,7 +117,7 @@ export default function MarketDetail({
       ? "در حال ثبت…"
       : side && stakeOk
         ? `ثبت پیش‌بینی: $${money(stake)} روی ${side === "yes" ? "بله" : "خیر"}`
-        : "مبلغ و طرف را انتخاب کن",
+        : "مبلغ و طرف را انتخاب کنید",
     enabled: valid,
     busy,
     onClick: submit,
@@ -217,9 +217,9 @@ export default function MarketDetail({
               const code = e instanceof ApiError ? e.code : "";
               setMsg(
                 code === "send_failed"
-                  ? "اول چت ربات را باز کن و Start را بزن، بعد دوباره امتحان کن."
+                  ? "اول چت ربات را باز کنید و Start را بزنیدید، بعد دوباره امتحان کنید."
                   : code === "telegram_required"
-                    ? "برای این کار باید حسابت به تلگرام وصل باشد."
+                    ? "برای این کار باید حساب شما به تلگرام وصل باشد."
                     : "ارسال کارت به ربات انجام نشد."
               );
             } finally {
@@ -231,15 +231,15 @@ export default function MarketDetail({
           {sending
             ? "در حال ارسال…"
             : sentToBot
-              ? "✓ در ربات فرستاده شد؛ فورواردش کن"
+              ? "✓ در ربات فرستاده شد؛ آن را فوروارد کنید"
               : "📢 کارت برای کانال بفرست"}
         </button>
       )}
 
       {sentToBot && (
         <p className="mt-2 rounded-xl border border-gain/30 bg-gain/5 px-4 py-3 text-[10.5px] leading-6 text-gain">
-          کارت در چت ربات برایت فرستاده شد. آن را به هر کانال یا گروهی که
-          ادمینش هستی فوروارد کن؛ دکمه‌هایش بعد از فوروارد هم کار می‌کنند و
+          کارت در چت ربات برای شما فرستاده شد. آن را به هر کانال یا گروهی که
+          ادمین آن هستید فوروارد کنید؛ دکمه‌هایش بعد از فوروارد هم کار می‌کنند و
           ربات لازم نیست جایی ادمین شود.
         </p>
       )}
@@ -357,7 +357,7 @@ export default function MarketDetail({
                 <span dir="ltr" className="font-mono">
                   ×{projected.odds.toFixed(2)}
                 </span>{" "}
-                — با ثبت پیش‌بینی خودت حساب شده. تا لحظه‌ی بسته‌شدن، هر پیش‌بینی تازه‌ای
+                — با ثبت پیش‌بینی خودتان حساب شده. تا لحظه‌ی بسته‌شدن، هر پیش‌بینی تازه‌ای
                 این عدد را جابه‌جا می‌کند.
               </p>
             </div>
@@ -366,7 +366,7 @@ export default function MarketDetail({
           {amount && !stakeOk && (
             <p className="mt-3 text-[11px] text-loss">
               {stake > balance
-                ? "بیشتر از موجودی‌ات است."
+                ? "بیشتر از موجودی شما است."
                 : `حداقل مبلغ پیش‌بینی $${minStake} است.`}
             </p>
           )}

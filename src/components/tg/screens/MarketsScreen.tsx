@@ -211,7 +211,7 @@ export default function MarketsScreen({
       {!error && shown?.length === 0 && (
         <EmptyState
           title="بازاری در این دسته نیست"
-          hint="دسته‌ی دیگری را امتحان کن یا بعدا سر بزن."
+          hint="دسته‌ی دیگری را امتحان کنید یا بعدا سر بزنید."
         />
       )}
 

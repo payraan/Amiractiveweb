@@ -179,7 +179,7 @@ export default function TradeScreen() {
       )}
 
       {!markets.error && shown?.length === 0 && (
-        <EmptyState title="بازاری در این دسته نیست" hint="دسته‌ی دیگری را ببین." />
+        <EmptyState title="بازاری در این دسته نیست" hint="دسته‌ی دیگری را ببینید." />
       )}
 
       {!markets.error && shown && shown.length > 0 && (

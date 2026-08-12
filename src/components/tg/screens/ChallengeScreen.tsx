@@ -58,11 +58,11 @@ type State = {
 type Data = { authed: boolean; tiers: Tier[]; state: State | null };
 
 const ERR: Record<string, string> = {
-  not_authed: "ابتدا وارد شو.",
-  telegram_required: "برای ورود به چالش باید حسابت به تلگرام وصل باشد.",
+  not_authed: "ابتدا وارد شوید.",
+  telegram_required: "برای ورود به چالش باید حساب شما به تلگرام وصل باشد.",
   active_exists: "همین حالا یک چالش فعال داری.",
   entry_limit: "سقف ورود در ۳۰ روز گذشته پر شده است.",
-  insufficient_credits: "MOON کافی نداری. از کیف پول MOON بخر.",
+  insufficient_credits: "MOON کافی نداری. از کیف پول MOON بخرید.",
   bad_tier: "این تیر معتبر نیست.",
 };
 
@@ -507,7 +507,7 @@ export default function ChallengeScreen() {
           <b className="text-gold">وارد نشده‌ای.</b>
           <span className="text-muted">
             {" "}
-            کارنامه به حساب گره خورده است؛ اگر قبلا چالش خریده‌ای اول وارد شو.
+            کارنامه به حساب گره خورده است؛ اگر قبلا چالش خریده‌ای اول وارد شوید.
           </span>
         </div>
       )}

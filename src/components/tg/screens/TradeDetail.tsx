@@ -25,7 +25,7 @@ export type PolyMarket = {
 };
 
 const ERR: Record<string, string> = {
-  not_authed: "ابتدا وارد شو.",
+  not_authed: "ابتدا وارد شوید.",
   bad_request: "درخواست معتبر نیست.",
   market_not_found: "این بازار دیگر فعال نیست.",
   already_predicted: "قبلا روی این بازار پیش‌بینی ثبت کرده‌ای.",
@@ -80,7 +80,7 @@ export default function TradeDetail({
       ? "در حال ثبت…"
       : choice
         ? `ثبت پیش‌بینی: ${choice === "yes" ? "بله" : "خیر"}`
-        : "بله یا خیر را انتخاب کن",
+        : "بله یا خیر را انتخاب کنید",
     enabled: valid,
     busy,
     onClick: submit,

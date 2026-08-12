@@ -7,7 +7,7 @@ import { usePlayer } from "@/components/predict/usePlayer";
 
 const ERR: Record<string, string> = {
   telegram_required:
-    "برای هر عملیات مالی باید حساب تلگرامت را وصل کنی. از صفحه‌ی دعوت وصلش کن یا مینی‌اپ را باز کن.",
+    "برای هر عملیات مالی باید حساب تلگرامت را وصل کنی. از صفحه‌ی دعوت وصلش کن یا مینی‌اپ را باز کنید.",
   not_authed: "برای خرید MOON وارد حساب شوید.",
   insufficient_funds: "موجودی تتر کیف پول کافی نیست.",
   bad_pack: "این بسته معتبر نیست.",

@@ -22,7 +22,7 @@ export default function ProposePage() {
             پیشنهاد <span className="text-gold">بازار جدید</span>
           </h1>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-8 text-muted">
-            رویدادی هست که دوست داری مردم رویش پیش‌بینی کنند؟ پیشنهادش بده.
+            رویدادی هست که دوست دارید مردم رویش پیش‌بینی کنند؟ آن را پیشنهاد بدهید.
           </p>
         </div>
         <ProposeForm />

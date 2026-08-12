@@ -56,7 +56,7 @@ export default function DepositScreen({
         <div className="rounded-2xl border border-loss/40 bg-loss/5 p-5 text-center">
           <p className="text-sm font-bold text-loss">درگاه پرداخت فعال نیست</p>
           <p className="mt-2 text-[11px] leading-6 text-muted">
-            کمی بعد دوباره امتحان کن.
+            کمی بعد دوباره امتحان کنید.
           </p>
         </div>
       ) : !address ? (
@@ -69,7 +69,7 @@ export default function DepositScreen({
               دیگر پایین را نمی‌خواند. */}
           <div className="rounded-2xl border border-gold/30 bg-gold/5 p-4">
             <p className="text-[11.5px] leading-6 text-gold">
-              فقط <b>تتر (USDT)</b> روی شبکه‌ی <b>{network}</b> بفرست.
+              فقط <b>تتر (USDT)</b> روی شبکه‌ی <b>{network}</b> بفرستید.
             </p>
             <p className="mt-1.5 text-[11px] leading-6 text-muted">
               ارز دیگر یا شبکه‌ی دیگر، برگشت‌ناپذیر از بین می‌رود.
@@ -96,9 +96,9 @@ export default function DepositScreen({
           </div>
 
           <ul className="mt-4 flex flex-col gap-2 rounded-xl border border-line bg-surface/30 p-4 text-[11px] leading-6 text-muted">
-            <li>— این آدرس مخصوص حساب توست و همیشه ثابت می‌ماند.</li>
-            <li>— شارژ پس از تأیید شبکه خودکار انجام می‌شود؛ نیازی به خبر دادن نیست.</li>
-            <li>— بسته به شلوغی شبکه، تأیید چند دقیقه طول می‌کشد.</li>
+            <li>• این آدرس مخصوص حساب توست و همیشه ثابت می‌ماند.</li>
+            <li>• شارژ پس از تأیید شبکه خودکار انجام می‌شود؛ نیازی به خبر دادن نیست.</li>
+            <li>• بسته به شلوغی شبکه، تأیید چند دقیقه طول می‌کشد.</li>
           </ul>
         </>
       )}

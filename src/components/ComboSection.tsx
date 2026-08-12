@@ -25,7 +25,7 @@ export default function ComboSection() {
             {[
               "بین ۲ تا ۵ بازار را در یک تیکت ترکیب کن.",
               "شانس برد تیکت، حاصل‌ضرب شانس تک‌تک انتخاب‌هاست؛ پس پاداش هم به همان نسبت بزرگ‌تر.",
-              "هر روز یک کمبوی رایگان داری؛ کمبوهای بعدی با MOON.",
+              "هر روز یک کمبوی رایگان دارید؛ کمبوهای بعدی با MOON.",
             ].map((t, i) => (
               <li key={i} className="flex gap-3 text-xs leading-7 text-muted">
                 <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-gold" />

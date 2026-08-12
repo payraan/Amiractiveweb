@@ -23,7 +23,7 @@ export default function LoginPage() {
         </span>
         <h1 className="mt-4 font-display text-3xl font-black">ورود / ثبت‌نام</h1>
         <p className="mt-3 max-w-xl text-xs leading-7 text-muted">
-          با یک حساب به همه‌ی بخش‌ها دسترسی داری: بازار ایران، ترید، نبض بازار،
+          با یک حساب به همه‌ی بخش‌ها دسترسی دارید: بازار ایران، ترید، نبض بازار،
           کیف پول و چالش پراپ.
         </p>
         <div className="mt-8">

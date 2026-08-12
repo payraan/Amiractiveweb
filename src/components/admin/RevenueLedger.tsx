@@ -103,7 +103,7 @@ export default function RevenueLedger() {
           <b className="text-cream">
             واقعی {usd(d.split.real_total)} · دمو {usd(d.split.demo_total)}
           </b>{" "}
-          — {d.split.real_players} حساب واقعی، {d.split.demo_players} حساب تستی.
+          • {d.split.real_players} حساب واقعی، {d.split.demo_players} حساب تستی.
         </p>
       </div>
 
