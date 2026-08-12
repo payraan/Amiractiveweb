@@ -6,11 +6,10 @@ import { ensureIrTables, moveFunds } from "@/lib/iran";
 import { createWithdrawal, gatewayReady, USDT_NETWORK } from "@/lib/zovix";
 import { notifyPlayer } from "@/lib/telegram";
 import { requireLinkedTelegram } from "@/lib/money-guard";
+import { MIN_WITHDRAW } from "@/lib/wallet-rules";
+import { withdrawAddressValid } from "@/lib/withdraw-address";
 
 export const dynamic = "force-dynamic";
-
-/** حداقل برداشت — باید بالاتر از کارمزد شبکه باشد وگرنه بی‌معنی است. */
-const MIN_WITHDRAW = 10;
 
 export async function POST(req: Request) {
   const playerId = await currentPlayerId();
@@ -35,7 +34,9 @@ export async function POST(req: Request) {
   if (!Number.isFinite(amount) || amount < MIN_WITHDRAW) {
     return NextResponse.json({ ok: false, error: "amount_too_low" }, { status: 400 });
   }
-  if (toAddress.length < 20) {
+  // آدرس مقصد با چک‌سام شبکه سنجیده می‌شود، نه فقط طول. برداشت برگشت‌ناپذیر
+  // است و آدرس غلط یعنی پول کاربر برای همیشه گم می‌شود.
+  if (!withdrawAddressValid(toAddress, USDT_NETWORK)) {
     return NextResponse.json({ ok: false, error: "bad_address" }, { status: 400 });
   }
 

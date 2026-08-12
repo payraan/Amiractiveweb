@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePlayer } from "@/components/predict/usePlayer";
+import { MIN_WITHDRAW, withdrawAddressShapeValid } from "@/lib/wallet-rules";
 
 type Ledger = {
   amount: number;
@@ -41,8 +42,6 @@ const ERR: Record<string, string> = {
   insufficient_funds: "موجودی کافی نیست.",
   not_authed: "ابتدا وارد شوید.",
 };
-
-const MIN_WITHDRAW = 10;
 
 const fa = (iso: string) =>
   new Date(iso).toLocaleString("fa-IR", {
@@ -137,10 +136,12 @@ export default function WalletPanel() {
     );
   }
 
+  const network = d?.network ?? "TRON";
+  const addressOk = withdrawAddressShapeValid(toAddress, network);
   const withdrawOk =
     Number(amount) >= MIN_WITHDRAW &&
     Number(amount) <= (d?.balance ?? 0) &&
-    toAddress.trim().length >= 20;
+    addressOk;
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[360px_1fr]">
@@ -279,7 +280,7 @@ export default function WalletPanel() {
             </div>
 
             <label className="mt-4 block text-[11px] text-muted">
-              آدرس مقصد ({d?.network ?? "TRON"})
+              آدرس مقصد ({network})
             </label>
             <input
               value={toAddress}
@@ -288,6 +289,12 @@ export default function WalletPanel() {
               placeholder="T..."
               className="mt-1.5 w-full rounded-xl border border-line bg-ink/50 px-4 py-2.5 font-mono text-[12px] text-cream focus:border-gold focus:outline-none"
             />
+            {toAddress.trim().length > 0 && !addressOk && (
+              <p className="mt-1.5 text-[10px] leading-5 text-loss">
+                این آدرس با شبکه‌ی {network} نمی‌خواند. آدرس تتر روی این شبکه با
+                «T» شروع می‌شود و ۳۴ کاراکتر است.
+              </p>
+            )}
 
             <button
               type="button"

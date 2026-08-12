@@ -4,14 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/components/tg/api";
 import { haptic, hasMainButton, showBackButton } from "@/components/tg/telegram";
 import { useMainButton } from "@/components/tg/useMainButton";
+import { MIN_WITHDRAW, withdrawAddressShapeValid } from "@/lib/wallet-rules";
 
 // برداشت تتر — روی همان /api/wallet/withdraw سایت.
 //
 // این پرریسک‌ترین عمل پلتفرم است: تنها کاری که پول را بیرون می‌برد و
 // برگشت‌ناپذیر است. سرور پس از ثبت موفق، یک اعلان تلگرام می‌فرستد تا صاحب
 // حساب بلافاصله بفهمد — تنها لایه‌ی هشدار موجود.
-
-const MIN_WITHDRAW = 10;
 
 const ERR: Record<string, string> = {
   not_authed: "ابتدا وارد شوید.",
@@ -47,7 +46,7 @@ export default function WithdrawScreen({
   const value = Number(amount);
   const amountOk =
     Number.isFinite(value) && value >= MIN_WITHDRAW && value <= balance;
-  const addressOk = address.trim().length >= 20;
+  const addressOk = withdrawAddressShapeValid(address, network);
   const valid = amountOk && addressOk && !busy;
 
   const submit = useCallback(async () => {
@@ -134,6 +133,12 @@ export default function WithdrawScreen({
           placeholder="T…"
           className="no-zoom mt-1.5 w-full rounded-xl border border-line bg-ink/50 px-4 py-3 text-left font-mono text-[12px] text-cream outline-none transition focus:border-gold/60"
         />
+        {address.length > 0 && !addressOk && (
+          <p className="mt-1.5 text-[10px] leading-5 text-loss">
+            این آدرس با شبکه‌ی {network} نمی‌خواند. آدرس تتر روی این شبکه با «T»
+            شروع می‌شود و ۳۴ کاراکتر است.
+          </p>
+        )}
       </div>
 
       <div className="mt-4 rounded-xl border border-gold/30 bg-gold/5 p-4">
