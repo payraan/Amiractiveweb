@@ -31,7 +31,9 @@ export default function ReferralPage() {
         </p>
 
         <div className="mt-10">
-          <TelegramConnect />
+          <div id="telegram" className="scroll-mt-24">
+            <TelegramConnect />
+          </div>
         </div>
 
         <div className="mt-8">

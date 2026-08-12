@@ -61,7 +61,7 @@ export default function PropSection() {
         {STEPS.map((s) => (
           <div
             key={s.n}
-            className="no-lift rounded-2xl border border-line bg-surface/40 p-5"
+            className="rounded-2xl border border-line bg-surface/40 p-5 transition-all duration-300 hover:scale-[1.02] hover:border-gold/60 hover:shadow-[0_0_28px_rgba(232,196,106,0.12)]"
           >
             <span className="flex h-8 w-8 items-center justify-center rounded-full border border-gold/40 font-mono text-[12px] text-gold">
               {s.n}

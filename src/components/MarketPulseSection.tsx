@@ -17,19 +17,21 @@ export default function MarketPulseSection() {
       id="pulse"
       className="relative mx-auto max-w-6xl scroll-mt-10 px-6 py-24 md:py-28"
     >
-      <span className="font-mono text-[11px] tracking-[0.3em] text-gold">
-        ۰۲ · نبض بازار
-      </span>
-      <h2 className="mt-4 font-display text-3xl font-black md:text-4xl">نبض بازار؛ <span className="text-gold">پیش‌بینی دقیق قیمت‌ها</span></h2>
-      <p className="mt-4 max-w-2xl leading-8 text-muted">
-        میدان رقابت برای پیش‌بینی دارایی‌های بازارهای مالی (کریپتو، فارکس،
-        فلزات و سهام آمریکا). هرچه پیش‌بینی شما به قیمت واقعی نزدیک‌تر باشد،
-        امتیاز بالاتری می‌گیرید؛ یک رقابت کاملاً مهارتی.
-      </p>
-
-      <div className="mt-8 grid grid-cols-1 items-start gap-10 lg:grid-cols-2">
+      <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2">
         <div className="order-2 lg:order-2">
-          <ul className="flex flex-col gap-3">
+          <span className="font-mono text-[11px] tracking-[0.3em] text-gold">
+            ۰۲ · نبض بازار
+          </span>
+          <h2 className="mt-4 font-display text-3xl font-black md:text-4xl">
+            پیش‌بینی دقیق <span className="text-gold">قیمت‌ها</span>
+          </h2>
+          <p className="mt-4 leading-8 text-muted">
+            میدان رقابت برای پیش‌بینی دارایی‌های بازارهای مالی (کریپتو، فارکس،
+            فلزات و سهام آمریکا). هرچه پیش‌بینی شما به قیمت واقعی نزدیک‌تر
+            باشد، امتیاز بالاتری می‌گیرید؛ یک رقابت کاملاً مهارتی.
+          </p>
+
+          <ul className="mt-6 flex flex-col gap-3">
             {POINTS.map((t, i) => (
               <li key={i} className="flex gap-3 text-xs leading-7 text-muted">
                 <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-gold/40 font-mono text-[10px] text-gold">

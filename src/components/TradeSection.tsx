@@ -50,7 +50,7 @@ export default function TradeSection() {
           </div>
         </div>
 
-        <div className="no-lift overflow-hidden rounded-2xl border border-line bg-surface/50 p-4">
+        <div className="overflow-hidden rounded-2xl border border-line bg-surface/50 p-4 transition-all duration-300 hover:border-gold/60 hover:shadow-[0_0_28px_rgba(232,196,106,0.12)]">
           <ArenaCycle />
         </div>
       </div>

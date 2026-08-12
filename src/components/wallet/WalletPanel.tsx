@@ -18,6 +18,7 @@ type Data = {
   address: string | null;
   addressError: string | null;
   gatewayReady: boolean;
+  telegramLinked: boolean;
   ledger: Ledger[];
 };
 
@@ -219,9 +220,25 @@ export default function WalletPanel() {
                   </ul>
                 </div>
               </>
+            ) : !d.telegramLinked ? (
+              // پیام قبلی «دریافت آدرس واریز ممکن نشد» بود و هیچ نمی‌گفت چرا و
+              // چه باید کرد. علتِ واقعی تقریبا همیشه همین است: حساب هنوز به
+              // تلگرام وصل نشده. حالا هم دلیل گفته می‌شود، هم راهش یک کلیک است.
+              <div className="py-6 text-center">
+                <p className="text-[12px] leading-7 text-cream">
+                  برای دریافت آدرس واریز و استفاده از امکانات سایت، لطفاً ابتدا
+                  حساب تلگرام خود را متصل کنید.
+                </p>
+                <a
+                  href="/referral#telegram"
+                  className="mt-4 inline-block rounded-xl bg-gold px-6 py-2.5 text-xs font-bold text-ink transition hover:bg-gold-deep"
+                >
+                  اتصال حساب تلگرام
+                </a>
+              </div>
             ) : (
               <p className="py-6 text-center text-[12px] leading-7 text-loss">
-                دریافت آدرس واریز ممکن نشد.
+                دریافت آدرس واریز ممکن نشد. لطفاً کمی بعد دوباره تلاش کنید.
                 {d.addressError && (
                   <span className="mt-1 block font-mono text-[10px] text-muted" dir="ltr">
                     {d.addressError}

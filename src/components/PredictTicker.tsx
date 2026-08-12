@@ -1,4 +1,5 @@
-import { getCuratedMarkets } from "@/lib/poly";
+import { db } from "@/lib/db";
+import { ensureIrTables } from "@/lib/iran";
 
 type Props = {
   /** volume = پرحجم‌ترین‌ها، ending = نزدیک‌ترین سررسیدها */
@@ -10,28 +11,53 @@ type Props = {
 export const dynamic = "force-dynamic";
 
 function shorten(q: string): string {
-  const clean = q.replace(/^Will\s+(the\s+price\s+of\s+)?/i, "").replace(/\?$/, "");
+  const clean = q.trim().replace(/\?$/, "");
   return clean.length > 58 ? `${clean.slice(0, 55)}…` : clean;
 }
 
+// نوار متحرک از بازارهای بازِ خودِ بازار ایران تغذیه می‌شود، نه پالی‌مارکت.
+//
+// دلیل: این نوار درست زیر هیرو می‌نشیند و اولین چیزی است که بازدیدکننده
+// می‌بیند. نشان‌دادن بازارهای خارجی آنجا یعنی معرفی محصولی که مخاطب ایرانی
+// کمتر با آن نسبت دارد، در حالی که بازار ایران قلب پلتفرم است و بازارهایش را
+// خود کاربران ساخته‌اند.
 export default async function PredictTicker({
   variant = "volume",
   reverse = false,
 }: Props) {
   let items: { id: string; label: string; pct: number }[] = [];
   try {
-    const all = await getCuratedMarkets();
-    const picked =
+    await ensureIrTables();
+    const pool = await db();
+    // پرحجم‌ترین‌ها یا نزدیک‌ترین سررسیدها؛ در هر دو حالت فقط بازار باز و
+    // به‌موعدنرسیده، چون کلیک روی بازار بسته کاربر را به بن‌بست می‌برد.
+    const order =
       variant === "ending"
-        ? [...all].sort(
-            (a, b) => new Date(a.endDate).getTime() - new Date(b.endDate).getTime()
-          )
-        : all;
-    items = picked.slice(0, 18).map((m) => ({
-      id: m.id,
-      label: shorten(m.question),
-      pct: m.yesPct,
-    }));
+        ? "m.closes_at ASC"
+        : "(m.yes_total + m.no_total) DESC, m.closes_at ASC";
+    const { rows } = await pool.query<{
+      id: number;
+      question: string;
+      yes_total: string;
+      no_total: string;
+    }>(
+      `SELECT id, question, yes_total, no_total
+         FROM ir_markets m
+        WHERE m.status = 'open' AND m.closes_at > now()
+        ORDER BY ${order}
+        LIMIT 18`
+    );
+    items = rows.map((r) => {
+      const yes = Number(r.yes_total);
+      const no = Number(r.no_total);
+      const total = yes + no;
+      return {
+        id: String(r.id),
+        label: shorten(r.question),
+        // بازار بدون پیش‌بینی، ۵۰٪ است — نه صفر.
+        pct: total > 0 ? Math.round((yes / total) * 100) : 50,
+      };
+    });
   } catch {
     items = [];
   }
@@ -48,7 +74,7 @@ export default async function PredictTicker({
       {base.map((m, i) => (
         <a
           key={`${tag}-${m.id}-${i}`}
-          href={`/trade?market=${m.id}`}
+          href={`/iran/m/${m.id}`}
           className="group flex shrink-0 items-center gap-2.5 pe-8 font-mono text-[11px]"
         >
           <span className="text-muted transition group-hover:text-cream">

@@ -34,12 +34,14 @@ const NAV: NavItem[] = [
     label: "بیشتر",
     children: [
       { href: "/challenge", label: "چالش پراپ", desc: "قوانین و مسیر دریافت حساب" },
-      { href: "/bot", label: "ربات معامله‌گر", desc: "اکسپرت اسکلپر متاتریدر ۵" },
-      { href: "/results", label: "نتایج زنده", desc: "کارنامه‌ی مستقل در Myfxbook" },
-      { href: "/broker", label: "بروکر (کارگزاری)", desc: "بروکر همکار" },
-      { href: "/#academy", label: "آکادمی", desc: "مقالات و آموزش" },
+      // دعوت و لیدربورد بلافاصله زیر چالش می‌آیند: هر سه به «رقابت و پاداش»
+      // مربوط‌اند و قبلا با ربات و بروکر از هم جدا افتاده بودند.
       { href: "/referral", label: "دعوت دوستان", desc: "کد دعوت و پاداش MOON" },
       { href: "/leaderboard", label: "لیدربورد", desc: "جدول پیش‌بین‌های برتر" },
+      // بروکر و نتایج زنده حذف شدند و محتوایشان داخل صفحه‌ی ربات ادغام شد؛
+      // سه ورودی جدا برای یک محصول، منو را شلوغ می‌کرد.
+      { href: "/bot", label: "ربات معامله‌گر", desc: "اکسپرت متاتریدر ۵، کارنامه‌ی زنده و بروکر همکار" },
+      { href: "/#academy", label: "آکادمی", desc: "مقالات و آموزش" },
       { href: "/legal", label: "قوانین و مقررات", desc: "شرایط استفاده و افشای ریسک" },
     ],
   },
@@ -71,6 +73,13 @@ function Chevron() {
 export default function Nav() {
   const { player, logout } = usePlayer();
   const [open, setOpen] = useState(false);
+  // وضعیت اتصال تلگرام برای دکمه‌ی هدر.
+  //
+  // قبلا این دکمه فقط لینک کانال بود؛ حالا حالِ حساب را نشان می‌دهد، چون
+  // چهار مسیر پولی (شرط، ساخت بازار، برداشت، خرید MOON) بدون اتصال کار
+  // نمی‌کنند و کاربر باید *پیش از* برخورد با خطا بفهمد که وصل نیست.
+  // null یعنی هنوز نمی‌دانیم؛ در آن حالت دکمه‌ی خنثی نشان داده می‌شود.
+  const [tgLinked, setTgLinked] = useState<boolean | null>(null);
   const pathname = usePathname();
 
   /** لینک‌های لنگردار (#) حالت فعال ندارند؛ فقط مسیرهای واقعی. */
@@ -79,6 +88,22 @@ export default function Nav() {
     return pathname === href || pathname.startsWith(`${href}/`);
   };
   const groupActive = (g: Group) => g.children.some((c) => isActive(c.href));
+
+  useEffect(() => {
+    // setState همگام داخل افکت، رندر آبشاری می‌سازد. وقتی کاربر خارج می‌شود،
+    // خودِ نبودِ player برای خنثی‌کردن دکمه کافی است، پس ریست لازم نیست.
+    if (!player) return;
+    let alive = true;
+    fetch("/api/predict/tg-link", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j) => {
+        if (alive) setTgLinked(Boolean(j?.status?.linked));
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [player]);
 
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
@@ -184,15 +209,33 @@ export default function Nav() {
               </Link>
             )}
 
-            <a
-              href={TELEGRAM}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden items-center gap-2 rounded-lg border border-gold/40 px-4 py-2 text-sm text-gold transition hover:bg-gold hover:text-ink lg:flex"
-            >
-              <TgIcon />
-              تلگرام
-            </a>
+            {player && tgLinked === false ? (
+              <Link
+                href="/referral#telegram"
+                className="hidden items-center gap-2 rounded-lg border border-loss/60 bg-loss/10 px-4 py-2 text-sm font-bold text-loss transition hover:bg-loss hover:text-ink lg:flex"
+              >
+                <TgIcon />
+                اتصال تلگرام
+              </Link>
+            ) : player && tgLinked ? (
+              <span
+                className="hidden items-center gap-2 rounded-lg border border-gain/50 bg-gain/10 px-4 py-2 text-sm font-bold text-gain lg:flex"
+                title="حساب تلگرام شما متصل است"
+              >
+                <TgIcon />
+                تلگرام متصل
+              </span>
+            ) : (
+              <a
+                href={TELEGRAM}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden items-center gap-2 rounded-lg border border-gold/40 px-4 py-2 text-sm text-gold transition hover:bg-gold hover:text-ink lg:flex"
+              >
+                <TgIcon />
+                تلگرام
+              </a>
+            )}
 
             <button
               type="button"
