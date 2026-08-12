@@ -11,6 +11,7 @@
 export type ChallengeStateView = {
   id: number;
   tierId: string;
+  tierKnown?: boolean;
   label: string;
   status: string;
   failReason: string | null;
@@ -163,6 +164,19 @@ export default function ChallengeDashboard({ s }: { s: ChallengeStateView }) {
               <Stat label="روز باقی‌مانده" value={String(s.daysLeft)} tone="gold" />
             )}
           </div>
+
+          {s.tierKnown === false && (
+            <div className="mt-4 rounded-xl border border-loss/40 bg-loss/5 p-4">
+              <p className="text-[12px] font-bold text-loss">
+                این چلنج با تیر قدیمی «{s.tierId}» ثبت شده
+              </p>
+              <p className="mt-1 text-[11px] leading-6 text-muted">
+                آن تیر دیگر در فهرست نیست، پس آستانه‌های هدف و افت سرمایه نامعلوم‌اند
+                و وضعیت خودکار به‌روز نمی‌شود. کارنامه‌ی پیش‌بینی‌ها درست است. برای
+                تعیین تکلیف با پشتیبانی تماس بگیر.
+              </p>
+            </div>
+          )}
 
           {/* بدون این، چلنجِ تازه‌خریداری‌شده فقط یک مشت صفر نشان می‌داد و
               کاربر فکر می‌کرد پنل کار نمی‌کند — در حالی که هنوز هیچ

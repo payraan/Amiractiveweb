@@ -278,6 +278,8 @@ export async function startChallenge(
 export type ChallengeState = {
   id: number;
   tierId: string;
+  /** آیا شناسه‌ی تیر در فهرست فعلی پیدا شد؟ false یعنی آستانه‌ها نامعلوم‌اند. */
+  tierKnown: boolean;
   label: string;
   status: string;
   failReason: string | null;
@@ -315,7 +317,7 @@ export async function getChallengeState(
   const pool = await db();
 
   const ch = await pool.query(
-    `SELECT id, tier_id, status, fail_reason, started_at, deadline
+    `SELECT id, tier_id, entry_fee, status, fail_reason, started_at, deadline
        FROM player_challenges
       WHERE player_id=$1
       ORDER BY started_at DESC
@@ -324,8 +326,33 @@ export async function getChallengeState(
   );
   if (!ch.rowCount) return null;
   const row = ch.rows[0];
-  const tier = tierById(row.tier_id);
-  if (!tier) return null;
+
+  // تیر ناشناخته دیگر کارنامه را ناپدید نمی‌کند.
+  //
+  // اینجا قبلا `if (!tier) return null` بود. اگر شناسه‌ی تیرِ ذخیره‌شده در
+  // فهرست فعلی نبود (تیر حذف یا تغییرنام داده شده بود)، کاربر هیچ کارنامه‌ای
+  // نمی‌دید — در حالی که startChallenge فقط status='active' را می‌بیند و خرید
+  // تازه را با active_exists رد می‌کرد. نتیجه: کاربر هم قفل بود، هم کور.
+  //
+  // حالا رکورد با همان چیزی که واقعا در دیتابیس هست برمی‌گردد و آستانه‌ها
+  // ناشناخته علامت می‌خورند. مهم‌تر: با تیر ناشناخته وضعیت را خودکار عوض
+  // نمی‌کنیم، چون آستانه‌ی درست را نمی‌دانیم و قضاوت غلط بدتر از نبود قضاوت است.
+  const known = tierById(row.tier_id);
+  const tier: ChallengeTier =
+    known ?? {
+      id: String(row.tier_id),
+      track: "predict",
+      label: `چلنج ${row.tier_id}`,
+      size: 0,
+      fee: Number(row.entry_fee) || 0,
+      target: 0,
+      maxDrawdown: 0,
+      dailyLoss: 0,
+      minPreds: 0,
+      minDays: 0,
+      days: 0,
+      prize: "—",
+    };
 
   // فقط پیش‌بینی‌های داخل بازه‌ی احتمال مجاز در ارزیابی حساب می‌شوند.
   // گزینه‌های خیلی بعید قمارند و گزینه‌های خیلی محتمل مهارتی نشان نمی‌دهند.
@@ -376,7 +403,7 @@ export async function getChallengeState(
   let status: string = row.status;
   let failReason: string | null = row.fail_reason;
 
-  if (status === "active") {
+  if (status === "active" && known) {
     if (maxDD > tier.maxDrawdown) {
       status = "failed";
       failReason = "drawdown";
@@ -405,6 +432,7 @@ export async function getChallengeState(
   return {
     id: row.id,
     tierId: tier.id,
+    tierKnown: Boolean(known),
     label: tier.label,
     status,
     failReason,
