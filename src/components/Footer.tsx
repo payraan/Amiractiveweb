@@ -33,8 +33,8 @@ export default function Footer() {
             NARMOON
           </span>
           <p className="mt-3 text-xs leading-6 text-muted">
-            بازار پیش‌بینی فارسی: روی رویدادهای واقعی جهان پیش‌بینی کنید، بر
-            اساس مهارت امتیاز بگیرید و حساب پراپ بگیرید.
+            بازار پیش‌بینی فارسی. روی رویدادهای مهم جهان پیش‌بینی کنید، مهارت
+            خود را بسنجید و با دریافت حساب پراپ، در بازارهای مالی فعالیت کنید.
           </p>
           <a
             href={CHANNEL}
@@ -119,11 +119,12 @@ export default function Footer() {
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-6 py-5 text-[10px] leading-5 text-muted md:flex-row md:items-center md:justify-between">
           <span>© {new Date().getFullYear()} نارمون. همه‌ی حقوق محفوظ است.</span>
           <span>
-            معامله در بازارهای مالی ریسک بالایی دارد؛ پیش از هر تصمیم،{" "}
+            <b className="text-cream">هشدار ریسک:</b> فعالیت در بازارهای مالی
+            همواره با ریسک همراه است. لطفاً پیش از هرگونه تصمیم‌گیری، بخش{" "}
             <Link href="/#terms" className="text-gold transition hover:text-gold-deep">
-              افشای ریسک
+              قوانین و افشای ریسک
             </Link>{" "}
-            را بخوانید.
+            را با دقت مطالعه فرمایید.
           </span>
         </div>
       </div>

@@ -60,15 +60,16 @@ export default async function Hero() {
           className="rise mt-8 font-display text-4xl font-black leading-[1.15] tracking-tight md:text-6xl"
           style={{ animationDelay: "160ms" }}
         >
-          <span className="text-gold">هوش جمعی</span>، اندازه‌گیری شد
+          آینده را حدس نزن، <span className="text-gold">پیش‌بینی کن!</span>
         </h1>
 
         <p
-          className="rise mx-auto mt-6 max-w-lg text-sm leading-7 text-muted md:text-base"
+          className="rise mx-auto mt-6 max-w-xl text-sm leading-7 text-muted md:text-base"
           style={{ animationDelay: "240ms" }}
         >
-          یک نفر یک نظر دارد؛ هزاران نفر یک سیگنال می‌سازند. روی رویدادهایی که
-          واقعاً برای شما مهم‌اند پیش‌بینی کنید؛ بازارها را خود مردم می‌سازند.
+          یک قدم جلوتر از خبرها حرکت کن. با درک و تحلیلِ هوش جمعی، روی
+          مهم‌ترین رویدادهای جهان پیش‌بینی کن. یک نفر تنها یک نظر دارد، اما
+          هزاران نفر یک سیگنال قدرتمند می‌سازند.
         </p>
 
         <div

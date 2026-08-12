@@ -5,10 +5,10 @@ const SUPPORT = "https://t.me/Amiractive_support";
 const CHANNEL = "https://t.me/CashflowFactorys";
 
 const POINTS = [
-  "قیمت آینده‌ی بیت‌کوین و طلا را در چهار تایم‌فریم (۲۴، ۱۲، ۴ و ۱ ساعته) حدس بزنید.",
-  "امتیاز فقط از دقت می‌آید: آستانه‌های هر تایم‌فریم متناسب با نوسان همان بازه تنظیم شده؛ عادلانه و هم‌ارز.",
-  "تایم‌فریم ۲۴ ساعته رایگان است؛ تایم‌فریم‌های کوتاه‌تر با MOON باز می‌شوند.",
-  "نفرات برتر لیدربورد ماهانه، اشتراک ربات و حساب معاملاتی جایزه می‌گیرند.",
+  "قیمت آینده دارایی‌ها را در بازه‌های زمانی مختلف (۱، ۴، ۱۲ و ۲۴ ساعته) پیش‌بینی کنید.",
+  "امتیازدهی کاملاً عادلانه و بر اساس میزان نوسان طبیعی همان بازه در بازار محاسبه می‌شود.",
+  "پیش‌بینی در تایم‌فریم ۲۴ ساعته کاملاً رایگان است! بازه‌های کوتاه‌تر با MOON باز می‌شوند.",
+  "نفرات برتر در جدول ماهانه، جوایز ویژه‌ای شامل حساب معاملاتی واقعی، اشتراک ربات تریدر و پاداش تتر دریافت می‌کنند.",
 ];
 
 export default function MarketPulseSection() {
@@ -20,10 +20,11 @@ export default function MarketPulseSection() {
       <span className="font-mono text-[11px] tracking-[0.3em] text-gold">
         ۰۲ · نبض بازار
       </span>
-      <h2 className="mt-4 font-display text-3xl font-black md:text-4xl">نبض <span className="text-gold">بازار</span></h2>
-      <p className="mt-4 max-w-xl leading-8 text-muted">
-        ترید و حدس قیمت؛ دقت شما، امتیاز شما. با نمودار زنده، تسویه‌ی خودکار و
-        رقابت کاملاً مهارتی.
+      <h2 className="mt-4 font-display text-3xl font-black md:text-4xl">نبض بازار؛ <span className="text-gold">پیش‌بینی دقیق قیمت‌ها</span></h2>
+      <p className="mt-4 max-w-2xl leading-8 text-muted">
+        میدان رقابت برای پیش‌بینی دارایی‌های بازارهای مالی (کریپتو، فارکس،
+        فلزات و سهام آمریکا). هرچه پیش‌بینی شما به قیمت واقعی نزدیک‌تر باشد،
+        امتیاز بالاتری می‌گیرید؛ یک رقابت کاملاً مهارتی.
       </p>
 
       <div className="mt-8 grid grid-cols-1 items-start gap-10 lg:grid-cols-2">

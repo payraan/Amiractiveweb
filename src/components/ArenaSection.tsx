@@ -12,10 +12,9 @@ const TIERS = [
 ];
 
 const POINTS = [
-  "روی مهم‌ترین رویدادهای جهان (سیاست، کریپتو، اقتصاد، ورزش) پیش‌بینی بله/خیر ثبت کنید؛ ورود رایگان است.",
-  "امتیازدهی صفر-انتظار: برد روی گزینه‌ی سخت امتیاز بزرگ می‌دهد و انتخاب گزینه‌های واضح چیزی نمی‌سازد؛ فقط مهارت.",
-  "چالش پراپ: حساب ۱K تا ۵۰K را با MOON فعال کنید، در ۳۰ روز هدف پوینتی را بدون عبور از حد افت بزنید.",
-  "پاداش هر چالش، حساب پراپی به اندازه‌ی همان تیر است، از ۱,۰۰۰ تا ۵۰,۰۰۰ دلار. حساب‌های ۱۰۰ تا ۱,۰۰۰ دلاری هم جوایز اکسترای کمپین‌های دوره‌ای‌اند.",
+  "رقابت با نظر اکثریت: کنار هر سوال مشخص است که چند درصد از مردم چه انتخابی داشته‌اند.",
+  "دیتای معتبر و زنده: تمامی اطلاعات به صورت لحظه‌ای از «پالی‌مارکت» (بزرگ‌ترین بازار پیش‌بینی جهان) دریافت می‌شوند.",
+  "شفافیت کامل: پیش از ثبت پیش‌بینی، دقیقاً می‌دانید میزان پاداش یا کسر امتیاز شما چقدر است.",
 ];
 
 export default function ArenaSection() {
@@ -27,14 +26,19 @@ export default function ArenaSection() {
       <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2">
         <div className="order-2 lg:order-2">
           <span className="font-mono text-[11px] tracking-[0.4em] text-gold" dir="ltr">
-            02 · PREDICTION ARENA
+            01 · PREDICTION TRADE
           </span>
           <h2 className="mt-4 font-display text-3xl font-black md:text-4xl">
             ترید <span className="text-gold">پیش‌بینی</span>
           </h2>
           <p className="mt-4 max-w-xl leading-8 text-muted">
-            بازارهای بله/خیر روی رویدادهای واقعی جهان، با دیتای زنده‌ی
-            پالی‌مارکت، بزرگ‌ترین بازار پیش‌بینی جهان.
+            یک سوال ساده: «بیت‌کوین این هفته به بالای ۷۰ هزار دلار می‌رسد؟»
+            شما فقط «بله» یا «خیر» را انتخاب می‌کنید.
+          </p>
+          <p className="mt-3 max-w-xl leading-8 text-muted">
+            <b className="text-cream">رقابت اصلی کجاست؟</b> هرچه پیش‌بینی شما
+            برخلاف نظر اکثریت باشد و درست از آب دربیاید، پاداش بسیار بیشتری
+            دریافت می‌کنید!
           </p>
 
           <ul className="mt-6 flex flex-col gap-3">
@@ -53,7 +57,7 @@ export default function ArenaSection() {
               href="/trade"
               className="rounded-xl bg-gold px-7 py-3.5 font-display font-extrabold text-ink transition hover:bg-gold-deep"
             >
-              ورود به ترید پیش‌بینی
+              امتحان کنید، رایگان است
             </Link>
             <Link
               href="/arena#challenge"
