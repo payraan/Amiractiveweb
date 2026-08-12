@@ -7,7 +7,7 @@ import LoginClient from "@/components/LoginClient";
 export const metadata: Metadata = {
   title: "ورود / ثبت‌نام | نارمون",
   description:
-    "با یک حساب، به همه‌ی بخش‌های نارمون دسترسی دارید: آرنای پیش‌بینی، نبض بازار و لیدربورد.",
+    "با یک حساب، به همه‌ی بخش‌های نارمون دسترسی دارید: ترید پیش‌بینی، نبض بازار و لیدربورد.",
 };
 
 export const dynamic = "force-dynamic";
@@ -24,7 +24,7 @@ export default function LoginPage() {
         <h1 className="mt-4 font-display text-3xl font-black">ورود / ثبت‌نام</h1>
         <p className="mt-3 max-w-xl text-xs leading-7 text-muted">
           با یک حساب به همه‌ی بخش‌ها دسترسی داری: بازار ایران، ترید، نبض بازار،
-          کیف پول و چلنج پراپ.
+          کیف پول و چالش پراپ.
         </p>
         <div className="mt-8">
           <LoginClient />

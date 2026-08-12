@@ -239,7 +239,7 @@ export default function ComboBuilder() {
           <b className="font-mono text-cream" dir="ltr">
             {COMBO_COST} MOON
           </b>{" "}
-          MOON. امتیاز کمبو در لیدربورد ثبت می‌شود اما در ارزیابی چلنج پراپ
+          MOON. امتیاز کمبو در لیدربورد ثبت می‌شود اما در ارزیابی چالش پراپ
           محاسبه نمی‌شود.
         </p>
       </div>
@@ -595,7 +595,7 @@ export default function ComboBuilder() {
         <p className="mt-8 text-[11px] text-muted">
           پس از انتخاب اولین بازار، نوار تیکت در پایین صفحه ظاهر می‌شود.{" "}
           <Link href="/trade" className="text-gold transition hover:text-gold-deep">
-            بازگشت به آرنای پیش‌بینی
+            بازگشت به ترید پیش‌بینی
           </Link>
         </p>
       )}

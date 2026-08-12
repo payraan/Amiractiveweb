@@ -22,7 +22,7 @@ export default function MarketPulseSection() {
       </span>
       <h2 className="mt-4 font-display text-3xl font-black md:text-4xl">نبض <span className="text-gold">بازار</span></h2>
       <p className="mt-4 max-w-xl leading-8 text-muted">
-        آرنای حدس قیمت — دقت شما، امتیاز شما. با نمودار زنده، تسویه‌ی خودکار و
+        ترید و حدس قیمت — دقت شما، امتیاز شما. با نمودار زنده، تسویه‌ی خودکار و
         رقابت کاملاً مهارتی.
       </p>
 

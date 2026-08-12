@@ -11,13 +11,13 @@ import Link from "next/link";
 const STEPS = [
   {
     n: "۱",
-    t: "چلنج را انتخاب می‌کنی",
+    t: "چالش را انتخاب می‌کنی",
     d: "با MOON واردش می‌شوی. اندازه‌ی حساب را خودت انتخاب می‌کنی — از کوچک شروع کن.",
   },
   {
     n: "۲",
     t: "همان کار همیشگی را می‌کنی",
-    d: "لازم نیست جای جدیدی بروی. همان پیش‌بینی‌هایی که در ترید ثبت می‌کنی، در ارزیابی چلنج هم شمرده می‌شوند.",
+    d: "لازم نیست جای جدیدی بروی. همان پیش‌بینی‌هایی که در ترید ثبت می‌کنی، در ارزیابی چالش هم شمرده می‌شوند.",
   },
   {
     n: "۳",
@@ -38,7 +38,7 @@ export default function PropSection() {
       className="relative mx-auto max-w-5xl scroll-mt-20 px-6 py-24 text-center"
     >
       <span className="font-mono text-[11px] tracking-[0.3em] text-gold">
-        ۰۴ · چلنج پراپ
+        ۰۴ · چالش پراپ
       </span>
       <h2 className="mt-4 font-display text-3xl font-black md:text-4xl">
         پراپ‌فرمِ <span className="text-gold">بازار پیش‌بینی</span>
@@ -78,7 +78,7 @@ export default function PropSection() {
           href="/challenge"
           className="rounded-xl bg-gold px-7 py-3.5 font-display font-extrabold text-ink transition hover:bg-gold-deep"
         >
-          دیدن چلنج‌ها
+          دیدن چالش‌ها
         </Link>
         <Link
           href="/trade"
@@ -89,7 +89,7 @@ export default function PropSection() {
       </div>
 
       <p className="mx-auto mt-6 max-w-xl text-[10px] leading-6 text-muted">
-        ورودی چلنج پس از شروع بازگشت‌پذیر نیست. این یک آزمون مهارت است، نه
+        ورودی چالش پس از شروع بازگشت‌پذیر نیست. این یک آزمون مهارت است، نه
         شرط‌بندی — و هیچ سود تضمین‌شده‌ای وعده داده نمی‌شود.
       </p>
     </section>
@@ -97,14 +97,14 @@ export default function PropSection() {
 }
 
 /**
- * موشن‌گرافیک عریض: مسیر امتیاز یک نامزد چلنج که بالا و پایین می‌رود ولی از
- * «کف افت» رد نمی‌شود و در نهایت به خط هدف می‌رسد. همان چیزی که چلنج می‌سنجد.
+ * موشن‌گرافیک عریض: مسیر امتیاز یک نامزد چالش که بالا و پایین می‌رود ولی از
+ * «کف افت» رد نمی‌شود و در نهایت به خط هدف می‌رسد. همان چیزی که چالش می‌سنجد.
  */
 function PropGraphic() {
   return (
     <div className="no-lift relative mt-10 overflow-hidden rounded-2xl border border-line bg-surface/40">
       <div className="flex items-center justify-between border-b border-line px-4 py-2.5 text-[10px]">
-        <span className="text-muted">مسیر یک چلنج ۳۰ روزه</span>
+        <span className="text-muted">مسیر یک چالش ۳۰ روزه</span>
         <span className="flex items-center gap-1.5 text-gain">
           <span className="relative flex h-1.5 w-1.5">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gain opacity-60" />

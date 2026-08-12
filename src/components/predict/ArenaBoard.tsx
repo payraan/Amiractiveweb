@@ -75,7 +75,7 @@ function Spark({ points }: { points: PricePoint[] }) {
         <path d={line} fill="none" stroke="var(--color-gold)" strokeWidth="1.5" />
       </svg>
       <div className="mt-1 flex justify-between font-mono text-[9px] text-muted" dir="ltr">
-        <span>Yes {Math.round(min * 100)}%–{Math.round(max * 100)}%</span>
+        <span>Yes {Math.round(min * 100)}%-{Math.round(max * 100)}%</span>
         <span className="text-gold">now {Math.round(last * 100)}%</span>
       </div>
     </div>
@@ -197,7 +197,7 @@ export default function ArenaBoard() {
             benefits={[
               "۵ پیش‌بینی رایگان در روز روی بازارهای واقعی",
               "امتیاز = ۱۰۰ منهای احتمال؛ گزینه‌ی کم‌شانس‌تر، پاداش بزرگ‌تر",
-              "رقابت در لیدربورد و ورود به چلنج پراپ",
+              "رقابت در لیدربورد و ورود به چالش پراپ",
               "۱۰ MOON هدیه‌ی خوش‌آمد",
             ]}
             onAuthed={() => {

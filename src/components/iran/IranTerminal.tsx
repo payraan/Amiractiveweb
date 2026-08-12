@@ -55,7 +55,7 @@ const ERR: Record<string, string> = {
 const catLabel = (id: string) =>
   IR_CATEGORIES.find((c) => c.id === id)?.label ?? id;
 
-/** فقط بازار بازِ به‌موعدنرسیده قابل شرط است. */
+/** فقط بازار بازِ به‌موعدنرسیده قابل پیش‌بینی است. */
 const isBettable = (x: { status: string; closesAt: string }) =>
   x.status === "open" && new Date(x.closesAt).getTime() > Date.now();
 
@@ -324,7 +324,7 @@ export default function IranTerminal() {
                   {Math.round(cfg.commission * 100)}٪ کارمزد، باقی بین برنده‌ها به نسبت
                   سهمشان تقسیم می‌شود. هرچه طرفدار یک گزینه کمتر باشد، ضریب آن بزرگ‌تر
                   است. اگر ضریب برنده زیر حد مجاز بیفتد، بازار باطل و کل پول بدون کسر
-                  کارمزد برگردانده می‌شود؛ و اگر هیچ‌کس روی گزینه‌ی برنده شرط نبسته
+                  کارمزد برگردانده می‌شود؛ و اگر هیچ‌کس روی گزینه‌ی برنده پیش‌بینی نکرده
                   باشد، پول همه پس از کسر کارمزد برمی‌گردد.
                 </p>
               </div>
@@ -449,7 +449,7 @@ export default function IranTerminal() {
                 </p>
                 <p className="mt-2 text-[11px] leading-6 text-muted">
                   {m.status === "locked"
-                    ? "شرط‌بندی روی این بازار تمام شده و منتظر اعلام نتیجه است."
+                    ? "ثبت پیش‌بینی روی این بازار تمام شده و منتظر اعلام نتیجه است."
                     : m.status === "settling"
                       ? "نتیجه ثبت شده و در پنجره‌ی ۲۴ ساعته‌ی اعتراض است. پس از آن پرداخت انجام می‌شود."
                       : m.status === "settled"
@@ -462,7 +462,7 @@ export default function IranTerminal() {
                   از فهرست پایین یک بازار باز انتخاب کن.
                 </p>
 
-                {/* پنجره‌ی اعتراض — هرکس روی این بازار شرط بسته
+                {/* پنجره‌ی اعتراض — هرکس روی این بازار پیش‌بینی کرده
                     می‌تواند اعتراض کند، نه فقط سازنده */}
                 {m.status === "settling" && <DisputePanel marketId={m.id} />}
               </div>
@@ -578,7 +578,7 @@ export default function IranTerminal() {
                 )}
 
                 <p className="mt-3 text-[10px] leading-6 text-muted">
-                  ضریب نمایش‌داده‌شده با ورود شرط شما بازمحاسبه شده است و تا لحظه‌ی
+                  ضریب نمایش‌داده‌شده با ثبت پیش‌بینی شما بازمحاسبه شده است و تا لحظه‌ی
                   بسته‌شدن بازار می‌تواند تغییر کند.
                 </p>
               </>
@@ -684,7 +684,7 @@ export default function IranTerminal() {
                     {isBettable(x) ? (
                       <span className="text-gold">{remain(x.closesAt)}</span>
                     ) : (
-                      <span>شرط‌بندی بسته است</span>
+                      <span>ثبت پیش‌بینی بسته است</span>
                     )}
                   </div>
                 </button>

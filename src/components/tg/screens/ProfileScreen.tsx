@@ -224,9 +224,9 @@ export default function ProfileScreen({ siteUrl }: { siteUrl: string }) {
       {/* بازار ایران: پول واقعی، پس جدا از امتیاز نشان داده می‌شود */}
       <h3 className="mb-2 mt-5 text-xs font-bold text-cream">بازار ایران</h3>
       <div className="grid grid-cols-3 gap-2.5">
-        <Metric label="شرط تسویه‌شده" value={num(p.iran.settledBets)} />
+        <Metric label="پیش‌بینی‌های تسویه‌شده" value={num(p.iran.settledBets)} />
         <Metric
-          label="نرخ برد"
+          label="درصد موفقیت"
           value={p.iran.winRate === null ? "—" : `${p.iran.winRate}%`}
           tone={p.iran.winRate !== null && p.iran.winRate >= 50 ? "gain" : "muted"}
         />

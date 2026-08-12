@@ -15,7 +15,7 @@ type Row = {
 };
 
 const LABEL: Record<string, string> = {
-  ir_propose_fee: "هزینه‌ی ساخت بازار",
+  ir_propose_fee: "کارمزد ایجاد بازار",
   ir_propose_refund: "برگشت هزینه‌ی ساخت",
   ir_commission: "کمیسیون تسویه",
   ir_commission_void: "کمیسیون بازار بدون برنده",

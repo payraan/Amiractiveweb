@@ -33,7 +33,7 @@ const NAV: NavItem[] = [
   {
     label: "بیشتر",
     children: [
-      { href: "/challenge", label: "چلنج پراپ", desc: "قوانین و مسیر دریافت حساب" },
+      { href: "/challenge", label: "چالش پراپ", desc: "قوانین و مسیر دریافت حساب" },
       { href: "/bot", label: "ربات معامله‌گر", desc: "اکسپرت اسکلپر متاتریدر ۵" },
       { href: "/results", label: "نتایج زنده", desc: "کارنامه‌ی مستقل در Myfxbook" },
       { href: "/broker", label: "بروکر (کارگزاری)", desc: "بروکر همکار" },

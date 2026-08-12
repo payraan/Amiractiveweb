@@ -33,9 +33,9 @@ export async function POST(req: Request) {
   if (!playerId) {
     return NextResponse.json({ ok: false, error: "not_authed" }, { status: 401 });
   }
-  // ورود به چلنج با MOON پرداخت می‌شود ولی جایزه‌اش حساب واقعی است، پس از
+  // ورود به چالش با MOON پرداخت می‌شود ولی جایزه‌اش حساب واقعی است، پس از
   // نظر ضدتقلب هم‌رده‌ی مسیرهای پولی است. بدون این قفل، حسابِ بی‌هویتِ سایتی
-  // می‌توانست با MOONـی که از پورسانت رفرال گرفته وارد چلنج شود.
+  // می‌توانست با MOONـی که از پورسانت رفرال گرفته وارد چالش شود.
   const linked = await requireLinkedTelegram(playerId);
   if (!linked.ok) return linked.response;
 

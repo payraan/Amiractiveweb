@@ -214,7 +214,7 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("all");
   // کمبو تب چهارمِ همین ترمینال است، نه یک بازی جدا. زیرساختش یکی است
-  // (همان بازارهای آرنا)، فقط نوع سفارش فرق می‌کند.
+  // (همان بازارهای ترید پیش‌بینی)، فقط نوع سفارش فرق می‌کند.
   const [tab, setTab] = useState<
     "positions" | "history" | "markets" | "combo" | "credits"
   >("markets");
@@ -842,7 +842,7 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
         <span dir="ltr">{markets.length} MARKETS</span>
         <span dir="ltr">DATA · POLYMARKET</span>
         <Link href="/challenge" className="transition hover:text-gold">
-          چلنج پراپ
+          چالش پراپ
         </Link>
         <a
           href="https://t.me/Amiractive_support"

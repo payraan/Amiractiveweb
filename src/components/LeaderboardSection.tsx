@@ -11,7 +11,7 @@ export default function LeaderboardSection() {
         PREDICTION ARENA
       </span>
       <h2 className="mt-4 font-display text-3xl font-black md:text-4xl">
-        آرنای پیش‌بینی
+        ترید پیش‌بینی
       </h2>
       <p className="mt-4 max-w-xl leading-8 text-muted">
         قیمت فردای بیت‌کوین و طلا را حدس بزنید، بر اساس دقت امتیاز بگیرید و در

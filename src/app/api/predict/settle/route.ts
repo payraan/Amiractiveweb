@@ -15,7 +15,7 @@ export async function POST(req: Request) {
   if (!key || provided !== key) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
-  // هر سه بازی تسویه می‌شوند. قبلا فقط نبض بازار اینجا بود، پس آرنا و کمبو
+  // هر سه بازی تسویه می‌شوند. قبلا فقط نبض بازار اینجا بود، پس ترید پیش‌بینی و کمبو
   // حتی با کرون هم تسویه نمی‌شدند و فقط به بازدید صفحه وابسته بودند.
   // هر بخش جدا هندل می‌شود تا خطای یکی بقیه را متوقف نکند.
   const out: Record<string, unknown> = {};

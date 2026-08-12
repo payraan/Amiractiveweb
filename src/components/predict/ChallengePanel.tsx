@@ -26,11 +26,11 @@ type Tier = {
 type State = ChallengeStateView | null;
 
 const START_ERRORS: Record<string, string> = {
-  active_exists: "یک چلنج فعال دارید؛ ابتدا آن را کامل کنید.",
+  active_exists: "یک چالش فعال دارید؛ ابتدا آن را کامل کنید.",
   entry_limit:
-    "سقف ورود به چلنج حساب پیش‌بینی ۳ بار در ۳۰ روز است. کمی صبر کنید یا مسیر حساب معاملاتی را انتخاب کنید.",
-  insufficient_credits: "MOON کافی برای این چلنج ندارید.",
-  not_authed: "برای شروع چلنج وارد شوید.",
+    "سقف ورود به چالش حساب پیش‌بینی ۳ بار در ۳۰ روز است. کمی صبر کنید یا مسیر حساب معاملاتی را انتخاب کنید.",
+  insufficient_credits: "MOON کافی برای این چالش ندارید.",
+  not_authed: "برای شروع چالش وارد شوید.",
 };
 
 const FAIL_TEXT: Record<string, string> = {
@@ -117,15 +117,15 @@ export default function ChallengePanel() {
   }
 
   if (loading) {
-    return <div className="py-10 text-center text-xs text-muted">در حال بارگذاری چلنج…</div>;
+    return <div className="py-10 text-center text-xs text-muted">در حال بارگذاری چالش…</div>;
   }
 
-  // ── چلنج فعال / نتیجه ──
+  // ── چالش فعال / نتیجه ──
   // جزئیات به ChallengeDashboard منتقل شد: نوارهای قبلی فقط عدد نشان می‌دادند و
   // نمی‌گفتند «قبول شدی یا نه». حالا جدول شرط‌ها + کارنامه‌ی برد و باخت هست.
   //
-  // چلنج ناموفق هم کارنامه‌اش را نشان می‌دهد. قبلا شرط `status !== "failed"`
-  // بود و کاربری که چلنجش شکست خورده بود هیچ ردی از عملکردش نمی‌دید — فقط یک
+  // چالش ناموفق هم کارنامه‌اش را نشان می‌دهد. قبلا شرط `status !== "failed"`
+  // بود و کاربری که چالشش شکست خورده بود هیچ ردی از عملکردش نمی‌دید — فقط یک
   // نوار یک‌خطی که «ناموفق شد». دقیقا همان لحظه‌ای که بیشترین نیاز را به دیدن
   // کارنامه دارد. حالا کارنامه می‌ماند و فهرست تیرها زیرش می‌آید تا بتواند
   // دوباره شروع کند.
@@ -141,7 +141,7 @@ export default function ChallengePanel() {
             </p>
             <a
               href={`https://t.me/Amiractive_support?text=${encodeURIComponent(
-                `سلام، چلنج ${state.label} پراپ پیش‌بینی را پاس کردم و برای دریافت جایزه پیام می‌دهم.`
+                `سلام، چالش ${state.label} پراپ پیش‌بینی را پاس کردم و برای دریافت جایزه پیام می‌دهم.`
               )}`}
               target="_blank"
               rel="noopener noreferrer"
@@ -160,9 +160,9 @@ export default function ChallengePanel() {
 
         {state.status === "failed" && (
           <div className="rounded-2xl border border-loss/40 bg-loss/5 px-5 py-4 text-xs leading-6">
-            <b className="text-loss">چلنج {state.label} ناموفق شد: </b>
+            <b className="text-loss">چالش {state.label} ناموفق شد: </b>
             <span className="text-muted">
-              {FAIL_TEXT[state.failReason ?? ""] ?? "شرایط چلنج برقرار نماند."}
+              {FAIL_TEXT[state.failReason ?? ""] ?? "شرایط چالش برقرار نماند."}
             </span>
           </div>
         )}
@@ -170,7 +170,7 @@ export default function ChallengePanel() {
         {state.status !== "active" && (
           <details className="rounded-2xl border border-line bg-surface/40 p-5">
             <summary className="cursor-pointer text-xs font-bold text-gold">
-              شروع چلنج تازه
+              شروع چالش تازه
             </summary>
             <div className="mt-4">
               <TierPicker
@@ -188,7 +188,7 @@ export default function ChallengePanel() {
     );
   }
 
-  // ── انتخاب تیر (هیچ چلنجی تا حالا خریداری نشده) ──
+  // ── انتخاب تیر (هیچ چالشی تا حالا خریداری نشده) ──
   return (
     <div>
       {!authed && (
@@ -196,7 +196,7 @@ export default function ChallengePanel() {
           <b className="text-gold">وارد حساب نشده‌اید.</b>
           <span className="text-muted">
             {" "}
-            اگر قبلا چلنج خریده‌اید، برای دیدن کارنامه‌تان اول وارد شوید — کارنامه
+            اگر قبلا چالش خریده‌اید، برای دیدن کارنامه‌تان اول وارد شوید — کارنامه
             به حساب گره خورده است، نه به این مرورگر.
           </span>
         </div>
@@ -213,8 +213,8 @@ export default function ChallengePanel() {
   );
 }
 
-/** انتخاب مسیر و تیر — از بدنه‌ی پنل جدا شد تا هم برای کاربر بدون چلنج و هم
- *  زیر کارنامه‌ی چلنج تمام‌شده استفاده شود. */
+/** انتخاب مسیر و تیر — از بدنه‌ی پنل جدا شد تا هم برای کاربر بدون چالش و هم
+ *  زیر کارنامه‌ی چالش تمام‌شده استفاده شود. */
 function TierPicker({
   tiers,
   track,
@@ -283,7 +283,7 @@ function TierPicker({
               <span className="font-mono text-xl font-bold text-gold" dir="ltr">
                 {t.fee} MOON
               </span>
-              <span className="text-[10px] text-muted">ورودی چلنج</span>
+              <span className="text-[10px] text-muted">ورودی چالش</span>
             </div>
 
             <ul className="mt-4 flex flex-col gap-1.5 text-[11px] leading-5 text-muted">
@@ -309,7 +309,7 @@ function TierPicker({
                   : "border border-line text-cream hover:border-gold hover:text-gold"
               }`}
             >
-              {busy === t.id ? "…" : "شروع چلنج"}
+              {busy === t.id ? "…" : "شروع چالش"}
             </button>
           </div>
         ))}
@@ -352,16 +352,16 @@ function TierPicker({
 
         <p className="mt-3 border-t border-gold/20 pt-3 text-[10px] leading-6 text-muted">
           نارمون یک آزمون مهارت است، نه شرط‌بندی. امتیاز نقد نمی‌شود و با MOON
-          خریدنی نیست. سامانه‌ی امتیازدهی طوری کالیبره شده که حدس تصادفی
-          به‌طور میانگین امتیاز منفی بگیرد. ورودی چلنج پس از شروع بازگشت‌پذیر
+          خریدنی نیست. سامانه‌ی امتیازدهی طوری کالیبره شده که پیش‌بینی‌های تصادفی و بدون تحلیل
+          به‌طور میانگین امتیاز منفی بگیرد. ورودی چالش پس از شروع بازگشت‌پذیر
           نیست.
         </p>
       </div>
 
       <p className="mt-4 text-[10px] leading-5 text-muted">
-        فقط ۵۰ پیش‌بینیِ اولِ ثبت‌شده در بازه‌ی احتمال ۲۵٪ تا ۷۵٪ در ارزیابی چلنج
-        محاسبه می‌شوند. شرط‌بندی روی گزینه‌های خیلی بعید یا خیلی محتمل مهارت را
-        نشان نمی‌دهد و در نتیجه‌ی چلنج اثری ندارد. ورود به چلنج حساب پیش‌بینی
+        فقط ۵۰ پیش‌بینیِ اولِ ثبت‌شده در بازه‌ی احتمال ۲۵٪ تا ۷۵٪ در ارزیابی چالش
+        محاسبه می‌شوند. پیش‌بینی روی گزینه‌های خیلی بعید یا خیلی محتمل مهارت را
+        نشان نمی‌دهد و در نتیجه‌ی چالش اثری ندارد. ورود به چالش حساب پیش‌بینی
         حداکثر ۳ بار در ۳۰ روز ممکن است.
       </p>
 

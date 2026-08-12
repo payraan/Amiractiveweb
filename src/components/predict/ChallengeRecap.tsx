@@ -6,14 +6,14 @@ import ChallengeDashboard, {
   type ChallengeStateView,
 } from "@/components/predict/ChallengeDashboard";
 
-// کارنامه‌ی چلنج، پایین صفحه‌ی ترید.
+// کارنامه‌ی چالش، پایین صفحه‌ی ترید.
 //
-// چرا اینجا: ارزیابی چلنج فقط از پیش‌بینی‌های ترید تغذیه می‌شود، پس کاربر
+// چرا اینجا: ارزیابی چالش فقط از پیش‌بینی‌های ترید تغذیه می‌شود، پس کاربر
 // دقیقا همین‌جا باید ببیند هر ثبت چه اثری روی کارنامه‌اش گذاشت. فرستادنش به
 // صفحه‌ی دیگر یعنی عملا هیچ‌وقت نگاهش نمی‌کند.
 //
-// اگر چلنجی در کار نباشد هیچ چیزی رندر نمی‌شود — صفحه‌ی ترید نباید برای
-// کسی که چلنج ندارد شلوغ شود.
+// اگر چالشی در کار نباشد هیچ چیزی رندر نمی‌شود — صفحه‌ی ترید نباید برای
+// کسی که چالش ندارد شلوغ شود.
 
 export default function ChallengeRecap() {
   const [state, setState] = useState<ChallengeStateView | null>(null);
@@ -37,13 +37,13 @@ export default function ChallengeRecap() {
     <section className="mx-auto mt-8 max-w-6xl">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="font-display text-sm font-extrabold text-cream">
-          کارنامه‌ی چلنج پراپ شما
+          کارنامه‌ی چالش پراپ شما
         </h2>
         <Link
           href="/challenge"
           className="text-[11px] text-gold transition hover:text-gold-deep"
         >
-          صفحه‌ی چلنج ←
+          صفحه‌ی چالش ←
         </Link>
       </div>
       <ChallengeDashboard s={state} />

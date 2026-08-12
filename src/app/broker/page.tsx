@@ -7,7 +7,7 @@ import Broker from "@/components/Broker";
 export const metadata: Metadata = {
   title: "بروکر (کارگزاری) | نارمون",
   description:
-    "بروکرهای همکار برای اجرای ربات معامله‌گر و دریافت حساب جایزه‌ی چلنج پراپ.",
+    "بروکرهای همکار برای اجرای ربات معامله‌گر و دریافت حساب جایزه‌ی چالش پراپ.",
 };
 
 export default function BrokerPage() {
@@ -26,7 +26,7 @@ export default function BrokerPage() {
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-sm leading-8 text-muted md:text-base">
               برای اجرای ربات معامله‌گر و همچنین دریافت حساب جایزه‌ی مسیر
-              معاملاتی چلنج، به یک حساب نزد بروکر همکار نیاز دارید. شرایط
+              معاملاتی چالش، به یک حساب نزد بروکر همکار نیاز دارید. شرایط
               معاملاتی، اسپرد و روش برداشت تابع قوانین همان بروکر است، نه نارمون.
             </p>
           </div>

@@ -6,7 +6,7 @@ import { useResource } from "@/components/tg/useResource";
 import { Card, ErrorState, ScreenTitle, Skeleton } from "@/components/tg/ui";
 import { haptic } from "@/components/tg/telegram";
 
-// چلنج پراپ در مینی‌اپ — همان /api/predict/challenge سایت.
+// چالش پراپ در مینی‌اپ — همان /api/predict/challenge سایت.
 //
 // طراحی برای صفحه‌ی باریک تلگرام: یک حلقه‌ی پیشرفت که در یک نگاه می‌گوید چقدر
 // تا هدف مانده، بعد سنجه‌ها، بعد چک‌لیست شرط‌ها، بعد نمودار میله‌ای روزانه.
@@ -59,8 +59,8 @@ type Data = { authed: boolean; tiers: Tier[]; state: State | null };
 
 const ERR: Record<string, string> = {
   not_authed: "ابتدا وارد شو.",
-  telegram_required: "برای ورود به چلنج باید حسابت به تلگرام وصل باشد.",
-  active_exists: "همین حالا یک چلنج فعال داری.",
+  telegram_required: "برای ورود به چالش باید حسابت به تلگرام وصل باشد.",
+  active_exists: "همین حالا یک چالش فعال داری.",
   entry_limit: "سقف ورود در ۳۰ روز گذشته پر شده است.",
   insufficient_credits: "MOON کافی نداری. از کیف پول MOON بخر.",
   bad_tier: "این تیر معتبر نیست.",
@@ -267,7 +267,7 @@ export default function ChallengeScreen() {
       } catch (e) {
         haptic.error();
         const code = e instanceof ApiError ? e.code : "";
-        setMsg(ERR[code] ?? "ورود به چلنج انجام نشد.");
+        setMsg(ERR[code] ?? "ورود به چالش انجام نشد.");
       } finally {
         setBusy(null);
       }
@@ -275,7 +275,7 @@ export default function ChallengeScreen() {
     [res]
   );
 
-  if (res.error) return <ErrorState message="چلنج نیامد." onRetry={res.reload} />;
+  if (res.error) return <ErrorState message="چالش نیامد." onRetry={res.reload} />;
   if (!res.data)
     return (
       <div className="space-y-2">
@@ -341,11 +341,11 @@ export default function ChallengeScreen() {
 
     return (
       <div className="space-y-3">
-        <ScreenTitle title="کارنامه‌ی چلنج پراپ" subtitle={s.label} />
+        <ScreenTitle title="کارنامه‌ی چالش پراپ" subtitle={s.label} />
 
         {failed && (
           <div className="rounded-2xl border border-loss/40 bg-loss/5 p-4">
-            <p className="text-[12px] font-bold text-loss">چلنج ناموفق شد</p>
+            <p className="text-[12px] font-bold text-loss">چالش ناموفق شد</p>
             {s.failReason && (
               <p className="mt-1 text-[11px] text-muted">
                 دلیل: {FAIL[s.failReason] ?? s.failReason}
@@ -355,7 +355,7 @@ export default function ChallengeScreen() {
         )}
         {passed && (
           <div className="rounded-2xl border border-gain/40 bg-gain/5 p-4">
-            <p className="text-[12px] font-bold text-gain">چلنج پاس شد 🎉</p>
+            <p className="text-[12px] font-bold text-gain">چالش با موفقیت تمام شد 🎉</p>
             <p className="mt-1 text-[11px] text-muted">جایزه: {s.prize}</p>
           </div>
         )}
@@ -371,7 +371,7 @@ export default function ChallengeScreen() {
             />
             <div className="min-w-0 flex-1 space-y-1.5">
               <div className="flex items-baseline justify-between">
-                <span className="text-[11px] text-muted">برد / باخت</span>
+                <span className="text-[11px] text-muted">صحیح / خطا</span>
                 <span className="font-mono text-[13px]" dir="ltr">
                   <b className="text-gain">{s.wins}</b>
                   <span className="text-muted"> / </span>
@@ -379,7 +379,7 @@ export default function ChallengeScreen() {
                 </span>
               </div>
               <div className="flex items-baseline justify-between">
-                <span className="text-[11px] text-muted">نرخ برد</span>
+                <span className="text-[11px] text-muted">درصد موفقیت</span>
                 <span className="font-mono text-[13px] text-cream" dir="ltr">
                   {s.winRate === null ? "—" : `${s.winRate}٪`}
                 </span>
@@ -412,7 +412,7 @@ export default function ChallengeScreen() {
             <p className="mt-1 text-[11px] leading-6 text-muted">
               این تیر دیگر در فهرست نیست، پس آستانه‌های هدف و افت نامعلوم‌اند و
               وضعیت خودکار به‌روز نمی‌شود. کارنامه‌ی پیش‌بینی‌ها درست است. برای
-              تعیین تکلیف با پشتیبانی تماس بگیر.
+              تعیین تکلیف با پشتیبانی تماس بگیرید.
             </p>
           </div>
         )}
@@ -445,12 +445,12 @@ export default function ChallengeScreen() {
         {counted === 0 && !failed && (
           <div className="rounded-2xl border border-gold/30 bg-gold/5 p-4">
             <p className="text-[12px] font-bold text-gold">
-              هنوز پیش‌بینی شمرده‌شده‌ای نداری
+              هنوز پیش‌بینی شمرده‌شده‌ای ندارید
             </p>
             <ul className="mt-2 space-y-1 text-[11px] leading-6 text-muted">
               <li>
                 فقط پیش‌بینی‌های <b className="text-cream">ترید</b> شمرده می‌شوند،
-                آن هم بعد از شروع چلنج.
+                آن هم بعد از شروع چالش.
               </li>
               <li>پیش‌بینی باید تسویه شده باشد.</li>
               <li>
@@ -469,7 +469,7 @@ export default function ChallengeScreen() {
               ))}
             </div>
             <p className="mt-2 text-[9px] leading-5 text-muted">
-              «افت از سقف»، «سقف ضرر روزانه» و «ثبات» سقف‌اند — نباید از حد بگذری.
+              «افت از سقف»، «سقف ضرر روزانه» و «ثبات» سقف‌اند — نباید از حد بگذرید.
               بقیه هدف‌اند.
             </p>
           </Card>
@@ -492,13 +492,13 @@ export default function ChallengeScreen() {
     );
   }
 
-  // ── هنوز چلنجی ندارد ──
+  // ── هنوز چالشی ندارد ──
   const tiers = res.data.tiers.filter((t) => t.track === track);
 
   return (
     <div>
       <ScreenTitle
-        title="چلنج پراپ"
+        title="چالش پراپ"
         subtitle="ورودی با MOON، جایزه حساب واقعی — امتیاز خریدنی نیست"
       />
 
@@ -507,7 +507,7 @@ export default function ChallengeScreen() {
           <b className="text-gold">وارد نشده‌ای.</b>
           <span className="text-muted">
             {" "}
-            کارنامه به حساب گره خورده است؛ اگر قبلا چلنج خریده‌ای اول وارد شو.
+            کارنامه به حساب گره خورده است؛ اگر قبلا چالش خریده‌ای اول وارد شو.
           </span>
         </div>
       )}
@@ -572,7 +572,7 @@ export default function ChallengeScreen() {
               disabled={busy !== null}
               className="mt-3 w-full rounded-xl bg-gold py-2.5 text-[12px] font-bold text-ink disabled:opacity-40"
             >
-              {busy === t.id ? "در حال ثبت…" : "ورود به این چلنج"}
+              {busy === t.id ? "در حال ثبت…" : "ورود به این چالش"}
             </button>
           </Card>
         ))}

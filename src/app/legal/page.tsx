@@ -7,7 +7,7 @@ import Legal from "@/components/Legal";
 export const metadata: Metadata = {
   title: "قوانین و مقررات | نارمون",
   description:
-    "شرایط استفاده، افشای ریسک و سلب مسئولیت نارمون — شامل قواعد بازار ایران، کیف پول تتر و چلنج پراپ.",
+    "شرایط استفاده، افشای ریسک و سلب مسئولیت نارمون — شامل قواعد بازار ایران، کیف پول تتر و چالش پراپ.",
 };
 
 export default function LegalPage() {

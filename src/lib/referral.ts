@@ -134,7 +134,7 @@ export async function payReferralCommission(
   // اعتبارسنجی تلگرامی ندارد، پس بدون این شرط زنجیره‌ی زیر باز بود:
   // حساب بی‌هویت A بساز → با کد A حساب B بساز و تلگرام واقعی را به B وصل کن
   // → B خرید کند → A بی‌نهایت MOON مجانی بگیرد. آن MOON بعد خرج ورود به
-  // چلنج پراپ می‌شد که جایزه‌اش حساب واقعی است.
+  // چالش پراپ می‌شد که جایزه‌اش حساب واقعی است.
   const row = await pool.query<{
     referred_by: number | null;
     referrer_tg: string | null;

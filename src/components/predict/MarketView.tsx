@@ -47,7 +47,7 @@ function BigSpark({ points }: { points: PricePoint[] }) {
       </svg>
       <div className="mt-1 flex justify-between font-mono text-[10px] text-muted" dir="ltr">
         <span>
-          Yes {Math.round(min * 100)}%–{Math.round(max * 100)}% (7d)
+          Yes {Math.round(min * 100)}%-{Math.round(max * 100)}% (7d)
         </span>
         <span className="text-gold">now {Math.round(last * 100)}%</span>
       </div>
@@ -100,7 +100,7 @@ export default function MarketView({ id }: { id: string }) {
     return (
       <div className="rounded-2xl border border-line bg-surface/40 p-8 text-center">
         <p className="text-sm text-muted">
-          این بازار در حال حاضر در فهرست فعال آرنا نیست.
+          این بازار در حال حاضر در فهرست فعال ترید پیش‌بینی نیست.
         </p>
         <Link
           href="/trade"
@@ -160,7 +160,7 @@ export default function MarketView({ id }: { id: string }) {
           href="/trade"
           className="rounded-xl bg-gold px-6 py-3 font-display text-sm font-extrabold text-ink transition hover:bg-gold-deep"
         >
-          ثبت پیش‌بینی در آرنا
+          ثبت پیش‌بینی در ترید پیش‌بینی
         </Link>
         <button
           type="button"

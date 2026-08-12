@@ -6,7 +6,7 @@ import { haptic, hasMainButton, showBackButton } from "@/components/tg/telegram"
 import { shareText } from "@/components/tg/share";
 import { useMainButton } from "@/components/tg/useMainButton";
 
-// صفحه‌ی یک بازار و ثبت شرط — روی همان /api/ir/bet سایت.
+// صفحه‌ی یک بازار و ثبت پیش‌بینی — روی همان /api/ir/bet سایت.
 //
 // هیچ داده‌ای دوباره از سرور گرفته نمی‌شود: همان شیئی که فهرست برگردانده
 // کافی است. یک روت تازه برای «جزئیات یک بازار» یعنی یک منبع حقیقت دوم که
@@ -105,7 +105,7 @@ export default function MarketDetail({
     } catch (e) {
       haptic.error();
       const code = e instanceof ApiError ? e.code : "";
-      setMsg(ERR[code] ?? "ثبت شرط انجام نشد.");
+      setMsg(ERR[code] ?? "ثبت پیش‌بینی انجام نشد.");
     } finally {
       setBusy(false);
     }
@@ -116,7 +116,7 @@ export default function MarketDetail({
     text: busy
       ? "در حال ثبت…"
       : side && stakeOk
-        ? `ثبت شرط — $${money(stake)} روی ${side === "yes" ? "بله" : "خیر"}`
+        ? `ثبت پیش‌بینی — $${money(stake)} روی ${side === "yes" ? "بله" : "خیر"}`
         : "مبلغ و طرف را انتخاب کن",
     enabled: valid,
     busy,
@@ -180,7 +180,7 @@ export default function MarketDetail({
       {myBet && (
         <div className="mt-3 rounded-xl border border-gold/30 bg-gold/5 p-3.5">
           <div className="text-[11px] text-gold">
-            شرط فعلی تو:{" "}
+            پیش‌بینی فعلی شما:{" "}
             <b>{myBet.side === "yes" ? "بله" : "خیر"}</b> —{" "}
             <span dir="ltr" className="font-mono">
               ${money(myBet.stake)}
@@ -260,7 +260,7 @@ export default function MarketDetail({
 
       {!canBet ? (
         <p className="mt-4 rounded-xl border border-line bg-surface/30 p-4 text-center text-[11px] text-muted">
-          این بازار برای شرط بسته است.
+          این بازار برای پیش‌بینی کرده است.
         </p>
       ) : (
         <>
@@ -304,7 +304,7 @@ export default function MarketDetail({
 
           <div className="mt-4">
             <div className="flex items-baseline justify-between">
-              <label className="text-[11px] text-muted">مبلغ شرط (تتر)</label>
+              <label className="text-[11px] text-muted">مبلغ پیش‌بینی (تتر)</label>
               <span dir="ltr" className="font-mono text-[10px] text-muted">
                 موجودی ${money(balance)}
               </span>
@@ -357,7 +357,7 @@ export default function MarketDetail({
                 <span dir="ltr" className="font-mono">
                   ×{projected.odds.toFixed(2)}
                 </span>{" "}
-                — با ورود شرط خودت حساب شده. تا لحظه‌ی بسته‌شدن، هر شرط تازه‌ای
+                — با ثبت پیش‌بینی خودت حساب شده. تا لحظه‌ی بسته‌شدن، هر پیش‌بینی تازه‌ای
                 این عدد را جابه‌جا می‌کند.
               </p>
             </div>
@@ -367,7 +367,7 @@ export default function MarketDetail({
             <p className="mt-3 text-[11px] text-loss">
               {stake > balance
                 ? "بیشتر از موجودی‌ات است."
-                : `حداقل شرط $${minStake} است.`}
+                : `حداقل مبلغ پیش‌بینی $${minStake} است.`}
             </p>
           )}
 
@@ -388,7 +388,7 @@ export default function MarketDetail({
               disabled={!valid}
               className="mt-4 w-full rounded-xl bg-gold py-3.5 font-display text-sm font-extrabold text-ink transition disabled:opacity-40"
             >
-              {busy ? "در حال ثبت…" : "ثبت شرط"}
+              {busy ? "در حال ثبت…" : "ثبت پیش‌بینی"}
             </button>
           )}
         </>

@@ -26,9 +26,9 @@ const KIND: Record<string, { label: string; tone: "in" | "out" }> = {
   deposit: { label: "واریز", tone: "in" },
   withdraw_hold: { label: "برداشت", tone: "out" },
   withdraw_refund: { label: "بازگشت برداشت", tone: "in" },
-  ir_bet: { label: "شرط بازار ایران", tone: "out" },
-  ir_payout: { label: "برد بازار ایران", tone: "in" },
-  ir_refund: { label: "بازگشت شرط", tone: "in" },
+  ir_bet: { label: "ثبت پیش‌بینی (بازار ایران)", tone: "out" },
+  ir_payout: { label: "پاداش پیش‌بینی موفق", tone: "in" },
+  ir_refund: { label: "بازگشت مبلغ پیش‌بینی", tone: "in" },
 };
 
 const ERR: Record<string, string> = {

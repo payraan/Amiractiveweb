@@ -161,7 +161,7 @@ export default function UsersTable() {
           <table className="w-full min-w-[900px] text-[11px]">
             <thead className="bg-raised/60 text-muted">
               <tr>
-                {["کاربر","تلگرام","MOON","امتیاز","تتر","استریک","نبض","آرنا","کمبو","چلنج","شرط ایران","حجم ایران","شارژ","آخرین بازی","عضویت"].map((h) => (
+                {["کاربر","تلگرام","MOON","امتیاز","تتر","استریک","نبض","ترید پیش‌بینی","کمبو","چالش","پیش‌بینی ایران","حجم ایران","شارژ","آخرین بازی","عضویت"].map((h) => (
                   <th key={h} className="whitespace-nowrap px-3 py-2.5 text-start font-bold">
                     {h}
                   </th>

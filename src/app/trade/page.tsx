@@ -23,8 +23,8 @@ export default async function TradePage({ searchParams }: Props) {
       <Nav />
       <main className="min-h-screen px-3 pb-8 pt-24 md:px-5">
         <TradeTerminal initialId={market} />
-        {/* ارزیابی چلنج فقط از پیش‌بینی‌های ترید می‌آید، پس کارنامه همین‌جا
-            دیده می‌شود. برای کاربر بدون چلنج چیزی رندر نمی‌کند. */}
+        {/* ارزیابی چالش فقط از پیش‌بینی‌های ترید می‌آید، پس کارنامه همین‌جا
+            دیده می‌شود. برای کاربر بدون چالش چیزی رندر نمی‌کند. */}
         <ChallengeRecap />
       </main>
     </>

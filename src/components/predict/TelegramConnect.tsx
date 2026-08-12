@@ -58,7 +58,7 @@ export default function TelegramConnect() {
         </div>
         <p className="mt-2 text-[11px] leading-6 text-muted">
           {status.bonusClaimed
-            ? "هدیه‌ی عضویت گروه دریافت شده است. نتیجه‌ی پیش‌بینی‌ها و وضعیت چلنج از همین‌جا به شما اطلاع داده می‌شود."
+            ? "هدیه‌ی عضویت گروه دریافت شده است. نتیجه‌ی پیش‌بینی‌ها و وضعیت چالش از همین‌جا به شما اطلاع داده می‌شود."
             : `هنوز هدیه‌ی عضویت نگرفته‌اید — عضو گروه شوید و در ربات دستور /bonus را بزنید تا ${status.bonusCredits} MOON دریافت کنید.`}
         </p>
         {!status.bonusClaimed && (
@@ -81,7 +81,7 @@ export default function TelegramConnect() {
         تلگرام را وصل کنید و {status?.bonusCredits ?? 20} MOON هدیه بگیرید
       </h3>
       <ul className="mt-3 flex flex-col gap-1.5 text-[11px] leading-6 text-muted">
-        <li>— نتیجه‌ی پیش‌بینی‌ها و وضعیت چلنج مستقیم برایتان ارسال می‌شود.</li>
+        <li>— نتیجه‌ی پیش‌بینی‌ها و وضعیت چالش مستقیم برایتان ارسال می‌شود.</li>
         <li>— تأیید شارژ MOON و اطلاع‌رسانی جوایز، بدون نیاز به سر زدن به سایت.</li>
         <li>— با عضویت در گروه، MOON هدیه به حساب شما اضافه می‌شود.</li>
       </ul>

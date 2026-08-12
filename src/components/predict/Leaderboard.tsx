@@ -55,7 +55,7 @@ export default function Leaderboard({
       <div className="mb-3 flex gap-2">
         {(
           [
-            { id: "main" as const, label: "رتبه‌بندی اصلی", hint: "نبض بازار + آرنا" },
+            { id: "main" as const, label: "رتبه‌بندی اصلی", hint: "نبض بازار + ترید پیش‌بینی" },
             { id: "combo" as const, label: "صدر کمبوها", hint: "با اهرم" },
           ]
         ).map((g) => (
@@ -142,13 +142,13 @@ export default function Leaderboard({
         <p className="mt-4 text-[10px] leading-6 text-muted">
           {game === "combo"
             ? "این رتبه‌بندی فقط کمبوهاست و اهرم در آن آزاد است. فقط "
-            : "امتیاز از نبض بازار و آرنا جمع می‌شود و فقط "}
+            : "امتیاز از نبض بازار و ترید پیش‌بینی جمع می‌شود و فقط "}
           <b className="font-mono text-cream" dir="ltr">
             {maxCounted}
           </b>{" "}
           {game === "combo" ? "تیکتِ" : "پیش‌بینیِ"} نخستِ هر بازه محاسبه می‌شود.
           {game === "combo"
-            ? " کمبو از رتبه‌بندی اصلی و ارزیابی چلنج پراپ جداست."
+            ? " کمبو از رتبه‌بندی اصلی و ارزیابی چالش پراپ جداست."
             : " پس همه در هر دوره فرصت برابر دارند و خرید MOON رتبه نمی‌خرد."}
           {totalPlayers > 0 && (
             <>

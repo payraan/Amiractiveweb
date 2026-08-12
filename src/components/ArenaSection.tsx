@@ -14,8 +14,8 @@ const TIERS = [
 const POINTS = [
   "روی مهم‌ترین رویدادهای جهان — سیاست، کریپتو، اقتصاد، ورزش — پیش‌بینی بله/خیر ثبت کنید؛ ورود رایگان است.",
   "امتیازدهی صفر-انتظار: برد روی گزینه‌ی سخت امتیاز بزرگ می‌دهد و انتخاب گزینه‌های واضح چیزی نمی‌سازد — فقط مهارت.",
-  "چلنج پراپ: حساب ۱K تا ۵۰K را با MOON فعال کنید، در ۳۰ روز هدف پوینتی را بدون عبور از حد افت بزنید.",
-  "پاداش هر چلنج، حساب پراپی به اندازه‌ی همان تیر است — از ۱,۰۰۰ تا ۵۰,۰۰۰ دلار. حساب‌های ۱۰۰ تا ۱,۰۰۰ دلاری هم جوایز اکسترای کمپین‌های دوره‌ای‌اند.",
+  "چالش پراپ: حساب ۱K تا ۵۰K را با MOON فعال کنید، در ۳۰ روز هدف پوینتی را بدون عبور از حد افت بزنید.",
+  "پاداش هر چالش، حساب پراپی به اندازه‌ی همان تیر است — از ۱,۰۰۰ تا ۵۰,۰۰۰ دلار. حساب‌های ۱۰۰ تا ۱,۰۰۰ دلاری هم جوایز اکسترای کمپین‌های دوره‌ای‌اند.",
 ];
 
 export default function ArenaSection() {
@@ -30,7 +30,7 @@ export default function ArenaSection() {
             02 · PREDICTION ARENA
           </span>
           <h2 className="mt-4 font-display text-3xl font-black md:text-4xl">
-            آرنای <span className="text-gold">پیش‌بینی</span>
+            ترید <span className="text-gold">پیش‌بینی</span>
           </h2>
           <p className="mt-4 max-w-xl leading-8 text-muted">
             بازارهای بله/خیر روی رویدادهای واقعی جهان — با دیتای زنده‌ی
@@ -53,13 +53,13 @@ export default function ArenaSection() {
               href="/trade"
               className="rounded-xl bg-gold px-7 py-3.5 font-display font-extrabold text-ink transition hover:bg-gold-deep"
             >
-              ورود به آرنای پیش‌بینی
+              ورود به ترید پیش‌بینی
             </Link>
             <Link
               href="/arena#challenge"
               className="rounded-xl border border-line px-7 py-3.5 text-cream transition hover:border-gold hover:text-gold"
             >
-              چلنج پراپ
+              چالش پراپ
             </Link>
           </div>
 
@@ -103,7 +103,7 @@ export default function ArenaSection() {
           </div>
 
           <div className="mt-5 border-t border-line pt-4">
-            <div className="text-[10px] text-muted">چلنج پراپ — ورودی با MOON:</div>
+            <div className="text-[10px] text-muted">چالش پراپ — ورودی با MOON:</div>
             <div className="mt-2 flex flex-wrap gap-2">
               {TIERS.map((t) => (
                 <span
@@ -116,7 +116,7 @@ export default function ArenaSection() {
               ))}
             </div>
             <div className="mt-3 text-[10px] leading-5 text-muted">
-              🏆 پاداش هر چلنج: حساب پراپی به همان اندازه — تا ۵۰,۰۰۰ دلار
+              🏆 پاداش هر چالش: حساب پراپی به همان اندازه — تا ۵۰,۰۰۰ دلار
             </div>
           </div>
         </div>

@@ -1,9 +1,9 @@
 "use client";
 
 /**
- * پنل اختصاصی چلنج فعال.
+ * پنل اختصاصی چالش فعال.
  *
- * تفاوتش با کارت‌های انتخاب چلنج: اینجا وضعیت زنده‌ی خودِ کاربر است — کارنامه‌ی
+ * تفاوتش با کارت‌های انتخاب چالش: اینجا وضعیت زنده‌ی خودِ کاربر است — کارنامه‌ی
  * برد و باخت، افت از سقف، و یک جدول که برای هر شرط قبولی می‌گوید «رد شدی یا
  * نه و چقدر مانده». هدف این است که کاربر بدون خواندن قوانین بفهمد کجا ایستاده.
  */
@@ -43,7 +43,7 @@ export type ChallengeStateView = {
 const FAIL_LABEL: Record<string, string> = {
   drawdown: "افت از سقف بیش از حد مجاز",
   daily_loss: "ضرر یک روز بیش از سقف روزانه",
-  expired: "مهلت چلنج تمام شد",
+  expired: "مهلت چالش تمام شد",
 };
 
 const faDay = (d: string) =>
@@ -75,14 +75,14 @@ export default function ChallengeDashboard({ s }: { s: ChallengeStateView }) {
   const rules: Rule[] = unknown ? [] : [
     {
       label: "هدف امتیاز",
-      hint: `باید به ${s.target} امتیاز برسی`,
+      hint: `باید به ${s.target} امتیاز برسید`,
       value: `${s.points} از ${s.target}`,
       ok: s.points >= s.target,
       progress: s.target > 0 ? Math.max(0, s.points) / s.target : 0,
     },
     {
       label: "افت از سقف",
-      hint: `از بالاترین امتیازت بیشتر از ${s.maxDrawdown} نیفت`,
+      hint: `از بالاترین امتیازتان بیش از ${s.maxDrawdown} افت نکنید`,
       value: `${s.drawdown} از ${s.maxDrawdown}`,
       ok: s.drawdown <= s.maxDrawdown,
       progress: s.maxDrawdown > 0 ? s.drawdown / s.maxDrawdown : 0,
@@ -90,7 +90,7 @@ export default function ChallengeDashboard({ s }: { s: ChallengeStateView }) {
     },
     {
       label: "سقف ضرر روزانه",
-      hint: `هیچ روزی بیشتر از ${s.dailyLoss} امتیاز از دست نده`,
+      hint: `در هیچ روزی بیش از ${s.dailyLoss} امتیاز از دست ندهید`,
       value: `${s.worstDay} از −${s.dailyLoss}`,
       ok: s.worstDay >= -s.dailyLoss,
       progress: s.dailyLoss > 0 ? Math.abs(s.worstDay) / s.dailyLoss : 0,
@@ -98,21 +98,21 @@ export default function ChallengeDashboard({ s }: { s: ChallengeStateView }) {
     },
     {
       label: "حداقل پیش‌بینی",
-      hint: `دست‌کم ${s.minPreds} پیش‌بینی تسویه‌شده در بازه‌ی احتمال مجاز`,
+      hint: `دست‌کم ${s.minPreds} پیش‌بینی تسویه‌شده در بازه‌ی احتمال مجاز ثبت کنید`,
       value: `${s.settledCount} از ${s.minPreds}`,
       ok: s.settledCount >= s.minPreds,
       progress: s.minPreds > 0 ? s.settledCount / s.minPreds : 0,
     },
     {
       label: "حداقل روز فعال",
-      hint: `دست‌کم ${s.minDays} روز مختلف پیش‌بینی تسویه‌شده داشته باشی`,
+      hint: `در دست‌کم ${s.minDays} روز مختلف پیش‌بینی تسویه‌شده داشته باشید`,
       value: `${s.activeDays} از ${s.minDays}`,
       ok: s.activeDays >= s.minDays,
       progress: s.minDays > 0 ? s.activeDays / s.minDays : 0,
     },
     {
       label: "قانون ثبات",
-      hint: `سهم بهترین روزت از کل سود نباید از ${s.consistencyPct}٪ بیشتر باشد`,
+      hint: `سهم بهترین روز شما از کل سود نباید از ${s.consistencyPct}٪ بیشتر باشد`,
       value: `${s.bestDayPct}٪ از ${s.consistencyPct}٪`,
       ok: s.consistencyOk,
       progress: s.consistencyPct > 0 ? s.bestDayPct / s.consistencyPct : 0,
@@ -146,10 +146,10 @@ export default function ChallengeDashboard({ s }: { s: ChallengeStateView }) {
             </div>
             <h2 className="mt-1 font-display text-xl font-black">
               {passed
-                ? "🎉 چلنج پاس شد"
+                ? "🎉 چالش با موفقیت تمام شد"
                 : failed
-                  ? "چلنج ناموفق"
-                  : "چلنج فعال شما"}
+                  ? "چالش ناموفق"
+                  : "چالش فعال شما"}
             </h2>
             {failed && s.failReason && (
               <p className="mt-1 text-[11px] text-loss">
@@ -164,10 +164,10 @@ export default function ChallengeDashboard({ s }: { s: ChallengeStateView }) {
               value={String(s.points)}
               tone={s.points >= 0 ? "gain" : "loss"}
             />
-            <Stat label="برد" value={String(s.wins)} tone="gain" />
-            <Stat label="باخت" value={String(s.losses)} tone="loss" />
+            <Stat label="پیش‌بینی صحیح" value={String(s.wins)} tone="gain" />
+            <Stat label="پیش‌بینی خطا" value={String(s.losses)} tone="loss" />
             <Stat
-              label="نرخ برد"
+              label="درصد موفقیت"
               value={s.winRate === null ? "—" : `${s.winRate}٪`}
             />
             {!passed && !failed && (
@@ -178,29 +178,29 @@ export default function ChallengeDashboard({ s }: { s: ChallengeStateView }) {
           {s.tierKnown === false && (
             <div className="mt-4 rounded-xl border border-loss/40 bg-loss/5 p-4">
               <p className="text-[12px] font-bold text-loss">
-                این چلنج با تیر قدیمی «{s.tierId}» ثبت شده
+                این چالش با تیر قدیمی «{s.tierId}» ثبت شده
               </p>
               <p className="mt-1 text-[11px] leading-6 text-muted">
                 آن تیر دیگر در فهرست نیست، پس آستانه‌های هدف و افت سرمایه نامعلوم‌اند
                 و وضعیت خودکار به‌روز نمی‌شود. کارنامه‌ی پیش‌بینی‌ها درست است. برای
-                تعیین تکلیف با پشتیبانی تماس بگیر.
+                تعیین تکلیف با پشتیبانی تماس بگیرید.
               </p>
             </div>
           )}
 
-          {/* بدون این، چلنجِ تازه‌خریداری‌شده فقط یک مشت صفر نشان می‌داد و
+          {/* بدون این، چالشِ تازه‌خریداری‌شده فقط یک مشت صفر نشان می‌داد و
               کاربر فکر می‌کرد پنل کار نمی‌کند — در حالی که هنوز هیچ
               پیش‌بینیِ واجد شرایطی تسویه نشده بود. */}
           {s.wins + s.losses === 0 && !failed && (
             <div className="mt-4 rounded-xl border border-gold/30 bg-gold/5 p-4">
               <p className="text-[12px] font-bold text-gold">
-                هنوز پیش‌بینی شمرده‌شده‌ای نداری
+                هنوز پیش‌بینی شمرده‌شده‌ای ندارید
               </p>
               <ul className="mt-2 space-y-1 text-[11px] leading-6 text-muted">
                 <li>
                   فقط پیش‌بینی‌های <b className="text-cream">ترید</b> در ارزیابی
                   می‌آیند، آن هم پیش‌بینی‌هایی که{" "}
-                  <b className="text-cream">بعد از شروع چلنج</b> ثبت شده باشند.
+                  <b className="text-cream">بعد از شروع چالش</b> ثبت شده باشند.
                 </li>
                 <li>
                   پیش‌بینی باید <b className="text-cream">تسویه شده</b> باشد؛ تا
@@ -312,7 +312,7 @@ export default function ChallengeDashboard({ s }: { s: ChallengeStateView }) {
         </div>
         <p className="mt-3 text-[10px] leading-6 text-muted">
           شرط‌های «افت از سقف»، «سقف ضرر روزانه» و «ثبات» سقف‌اند — یعنی نباید از
-          حد بگذری. بقیه هدف‌اند و باید به آن‌ها برسی.
+          حد بگذرید. بقیه هدف‌اند و باید به آن‌ها برسید.
         </p>
       </div>
       )}

@@ -129,7 +129,7 @@ export function IconPulse({ className = base }: P) {
   );
 }
 
-/** چلنج پراپ — سپر/نشان، یعنی صلاحیتِ اثبات‌شده. */
+/** چالش پراپ — سپر/نشان، یعنی صلاحیتِ اثبات‌شده. */
 export function IconChallenge({ className = base }: P) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>

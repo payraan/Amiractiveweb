@@ -120,7 +120,7 @@ export default function PulseDetail({
       ? "در حال ثبت…"
       : valid
         ? `ثبت پیش‌بینی${cost > 0 ? ` — ${cost} MOON` : " — رایگان"}`
-        : "قیمت حدسی را وارد کن",
+        : "قیمت پیش‌بینی را وارد کن",
     enabled: valid,
     busy,
     onClick: submit,
@@ -210,7 +210,7 @@ export default function PulseDetail({
 
       <div className="mt-4 rounded-2xl border border-line bg-surface/40 p-4">
         <label className="block text-[11px] text-muted">
-          قیمت حدسی در پایان راند (دلار)
+          قیمت پیش‌بینی در پایان راند (دلار)
         </label>
         <input
           value={guess}
@@ -256,7 +256,7 @@ export default function PulseDetail({
           ))}
         </div>
         <p className="mt-2 text-[10px] leading-6 text-muted">
-          آستانه‌ها با نوسان واقعی همین دارایی مقیاس شده‌اند. حدس تصادفی
+          آستانه‌ها با نوسان واقعی همین دارایی مقیاس شده‌اند. پیش‌بینی‌های تصادفی و بدون تحلیل
           به‌طور میانگین امتیاز منفی می‌گیرد.
         </p>
       </div>

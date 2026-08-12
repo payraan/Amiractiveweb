@@ -62,11 +62,11 @@ const KIND_LABEL: Record<string, string> = {
   deposit: "واریز",
   withdraw_hold: "برداشت",
   withdraw_refund: "برگشت برداشت",
-  admin_adjust: "تنظیم توسط پشتیبانی",
-  ir_bet: "شرط بازار ایران",
-  ir_payout: "برد بازار ایران",
+  admin_adjust: "واریز / اصلاح سیستمی",
+  ir_bet: "ثبت پیش‌بینی (بازار ایران)",
+  ir_payout: "پاداش پیش‌بینی موفق",
   ir_refund: "برگشت بازار باطل",
-  ir_propose_fee: "هزینه‌ی ساخت بازار",
+  ir_propose_fee: "کارمزد ایجاد بازار",
   ir_propose_refund: "برگشت هزینه‌ی ساخت",
   credit_purchase: "خرید MOON",
 };
@@ -271,7 +271,7 @@ export default function ProfilePanel() {
         <p className="mb-4 text-[11px] leading-6 text-muted">
           اقتصاد تتری و اقتصاد امتیازی عمداً از هم جدا نگه داشته می‌شوند: بازار
           ایران با <b className="text-cream">پول واقعی</b> کار می‌کند، ولی نبض
-          بازار و آرنا فقط امتیاز مهارت‌اند و به پول تبدیل نمی‌شوند.
+          بازار و ترید پیش‌بینی فقط امتیاز مهارت‌اند و به پول تبدیل نمی‌شوند.
         </p>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -290,20 +290,20 @@ export default function ProfilePanel() {
               {usd(iran.net).replace("$-", "-$")}
             </div>
             <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-[11px]">
-              <Row k="شرط‌های تسویه‌شده" v={String(iran.settledBets)} />
+              <Row k="پیش‌بینی‌های تسویه‌شده" v={String(iran.settledBets)} />
               <Row
-                k="نرخ برد"
+                k="درصد موفقیت"
                 v={iran.winRate === null ? "—" : `${iran.winRate}٪`}
                 tone={iran.winRate !== null && iran.winRate >= 50 ? "gain" : undefined}
               />
-              <Row k="برد" v={String(iran.won)} tone="gain" />
-              <Row k="باخت" v={String(iran.lost)} tone="loss" />
-              <Row k="مجموع شرط" v={usd(iran.staked)} />
+              <Row k="پیش‌بینی صحیح" v={String(iran.won)} tone="gain" />
+              <Row k="پیش‌بینی خطا" v={String(iran.lost)} tone="loss" />
+              <Row k="حجم کل پیش‌بینی‌ها" v={usd(iran.staked)} />
               <Row k="مجموع دریافتی" v={usd(iran.returned)} />
             </div>
             {iran.refunded > 0 && (
               <p className="mt-3 text-[10px] text-muted">
-                {iran.refunded} شرط در بازارهای باطل‌شده برگشت خورده است.
+                {iran.refunded} پیش‌بینی در بازارهای باطل‌شده برگشت خورده است.
               </p>
             )}
           </div>
@@ -319,8 +319,8 @@ export default function ProfilePanel() {
             <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-[11px]">
               <Row k="نبض بازار — ثبت‌شده" v={String(skill.pulse.total)} />
               <Row k="نبض بازار — امتیاز" v={String(skill.pulse.points)} />
-              <Row k="آرنا — ثبت‌شده" v={String(skill.arena.total)} />
-              <Row k="آرنا — امتیاز" v={String(skill.arena.points)} />
+              <Row k="ترید پیش‌بینی — ثبت‌شده" v={String(skill.arena.total)} />
+              <Row k="ترید پیش‌بینی — امتیاز" v={String(skill.arena.points)} />
               <Row
                 k="دقت کلی"
                 v={skill.accuracy === null ? "—" : `${skill.accuracy}٪`}
