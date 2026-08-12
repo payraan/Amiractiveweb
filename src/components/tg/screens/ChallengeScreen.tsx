@@ -159,12 +159,15 @@ function Cond({
   ok,
   progress,
   isLimit,
+  pending,
 }: {
   label: string;
   value: string;
   ok: boolean;
   progress: number;
   isLimit?: boolean;
+  /** هنوز قابل ارزیابی نیست — نه برقرار، نه نقض‌شده */
+  pending?: boolean;
 }) {
   return (
     <div className="py-2">
@@ -176,17 +179,29 @@ function Cond({
           </span>
           <span
             className={`rounded-full px-1.5 py-0.5 text-[9px] ${
-              ok ? "bg-gain/15 text-gain" : "bg-line/40 text-muted"
+              ok
+                ? "bg-gain/15 text-gain"
+                : !pending && isLimit
+                  ? "bg-loss/15 text-loss"
+                  : "bg-line/40 text-muted"
             }`}
           >
-            {ok ? "✓" : isLimit ? "!" : "…"}
+            {ok ? "✓" : pending ? "…" : isLimit ? "!" : "…"}
           </span>
         </span>
       </div>
       <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-line/40">
         <div
           className={`h-full rounded-full transition-all duration-500 ${
-            isLimit ? (ok ? "bg-gold/60" : "bg-loss") : ok ? "bg-gain" : "bg-gold/60"
+            pending
+              ? "bg-line"
+              : isLimit
+                ? ok
+                  ? "bg-gold/60"
+                  : "bg-loss"
+                : ok
+                  ? "bg-gain"
+                  : "bg-gold/60"
           }`}
           style={{ width: `${Math.min(100, Math.max(0, progress * 100))}%` }}
         />
@@ -318,6 +333,8 @@ export default function ChallengeScreen() {
             ok: s.consistencyOk,
             progress: s.consistencyPct > 0 ? s.bestDayPct / s.consistencyPct : 0,
             isLimit: true,
+            // بدون سود، «سهم بهترین روز از کل سود» تعریف ندارد.
+            pending: s.points <= 0,
           },
         ];
     const okCount = conds.filter((c) => c.ok).length;

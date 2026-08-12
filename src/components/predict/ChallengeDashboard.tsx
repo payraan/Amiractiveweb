@@ -62,6 +62,8 @@ type Rule = {
   progress: number;
   /** شرط «نباید از حد بگذرد» است، نه «باید به حد برسد» */
   isLimit?: boolean;
+  /** هنوز قابل ارزیابی نیست — نه برقرار، نه نقض‌شده */
+  pending?: boolean;
 };
 
 export default function ChallengeDashboard({ s }: { s: ChallengeStateView }) {
@@ -115,6 +117,9 @@ export default function ChallengeDashboard({ s }: { s: ChallengeStateView }) {
       ok: s.consistencyOk,
       progress: s.consistencyPct > 0 ? s.bestDayPct / s.consistencyPct : 0,
       isLimit: true,
+      // تا وقتی سودی در کار نیست، «سهم بهترین روز از کل سود» تعریف ندارد.
+      // نشان‌دادن «در حد مجاز نیست» اینجا یعنی اتهام تخلفی که رخ نداده.
+      pending: s.points <= 0,
     },
   ];
 
@@ -267,13 +272,15 @@ export default function ChallengeDashboard({ s }: { s: ChallengeStateView }) {
                     <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-line/40">
                       <div
                         className={`h-full rounded-full transition-all duration-500 ${
-                          r.isLimit
-                            ? r.ok
-                              ? "bg-gold/70"
-                              : "bg-loss"
-                            : r.ok
-                              ? "bg-gain"
-                              : "bg-gold/70"
+                          r.pending
+                            ? "bg-line"
+                            : r.isLimit
+                              ? r.ok
+                                ? "bg-gold/70"
+                                : "bg-loss"
+                              : r.ok
+                                ? "bg-gain"
+                                : "bg-gold/70"
                         }`}
                         style={{
                           width: `${Math.min(100, Math.max(0, r.progress * 100))}%`,
@@ -289,7 +296,13 @@ export default function ChallengeDashboard({ s }: { s: ChallengeStateView }) {
                           : "border-line text-muted"
                       }`}
                     >
-                      {r.ok ? "برقرار" : r.isLimit ? "در حد مجاز نیست" : "هنوز نه"}
+                      {r.ok
+                        ? "برقرار"
+                        : r.pending
+                          ? "هنوز قابل سنجش نیست"
+                          : r.isLimit
+                            ? "در حد مجاز نیست"
+                            : "هنوز نه"}
                     </span>
                   </td>
                 </tr>
