@@ -20,7 +20,11 @@ export type Candle = {
 const PARAMS: Record<string, { range: string; interval: string }> = {
   "1h": { range: "5d", interval: "15m" },
   "4h": { range: "1mo", interval: "1h" },
-  "12h": { range: "3mo", interval: "1h" },
+  // ۱۲ ساعته باید کندل درشت‌تری از ۴ ساعته داشته باشد. قبلا هر دو interval=1h
+  // بودند و فقط range فرق داشت، پس شکل کندل‌ها یکی بود و کاربر می‌دید که
+  // «۱۲ ساعته همان ۴ ساعته را نشان می‌دهد». یاهو 90m را فقط تا ۶۰ روز
+  // می‌دهد، پس range هم روی 60d بسته می‌شود.
+  "12h": { range: "60d", interval: "90m" },
   "24h": { range: "6mo", interval: "1d" },
 };
 

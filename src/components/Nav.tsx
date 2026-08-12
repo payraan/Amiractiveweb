@@ -8,8 +8,6 @@ import { usePathname } from "next/navigation";
 import FloatingSupport from "@/components/FloatingSupport";
 import Logo from "@/components/Logo";
 
-const TELEGRAM = "https://t.me/CashflowFactorys";
-
 type Leaf = { href: string; label: string; desc?: string };
 type Group = { label: string; children: Leaf[] };
 type NavItem = Leaf | Group;
@@ -342,19 +340,41 @@ export default function Nav() {
               )}
             </div>
 
-            <a
-              href={TELEGRAM}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => setOpen(false)}
-              className={`mt-8 flex items-center justify-center gap-2 rounded-xl bg-gold py-4 font-display font-extrabold text-ink transition-all duration-500 ${
-                open ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
-              }`}
-              style={{ transitionDelay: open ? "420ms" : "0ms" }}
-            >
-              <TgIcon />
-              ورود به کانال تلگرام
-            </a>
+            {/* همان دکمه‌ی وضعیت تلگرامِ دسکتاپ، نه لینک کانال. کاربر موبایل
+                هم باید از همین‌جا بفهمد حسابش وصل هست یا نه. */}
+            {player && tgLinked ? (
+              <span
+                className={`mt-8 flex items-center justify-center gap-2 rounded-xl border border-gain/50 bg-gain/10 py-4 font-display font-extrabold text-gain transition-all duration-500 ${
+                  open ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
+                }`}
+                style={{ transitionDelay: open ? "420ms" : "0ms" }}
+              >
+                <TgIcon />
+                تلگرام متصل
+              </span>
+            ) : player && tgLinked === null ? (
+              <span
+                className={`mt-8 flex items-center justify-center gap-2 rounded-xl border border-line py-4 font-display font-extrabold text-muted transition-all duration-500 ${
+                  open ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
+                }`}
+                style={{ transitionDelay: open ? "420ms" : "0ms" }}
+              >
+                <TgIcon />
+                تلگرام
+              </span>
+            ) : (
+              <Link
+                href={player ? "/referral#telegram" : "/login"}
+                onClick={() => setOpen(false)}
+                className={`mt-8 flex items-center justify-center gap-2 rounded-xl border border-loss/60 bg-loss/15 py-4 font-display font-extrabold text-loss transition-all duration-500 ${
+                  open ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
+                }`}
+                style={{ transitionDelay: open ? "420ms" : "0ms" }}
+              >
+                <TgIcon />
+                اتصال حساب تلگرام
+              </Link>
+            )}
           </div>
         </div>
       </header>
