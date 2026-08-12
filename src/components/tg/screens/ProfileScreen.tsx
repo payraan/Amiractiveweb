@@ -213,7 +213,7 @@ export default function ProfileScreen({ siteUrl }: { siteUrl: string }) {
       </div>
 
       <div className="mt-2.5 grid grid-cols-3 gap-2.5">
-        <Metric label="استریک" value={`${me.streak} روز`} />
+        <Metric label="روزهای متوالی (استریک)" value={`${me.streak} روز`} />
         <Metric
           label="رتبه"
           value={`${p.rank.above + 1} از ${p.rank.totalPlayers}`}

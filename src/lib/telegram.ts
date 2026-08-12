@@ -498,16 +498,19 @@ export function marketPoll(
   const freshness =
     mode === "live"
       ? "🔄 درصدها خودکار به‌روز می‌شوند"
-      : "📌 درصدها در لحظه‌ی اشتراک‌گذاری؛ برای عدد زنده دکمه را بزن";
+      : "💡 درصدهای فوق مربوط به لحظه اشتراک‌گذاری هستند. برای مشاهده آمار لحظه‌ای و ثبت پیش‌بینی، روی دکمه‌های زیر کلیک کنید.";
 
   const text =
-    `<b>${escapeHtml(m.question)}</b>\n\n` +
+    `📊 <b>بازار پیش‌بینی جدید در نارمون:</b>\n\n` +
+    `🔹 ${escapeHtml(m.question)}\n\n` +
     `<code>${bar(m.yesPct)}</code>\n` +
-    `بله ${m.yesPct}٪  ·  خیر ${noPct}٪\n\n` +
-    `👥 ${m.bettors} شرکت‌کننده   💵 ${m.volume.toFixed(0)} تتر\n` +
-    `⏳ تا ${faDate(m.closesAt)}\n` +
+    `🟩 بله ${m.yesPct}٪  ·  🟥 خیر ${noPct}٪\n\n` +
+    `👥 تعداد پیش‌بینی‌ها: ${m.bettors} نفر\n` +
+    `💎 مجموع استخر: ${m.volume.toFixed(0)} USDT\n` +
+    `⏳ مهلت باقی‌مانده: تا ${faDate(m.closesAt)}\n` +
     `${freshness}\n\n` +
-    `<i>پیش‌بینی با تتر واقعی؛ سود تضمینی نداریم و امتیاز خریدنی نیست.</i>`;
+    `⚖ نظر شما با اکثریت موافق است یا مخالف؟ پیش‌بینی دقیق خود را ثبت کنید ` +
+    `و از استخر تتری (USDT) پاداش بگیرید.`;
 
   if (mode === "live") {
     // callback_data سقف ۶۴ بایت دارد، پس کوتاه نگه داشته می‌شود.
@@ -533,8 +536,8 @@ export function marketPoll(
           { text: `✅ بله (${m.yesPct}٪)`, url: `${deep}_yes` },
           { text: `❌ خیر (${noPct}٪)`, url: `${deep}_no` },
         ],
-        [{ text: "📊 دیدن بازار و شرط‌بستن", url: deep }],
-        [{ text: "🆕 حساب ندارم، شروع کن", url: `${app}?startapp=join_${m.id}` }],
+        [{ text: "📊 مشاهده بازار و ثبت پیش‌بینی", url: deep }],
+        [{ text: "🆕 ساخت حساب کاربری (ثبت‌نام)", url: `${app}?startapp=join_${m.id}` }],
       ]
     : [];
 

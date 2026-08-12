@@ -6,8 +6,8 @@ import TradeCycle from "@/components/TradeCycle";
 
 const FEATURES = [
   {
-    title: "اسکلپینگ روی طلا و یورودلار",
-    desc: "معاملات کوتاه با هدف مشخص روی تایم‌فریم پایین.",
+    title: "تمرکز بر نمادهای کلیدی",
+    desc: "نوسان‌گیری دقیق روی طلا (XAUUSD) و یورو/دلار (EURUSD) با اهداف قیمتی مشخص در تایم‌فریم‌های پایین.",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-5 w-5">
         <path d="M8 5v3M8 16v3M16 3v4M16 15v6" strokeLinecap="round" />
@@ -17,8 +17,8 @@ const FEATURES = [
     ),
   },
   {
-    title: "پایبند به استراتژی",
-    desc: "بدون ترس و طمع؛ فقط قواعد ازپیش‌تعریف‌شده را اجرا می‌کند.",
+    title: "اجرای بدون احساسات",
+    desc: "حذف کامل ترس و طمع انسانی؛ ربات تنها بر اساس الگوریتم‌ها و قواعد تعریف‌شده وارد معامله می‌شود.",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-5 w-5">
         <circle cx="12" cy="12" r="9" />
@@ -28,8 +28,8 @@ const FEATURES = [
     ),
   },
   {
-    title: "خستگی‌ناپذیر",
-    desc: "تمام ساعات بازار را می‌پاید؛ فرصتی را از سر خستگی از دست نمی‌دهد.",
+    title: "پایش ۲۴ ساعته",
+    desc: "اسکن بی‌وقفه بازار در تمام سشن‌های معاملاتی؛ هیچ فرصت طلایی از دست نمی‌رود.",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-5 w-5">
         <path d="M13 2L4.5 13H11l-1 9L19 11h-6.5L13 2z" strokeLinejoin="round" />
@@ -37,8 +37,8 @@ const FEATURES = [
     ),
   },
   {
-    title: "ریسک و ساعت معامله در اختیار شما",
-    desc: "حجم، حد ضرر، حد سود و بازه‌ی معامله قابل تنظیم است.",
+    title: "کنترل کامل ریسک",
+    desc: "شما تعیین‌کننده هستید؛ حجم معاملات (Lot Size)، حد ضرر (SL)، حد سود (TP) و ساعات فعالیت ربات کاملاً قابل شخصی‌سازی است.",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-5 w-5">
         <path d="M4 7h10M18 7h2M4 12h4M12 12h8M4 17h12M20 17h0" strokeLinecap="round" />
@@ -49,8 +49,8 @@ const FEATURES = [
     ),
   },
   {
-    title: "نصب آسان، بدون دانش تخصصی",
-    desc: "اتصال به حساب متاتریدر ۵ و تنظیمات اولیه. تمام.",
+    title: "راه‌اندازی سریع و آسان",
+    desc: "نصب ساده روی متاتریدر ۵ به همراه فایل تنظیمات پیش‌فرض (Preset)، بدون نیاز به دانش برنامه‌نویسی.",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-5 w-5">
         <path d="M12 3v10m0 0l-3.5-3.5M12 13l3.5-3.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -59,8 +59,8 @@ const FEATURES = [
     ),
   },
   {
-    title: "شفافیت کامل",
-    desc: "عملکرد ربات به‌صورت زنده و مستقل در Myfxbook ثبت می‌شود.",
+    title: "شفافیت اثبات‌شده",
+    desc: "عملکرد ربات پنهان نیست؛ تمامی معاملات به‌صورت زنده و مستقل در Myfxbook ثبت می‌شوند.",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-5 w-5">
         <path d="M3 12h4l3-7 4 14 3-7h4" strokeLinecap="round" strokeLinejoin="round" />

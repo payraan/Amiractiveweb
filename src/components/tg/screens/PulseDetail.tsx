@@ -39,10 +39,10 @@ const ERR: Record<string, string> = {
   not_authed: "ابتدا وارد شوید.",
   bad_asset: "این دارایی معتبر نیست.",
   bad_timeframe: "تایم‌فریم معتبر نیست.",
-  bad_guess: "عدد حدس معتبر نیست.",
+  bad_guess: "عدد واردشده معتبر نیست.",
   // کد واقعی سرور already_predicted است، نه already — با تست زنده تأیید شد.
-  already_predicted: "برای این دارایی و تایم‌فریم قبلا پیش‌بینی ثبت کرده‌ای.",
-  insufficient_credits: "MOON کافی نداری. از کیف پول MOON بخرید.",
+  already_predicted: "برای این دارایی و تایم‌فریم قبلا پیش‌بینی ثبت کرده‌اید.",
+  insufficient_credits: "MOON کافی ندارید. از کیف پول MOON بخرید.",
   market_closed: "بازار این دارایی الان بسته است.",
   no_price: "قیمت این دارایی در دسترس نیست.",
 };
@@ -210,7 +210,7 @@ export default function PulseDetail({
 
       <div className="mt-4 rounded-2xl border border-line bg-surface/40 p-4">
         <label className="block text-[11px] text-muted">
-          قیمت پیش‌بینی در پایان راند (دلار)
+          قیمت پیش‌بینی شده در زمان تسویه (دلار)
         </label>
         <input
           value={guess}
@@ -256,8 +256,8 @@ export default function PulseDetail({
           ))}
         </div>
         <p className="mt-2 text-[10px] leading-6 text-muted">
-          آستانه‌ها با نوسان واقعی همین دارایی مقیاس شده‌اند. پیش‌بینی‌های تصادفی و بدون تحلیل
-          به‌طور میانگین امتیاز منفی می‌گیرد.
+          آستانه‌ها با نوسان واقعی همین دارایی مقیاس شده‌اند. پیش‌بینی‌های
+          تصادفی و بدون تحلیل، به‌طور میانگین امتیاز منفی در پی خواهند داشت.
         </p>
       </div>
 
