@@ -65,7 +65,7 @@ export default function BuyMoonScreen({
     <div>
       <h2 className="mb-1 font-display text-lg font-black text-cream">خرید MOON</h2>
       <p className="mb-4 text-[11px] text-muted">
-        از موجودی تتر — موجودی فعلی{" "}
+        از موجودی تتر؛ موجودی فعلی{" "}
         <span dir="ltr" className="font-mono text-gain">
           ${money(balance)}
         </span>
@@ -73,7 +73,7 @@ export default function BuyMoonScreen({
 
       <div className="rounded-xl border border-line bg-surface/30 p-3.5">
         <p className="text-[11px] leading-6 text-muted">
-          MOON فقط قابلیت باز می‌کند — پیش‌بینی بیشتر و ورود به چالش. هرگز امتیاز
+          MOON فقط قابلیت باز می‌کند: پیش‌بینی بیشتر و ورود به چالش. هرگز امتیاز
           یا رتبه نمی‌خرد.
         </p>
       </div>

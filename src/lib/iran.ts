@@ -403,7 +403,7 @@ export async function settleIrMarket(
       }
       await recordRevenue(client, "ir_commission_void", kept, {
         marketId,
-        note: `استخر ${(yes + no).toFixed(2)} — هیچ‌کس روی گزینه‌ی برنده شرط نبست`,
+        note: `استخر ${(yes + no).toFixed(2)}؛ هیچ‌کس روی گزینه‌ی برنده پیش‌بینی نکرد`,
       });
       await client.query(
         "UPDATE ir_markets SET status='void', void_reason='no_winners' WHERE id=$1",
@@ -432,7 +432,7 @@ export async function settleIrMarket(
     // پرداخت شد حساب می‌شود، نه فرمول جدا، تا هرگز از پرداخت واقعی جدا نیفتد.
     await recordRevenue(client, "ir_commission", yes + no - paid, {
       marketId,
-      note: `استخر ${(yes + no).toFixed(2)} — پرداختی ${paid.toFixed(2)}`,
+      note: `استخر ${(yes + no).toFixed(2)}؛ پرداختی ${paid.toFixed(2)}`,
     });
     await client.query("UPDATE ir_markets SET status='settled' WHERE id=$1", [
       marketId,

@@ -27,7 +27,7 @@ export default function ReferralPage() {
         </h1>
         <p className="mt-4 max-w-2xl leading-8 text-muted">
           لینک اختصاصی‌تان را بفرستید. دوست‌تان MOON هدیه می‌گیرد و شما از هر
-          شارژ او پورسانت MOON دریافت می‌کنید — بدون سقف.
+          شارژ او پورسانت MOON دریافت می‌کنید، بدون سقف.
         </p>
 
         <div className="mt-10">

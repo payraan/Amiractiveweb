@@ -50,7 +50,7 @@ const FEATURES = [
   },
   {
     title: "نصب آسان، بدون دانش تخصصی",
-    desc: "اتصال به حساب متاتریدر ۵ و تنظیمات اولیه — تمام.",
+    desc: "اتصال به حساب متاتریدر ۵ و تنظیمات اولیه. تمام.",
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-5 w-5">
         <path d="M12 3v10m0 0l-3.5-3.5M12 13l3.5-3.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -139,7 +139,7 @@ export default function Bot() {
           style={{ transitionDelay: "160ms" }}
         >
           یک اکسپرت اسکلپینگ برای متاتریدر ۵ که بر اساس قواعد مشخص و بدون
-          دخالت احساسات معامله می‌کند — همان رباتی که عملکردش را در بخش نتایج
+          دخالت احساسات معامله می‌کند؛ همان رباتی که عملکردش را در بخش نتایج
           زنده دیدید.
         </p>
 

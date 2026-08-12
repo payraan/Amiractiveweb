@@ -94,7 +94,7 @@ export default function TradeScreen() {
 
   return (
     <div>
-      <ScreenTitle title="ترید" subtitle="بازارهای رویداد جهانی — امتیازی" />
+      <ScreenTitle title="ترید" subtitle="بازارهای رویداد جهانی، امتیازی" />
 
       {me.data && (
         <div className="mb-4 flex items-center justify-between rounded-xl border border-line bg-surface/40 px-4 py-3">

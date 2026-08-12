@@ -41,7 +41,7 @@ export default function DepositScreen({
     <div>
       <h2 className="mb-1 font-display text-lg font-black text-cream">واریز تتر</h2>
       <p className="mb-4 text-[11px] text-muted">
-        شبکه‌ی {network} — پس از تأیید شبکه، موجودی خودکار شارژ می‌شود
+        شبکه‌ی {network}؛ پس از تأیید شبکه، موجودی خودکار شارژ می‌شود
       </p>
 
       {!telegramLinked ? (

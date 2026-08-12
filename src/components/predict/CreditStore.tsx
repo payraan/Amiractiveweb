@@ -72,7 +72,7 @@ export default function CreditStore({ compact = false }: { compact?: boolean }) 
           <h2 className="font-display text-xl font-black">خرید MOON</h2>
           <p className="mt-2 max-w-xl text-xs leading-6 text-muted">
             MOON، تایم‌فریم‌های کوتاه‌تر و پیش‌بینی‌های بیشتر را باز می‌کند.
-            MOON فقط قابلیت می‌خرد، نه امتیاز و نه رتبه — جایگاه شما همیشه با
+            MOON فقط قابلیت می‌خرد، نه امتیاز و نه رتبه؛ جایگاه شما همیشه با
             مهارت ساخته می‌شود.
           </p>
         </div>
@@ -187,7 +187,7 @@ export default function CreditStore({ compact = false }: { compact?: boolean }) 
             <li>۲. بسته‌ی موردنظر را انتخاب و روی «خرید آنی» بزنید.</li>
             <li>
               ۳. مبلغ از موجودی کیف پول کم و MOON{" "}
-              <b className="text-cream">بلافاصله</b> اضافه می‌شود — بدون واسطه و
+              <b className="text-cream">بلافاصله</b> اضافه می‌شود، بدون واسطه و
               بدون انتظار.
             </li>
           </ol>

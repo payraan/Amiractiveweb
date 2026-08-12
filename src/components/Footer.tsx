@@ -117,7 +117,7 @@ export default function Footer() {
 
       <div className="border-t border-line">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-6 py-5 text-[10px] leading-5 text-muted md:flex-row md:items-center md:justify-between">
-          <span>© {new Date().getFullYear()} نارمون — همه‌ی حقوق محفوظ است.</span>
+          <span>© {new Date().getFullYear()} نارمون. همه‌ی حقوق محفوظ است.</span>
           <span>
             معامله در بازارهای مالی ریسک بالایی دارد؛ پیش از هر تصمیم،{" "}
             <Link href="/#terms" className="text-gold transition hover:text-gold-deep">

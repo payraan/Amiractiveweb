@@ -469,7 +469,7 @@ export default function ChallengeScreen() {
               ))}
             </div>
             <p className="mt-2 text-[9px] leading-5 text-muted">
-              «افت از سقف»، «سقف ضرر روزانه» و «ثبات» سقف‌اند — نباید از حد بگذرید.
+              «افت از سقف»، «سقف ضرر روزانه» و «ثبات» سقف‌اند؛ نباید از حد بگذرید.
               بقیه هدف‌اند.
             </p>
           </Card>
@@ -499,7 +499,7 @@ export default function ChallengeScreen() {
     <div>
       <ScreenTitle
         title="چالش پراپ"
-        subtitle="ورودی با MOON، جایزه حساب واقعی — امتیاز خریدنی نیست"
+        subtitle="ورودی با MOON، جایزه حساب واقعی؛ امتیاز خریدنی نیست"
       />
 
       {!res.data.authed && (

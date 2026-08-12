@@ -134,7 +134,7 @@ export default function DisputePanel({ marketId }: { marketId: number }) {
               onChange={(e) => setReason(e.target.value)}
               rows={3}
               maxLength={600}
-              placeholder="دقیقاً بگو چرا نتیجه اشتباه است — مثلاً «قیمت پایانی در همان منبع ۹۲ هزار بود، نه ۸۸ هزار»."
+              placeholder="دقیقاً بگو چرا نتیجه اشتباه است؛ مثلاً «قیمت پایانی در همان منبع ۹۲ هزار بود، نه ۸۸ هزار»."
               className="no-zoom w-full rounded-lg border border-line bg-ink/50 px-3 py-2.5 text-[12px] leading-7 text-cream outline-none transition focus:border-gold/60"
             />
             <div className="mt-1 text-end font-mono text-[10px] text-muted" dir="ltr">

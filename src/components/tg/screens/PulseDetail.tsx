@@ -119,7 +119,7 @@ export default function PulseDetail({
     text: busy
       ? "در حال ثبت…"
       : valid
-        ? `ثبت پیش‌بینی${cost > 0 ? ` — ${cost} MOON` : " — رایگان"}`
+        ? `ثبت پیش‌بینی${cost > 0 ? ` (${cost} MOON)` : " (رایگان)"}`
         : "قیمت پیش‌بینی را وارد کن",
     enabled: valid,
     busy,
@@ -287,7 +287,7 @@ export default function PulseDetail({
         >
           {busy
             ? "در حال ثبت…"
-            : `ثبت پیش‌بینی${cost > 0 ? ` — ${cost} MOON` : " — رایگان"}`}
+            : `ثبت پیش‌بینی${cost > 0 ? ` (${cost} MOON)` : " (رایگان)"}`}
         </button>
       )}
 

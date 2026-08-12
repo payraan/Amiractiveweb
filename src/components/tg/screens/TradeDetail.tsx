@@ -79,7 +79,7 @@ export default function TradeDetail({
     text: busy
       ? "در حال ثبت…"
       : choice
-        ? `ثبت پیش‌بینی — ${choice === "yes" ? "بله" : "خیر"}`
+        ? `ثبت پیش‌بینی: ${choice === "yes" ? "بله" : "خیر"}`
         : "بله یا خیر را انتخاب کن",
     enabled: valid,
     busy,
@@ -181,7 +181,7 @@ export default function TradeDetail({
 
       <p className="mt-2.5 rounded-xl border border-line bg-surface/30 p-3.5 text-[10.5px] leading-6 text-muted">
         عدد سبز امتیاز درست‌بودن است و قرمز امتیاز اشتباه‌بودن. هرچه گزینه
-        محتمل‌تر باشد، برد کمتر و باخت سنگین‌تر — پس فقط وقتی امتیاز می‌گیری که
+        محتمل‌تر باشد، برد کمتر و باخت سنگین‌تر؛ پس فقط وقتی امتیاز می‌گیری که
         بهتر از بازار فهمیده باشی، نه وقتی گزینه‌ی امن را بزنی.
       </p>
 

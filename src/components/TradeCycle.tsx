@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 const PHASES = [
   { label: "در حال اسکن بازار…", tone: "bg-gold" },
   { label: "سیگنال شناسایی شد", tone: "bg-gold" },
-  { label: "ورود به معامله — حد سود و حد ضرر ثبت شد", tone: "bg-cream" },
+  { label: "ورود به معامله؛ حد سود و حد ضرر ثبت شد", tone: "bg-cream" },
   { label: "مدیریت خودکار معامله…", tone: "bg-gain" },
   { label: "معامله با سود بسته شد", tone: "bg-gain" },
 ];

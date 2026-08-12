@@ -280,7 +280,7 @@ export default function AssetCard({
       {player ? (
         isPredicted ? (
           <p className="mt-5 rounded-xl border border-gold/30 bg-gold/5 px-4 py-3 text-center text-xs text-muted">
-            پیش‌بینی این تایم‌فریم ثبت شده — منتظر تسویه بمانید.
+            پیش‌بینی این تایم‌فریم ثبت شده؛ منتظر تسویه بمانید.
           </p>
         ) : (
           <div className="mt-5 flex flex-col gap-2">

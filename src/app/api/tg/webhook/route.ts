@@ -180,7 +180,7 @@ async function handleVote(
     return;
   }
 
-  await answerCallback(cbId, `«${label}» انتخاب شد — ادامه در چت ربات`);
+  await answerCallback(cbId, `«${label}» انتخاب شد؛ ادامه در چت ربات`);
 
   const deep = SITE_URL
     ? `https://t.me/${process.env.TG_BOT_USERNAME}/market?startapp=market_${marketId}_${side}`
@@ -188,7 +188,7 @@ async function handleVote(
   await sendTelegram(
     tg.id,
     `طرف <b>${label}</b> را انتخاب کردی.\n\n` +
-      `برای ثبت پیش‌بینی، مبلغش را در اپ تأیید کن — از یک دکمه نمی‌شود مبلغ گرفت و ` +
+      `برای ثبت پیش‌بینی، مبلغش را در اپ تأیید کن؛ از یک دکمه نمی‌شود مبلغ گرفت و ` +
       `نمی‌خواهیم پول با یک لمس جابه‌جا شود.`,
     deep ? [[{ text: `ثبت پیش‌بینی روی ${label}`, url: deep }]] : []
   );

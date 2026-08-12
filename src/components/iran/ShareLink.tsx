@@ -23,7 +23,7 @@ export default function ShareLink({
     typeof window !== "undefined"
       ? `${window.location.origin}/iran/m/${id}`
       : `/iran/m/${id}`;
-  const text = `${question}\n\nاجماع بازار نارمون: بله ${yesPct}٪ — نظر تو چیست؟`;
+  const text = `${question}\n\nاجماع بازار نارمون: بله ${yesPct}٪. نظر تو چیست؟`;
 
   async function share() {
     if (typeof navigator !== "undefined" && navigator.share) {

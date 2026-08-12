@@ -64,7 +64,7 @@ export const CHALLENGES: ChallengeTier[] = [
     minDays: 7,
     days: 30,
     prize: "حساب معاملاتی ۲۵۰ دلاری",
-    payoutNote: "حساب واقعی نزد بروکر همکار — سود قابل برداشت",
+    payoutNote: "حساب واقعی نزد بروکر همکار (سود قابل برداشت)",
   },
   {
     id: "fx500",
@@ -79,7 +79,7 @@ export const CHALLENGES: ChallengeTier[] = [
     minDays: 7,
     days: 30,
     prize: "حساب معاملاتی ۵۰۰ دلاری",
-    payoutNote: "حساب واقعی نزد بروکر همکار — سود قابل برداشت",
+    payoutNote: "حساب واقعی نزد بروکر همکار (سود قابل برداشت)",
     popular: true,
   },
   {
@@ -95,7 +95,7 @@ export const CHALLENGES: ChallengeTier[] = [
     minDays: 7,
     days: 30,
     prize: "حساب معاملاتی ۱,۰۰۰ دلاری",
-    payoutNote: "حساب واقعی نزد بروکر همکار — سود قابل برداشت",
+    payoutNote: "حساب واقعی نزد بروکر همکار (سود قابل برداشت)",
   },
 
   // ── مسیر ب: حساب پیش‌بینی با پرداخت کریپتویی سقف‌دار ─────────

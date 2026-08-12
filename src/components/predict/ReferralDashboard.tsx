@@ -65,7 +65,7 @@ export default function ReferralDashboard() {
       .catch(() => {});
   }
 
-  const shareText = `من توی ترید پیش‌بینی نارمون پیش‌بینی می‌کنم — با این لینک ثبت‌نام کنی ${bonus} MOON هدیه می‌گیری:`;
+  const shareText = `من توی ترید پیش‌بینی نارمون پیش‌بینی می‌کنم؛ با این لینک ثبت‌نام کنی ${bonus} MOON هدیه می‌گیری:`;
   const tgShare = `https://t.me/share/url?url=${encodeURIComponent(
     link
   )}&text=${encodeURIComponent(shareText)}`;
@@ -88,7 +88,7 @@ export default function ReferralDashboard() {
           {
             n: "۳",
             t: "شما پورسانت می‌گیرید",
-            b: `از هر شارژ MOON آن‌ها، ${percent}٪ به‌صورت MOON به حساب شما اضافه می‌شود — همیشگی.`,
+            b: `از هر شارژ MOON آن‌ها، ${percent}٪ به‌صورت MOON به حساب شما اضافه می‌شود، همیشه.`,
           },
         ].map((s) => (
           <div

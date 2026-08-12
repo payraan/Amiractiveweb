@@ -5,7 +5,7 @@ import IranTerminal from "@/components/iran/IranTerminal";
 export const metadata: Metadata = {
   title: "بازار ایران | نارمون",
   description:
-    "پیش‌بینی روی رویدادهای واقعی ایران — اقتصاد، ورزش، اجتماعی. برد از استخر شرط‌ها، با برداشت مستقیم به کیف پول.",
+    "پیش‌بینی روی رویدادهای واقعی ایران در حوزه‌ی اقتصاد، ورزش و اجتماع. برد از استخر شرط‌ها، با برداشت مستقیم به کیف پول.",
 };
 
 export const dynamic = "force-dynamic";

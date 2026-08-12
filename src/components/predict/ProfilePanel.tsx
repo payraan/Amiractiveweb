@@ -278,7 +278,7 @@ export default function ProfilePanel() {
           {/* تتری */}
           <div className="rounded-xl border border-line bg-ink/30 p-4">
             <h3 className="text-[12px] font-bold text-cream">
-              بازار ایران <span className="text-muted">— تتر</span>
+              بازار ایران <span className="text-muted">(تتر)</span>
             </h3>
             <div
               className={`mt-3 font-mono text-3xl font-black ${
@@ -311,16 +311,16 @@ export default function ProfilePanel() {
           {/* امتیازی */}
           <div className="rounded-xl border border-line bg-ink/30 p-4">
             <h3 className="text-[12px] font-bold text-cream">
-              بازی‌های امتیازی <span className="text-muted">— مهارت</span>
+              بخش‌های امتیازی <span className="text-muted">(مهارت)</span>
             </h3>
             <div className="mt-3 font-mono text-3xl font-black text-gold" dir="ltr">
               {player.totalPoints}
             </div>
             <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-[11px]">
-              <Row k="نبض بازار — ثبت‌شده" v={String(skill.pulse.total)} />
-              <Row k="نبض بازار — امتیاز" v={String(skill.pulse.points)} />
-              <Row k="ترید پیش‌بینی — ثبت‌شده" v={String(skill.arena.total)} />
-              <Row k="ترید پیش‌بینی — امتیاز" v={String(skill.arena.points)} />
+              <Row k="نبض بازار: ثبت‌شده" v={String(skill.pulse.total)} />
+              <Row k="نبض بازار: امتیاز" v={String(skill.pulse.points)} />
+              <Row k="ترید پیش‌بینی: ثبت‌شده" v={String(skill.arena.total)} />
+              <Row k="ترید پیش‌بینی: امتیاز" v={String(skill.arena.points)} />
               <Row
                 k="دقت کلی"
                 v={skill.accuracy === null ? "—" : `${skill.accuracy}٪`}
@@ -560,7 +560,7 @@ function BadgeSection({
               type="button"
               onClick={() => onToggle(b.id)}
               disabled={full}
-              title={full ? `اول یکی را بردار — حداکثر ${MAX_SHOWCASE} تا` : b.desc}
+              title={full ? `اول یکی را بردار؛ حداکثر ${MAX_SHOWCASE} تا` : b.desc}
               className={`no-zoom rounded-xl border p-4 text-start transition disabled:opacity-50 ${
                 picked
                   ? "border-gold bg-gold/15 shadow-[0_0_20px_rgba(232,196,106,0.12)]"

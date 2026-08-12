@@ -61,7 +61,7 @@ const isBettable = (x: { status: string; closesAt: string }) =>
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   open: { label: "باز", cls: "border-gain/40 text-gain" },
-  locked: { label: "بسته — منتظر نتیجه", cls: "border-line text-muted" },
+  locked: { label: "بسته، منتظر نتیجه", cls: "border-line text-muted" },
   settling: { label: "در پنجره اعتراض", cls: "border-gold/40 text-gold" },
   settled: { label: "تسویه‌شده", cls: "border-line text-muted" },
   void: { label: "باطل", cls: "border-loss/40 text-loss" },

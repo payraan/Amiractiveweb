@@ -498,7 +498,7 @@ export function marketPoll(
   const freshness =
     mode === "live"
       ? "🔄 درصدها خودکار به‌روز می‌شوند"
-      : "📌 درصدها در لحظه‌ی اشتراک‌گذاری — برای عدد زنده دکمه را بزن";
+      : "📌 درصدها در لحظه‌ی اشتراک‌گذاری؛ برای عدد زنده دکمه را بزن";
 
   const text =
     `<b>${escapeHtml(m.question)}</b>\n\n` +
@@ -507,7 +507,7 @@ export function marketPoll(
     `👥 ${m.bettors} شرکت‌کننده   💵 ${m.volume.toFixed(0)} تتر\n` +
     `⏳ تا ${faDate(m.closesAt)}\n` +
     `${freshness}\n\n` +
-    `<i>پیش‌بینی با تتر واقعی — سود تضمینی نداریم و امتیاز خریدنی نیست.</i>`;
+    `<i>پیش‌بینی با تتر واقعی؛ سود تضمینی نداریم و امتیاز خریدنی نیست.</i>`;
 
   if (mode === "live") {
     // callback_data سقف ۶۴ بایت دارد، پس کوتاه نگه داشته می‌شود.
@@ -534,7 +534,7 @@ export function marketPoll(
           { text: `❌ خیر (${noPct}٪)`, url: `${deep}_no` },
         ],
         [{ text: "📊 دیدن بازار و شرط‌بستن", url: deep }],
-        [{ text: "🆕 حساب ندارم — شروع کن", url: `${app}?startapp=join_${m.id}` }],
+        [{ text: "🆕 حساب ندارم، شروع کن", url: `${app}?startapp=join_${m.id}` }],
       ]
     : [];
 

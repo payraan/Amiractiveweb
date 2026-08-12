@@ -50,7 +50,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!m) return { title: "بازار پیدا نشد | نارمون" };
   const yes = impliedPct(Number(m.yes_total), Number(m.no_total));
   const title = `${m.question} | بازار ایران نارمون`;
-  const description = `اجماع بازار: بله ${yes}٪ — ${m.bettors} مشارکت‌کننده. نظر تو چیست؟`;
+  const description = `اجماع بازار: بله ${yes}٪ با ${m.bettors} مشارکت‌کننده. نظر تو چیست؟`;
   return {
     title,
     description,
@@ -61,7 +61,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 const STATUS_FA: Record<string, string> = {
   open: "باز برای پیش‌بینی",
-  locked: "بسته — منتظر نتیجه",
+  locked: "بسته، منتظر نتیجه",
   settling: "در پنجره‌ی بازبینی",
   settled: "تسویه‌شده",
   void: "باطل‌شده",

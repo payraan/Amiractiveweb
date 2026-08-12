@@ -51,7 +51,7 @@ export default function PulseScreen() {
     <div>
       <ScreenTitle
         title="نبض بازار"
-        subtitle="قیمت آینده را حدس بزن — امتیاز از دقتِ حدس می‌آید، نه از شانس"
+        subtitle="قیمت آینده را پیش‌بینی کنید؛ امتیاز بر اساس دقت تحلیل محاسبه می‌شود، نه شانس"
       />
 
       {me.data && (

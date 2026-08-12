@@ -128,7 +128,7 @@ export default function ProposeForm() {
           </div>
 
           <label className="mt-4 block text-[11px] text-muted">
-            منبع تسویه — نتیجه از کجا خوانده می‌شود؟
+            منبع تسویه: نتیجه از کجا خوانده می‌شود؟
           </label>
           <textarea
             value={sourceNote}

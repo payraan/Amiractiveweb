@@ -54,7 +54,7 @@ const SOURCES: Source[] = [
   {
     id: "tgju",
     url: "https://api.tgju.org/v1/market/indicator/summary-table-data/price_dollar_rl",
-    note: "TGJU — پرمخاطب‌ترین منبع داخلی.",
+    note: "TGJU، پرمخاطب‌ترین منبع داخلی.",
     look: ["price", "close", "high", "low", "data"],
   },
   {

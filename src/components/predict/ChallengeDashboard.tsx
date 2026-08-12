@@ -311,7 +311,7 @@ export default function ChallengeDashboard({ s }: { s: ChallengeStateView }) {
           </table>
         </div>
         <p className="mt-3 text-[10px] leading-6 text-muted">
-          شرط‌های «افت از سقف»، «سقف ضرر روزانه» و «ثبات» سقف‌اند — یعنی نباید از
+          شرط‌های «افت از سقف»، «سقف ضرر روزانه» و «ثبات» سقف‌اند؛ یعنی نباید از
           حد بگذرید. بقیه هدف‌اند و باید به آن‌ها برسید.
         </p>
       </div>

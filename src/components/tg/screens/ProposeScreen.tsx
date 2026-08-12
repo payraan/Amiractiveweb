@@ -88,7 +88,7 @@ export default function ProposeScreen({
 
   useMainButton({
     visible: nativeButton,
-    text: busy ? "در حال ثبت…" : "ثبت پیشنهاد — ۱ تتر",
+    text: busy ? "در حال ثبت…" : "ثبت پیشنهاد (۱ تتر)",
     enabled: valid && !busy,
     busy,
     onClick: submit,
@@ -138,7 +138,7 @@ export default function ProposeScreen({
 
       <div className="mt-3">
         <label className="block text-[11px] text-muted">
-          منبع تسویه — نتیجه از کجا خوانده می‌شود؟
+          منبع تسویه: نتیجه از کجا خوانده می‌شود؟
         </label>
         <textarea
           value={sourceNote}
@@ -220,7 +220,7 @@ export default function ProposeScreen({
           disabled={!valid || busy}
           className="mt-4 w-full rounded-xl bg-gold py-3.5 font-display text-sm font-extrabold text-ink transition disabled:opacity-40"
         >
-          {busy ? "در حال ثبت…" : "ثبت پیشنهاد — ۱ تتر"}
+          {busy ? "در حال ثبت…" : "ثبت پیشنهاد (۱ تتر)"}
         </button>
       )}
     </div>

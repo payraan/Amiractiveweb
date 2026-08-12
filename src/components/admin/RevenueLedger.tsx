@@ -191,7 +191,7 @@ export default function RevenueLedger() {
       <div className="no-lift rounded-xl border border-line bg-ink/30 p-4">
         <h3 className="text-sm font-bold">وضعیت پول کاربران</h3>
         <p className="mt-2 text-[11px] leading-6 text-muted">
-          این اعداد <b className="text-cream">درآمد نیستند</b> — بدهی ما به
+          این اعداد <b className="text-cream">درآمد نیستند</b>؛ بدهی ما به
           کاربران‌اند. مجموع این دو باید همیشه از تتر واقعی موجود در کیف پول
           درگاه کمتر باشد؛ اختلافشان همان درآمد انباشته‌ی بالاست.
         </p>

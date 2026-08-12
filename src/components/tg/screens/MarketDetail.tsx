@@ -116,7 +116,7 @@ export default function MarketDetail({
     text: busy
       ? "در حال ثبت…"
       : side && stakeOk
-        ? `ثبت پیش‌بینی — $${money(stake)} روی ${side === "yes" ? "بله" : "خیر"}`
+        ? `ثبت پیش‌بینی: $${money(stake)} روی ${side === "yes" ? "بله" : "خیر"}`
         : "مبلغ و طرف را انتخاب کن",
     enabled: valid,
     busy,
@@ -231,7 +231,7 @@ export default function MarketDetail({
           {sending
             ? "در حال ارسال…"
             : sentToBot
-              ? "✓ در ربات فرستاده شد — فورواردش کن"
+              ? "✓ در ربات فرستاده شد؛ فورواردش کن"
               : "📢 کارت برای کانال بفرست"}
         </button>
       )}
@@ -239,7 +239,7 @@ export default function MarketDetail({
       {sentToBot && (
         <p className="mt-2 rounded-xl border border-gain/30 bg-gain/5 px-4 py-3 text-[10.5px] leading-6 text-gain">
           کارت در چت ربات برایت فرستاده شد. آن را به هر کانال یا گروهی که
-          ادمینش هستی فوروارد کن — دکمه‌هایش بعد از فوروارد هم کار می‌کنند و
+          ادمینش هستی فوروارد کن؛ دکمه‌هایش بعد از فوروارد هم کار می‌کنند و
           ربات لازم نیست جایی ادمین شود.
         </p>
       )}
@@ -249,7 +249,7 @@ export default function MarketDetail({
         onClick={() => {
           haptic.press();
           shareText(
-            `${market.question}\n\nاجماع بازار: بله ${market.yesPct}٪ — ${market.bettors} شرکت‌کننده\nنظر تو چیست؟`,
+            `${market.question}\n\nاجماع بازار: بله ${market.yesPct}٪ با ${market.bettors} شرکت‌کننده\nنظر تو چیست؟`,
             `${siteUrl}/iran/m/${market.id}`
           );
         }}

@@ -59,7 +59,7 @@ export default function TelegramConnect() {
         <p className="mt-2 text-[11px] leading-6 text-muted">
           {status.bonusClaimed
             ? "هدیه‌ی عضویت گروه دریافت شده است. نتیجه‌ی پیش‌بینی‌ها و وضعیت چالش از همین‌جا به شما اطلاع داده می‌شود."
-            : `هنوز هدیه‌ی عضویت نگرفته‌اید — عضو گروه شوید و در ربات دستور /bonus را بزنید تا ${status.bonusCredits} MOON دریافت کنید.`}
+            : `هنوز هدیه‌ی عضویت نگرفته‌اید؛ عضو گروه شوید و در ربات دستور /bonus را بزنید تا ${status.bonusCredits} MOON دریافت کنید.`}
         </p>
         {!status.bonusClaimed && (
           <a
@@ -118,7 +118,7 @@ export default function TelegramConnect() {
         }}
         className="no-zoom mt-3 block text-[11px] text-muted transition hover:text-gold"
       >
-        اتصال را انجام دادم — بررسی وضعیت
+        اتصال را انجام دادم؛ بررسی وضعیت
       </button>
     </div>
   );

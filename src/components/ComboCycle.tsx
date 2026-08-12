@@ -79,7 +79,7 @@ export default function ComboCycle() {
       >
         <div className="flex justify-between text-[11px]">
           <span className="text-muted">
-            {won ? "هر سه درست بود — تیکت برد" : "شانس برد تیکت"}
+            {won ? "هر سه درست بود؛ تیکت برد" : "شانس برد تیکت"}
           </span>
           <span
             className={`font-mono font-bold ${won ? "text-gain" : "text-cream"}`}

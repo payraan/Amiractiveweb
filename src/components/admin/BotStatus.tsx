@@ -129,7 +129,7 @@ export default function BotStatus() {
   const STATE = {
     ok: { text: "وبهوک ثبت و سالم است", cls: "border-gain/40 bg-gain/5 text-gain" },
     none: {
-      text: "وبهوک ثبت نشده — ربات به هیچ پیامی جواب نمی‌دهد",
+      text: "وبهوک ثبت نشده؛ ربات به هیچ پیامی جواب نمی‌دهد",
       cls: "border-gold/40 bg-gold/5 text-gold",
     },
     mismatch: {
@@ -213,7 +213,7 @@ export default function BotStatus() {
 
       <p className="text-[11px] leading-6 text-muted">
         پس از ثبت، در تلگرام به ربات پیام <span className="font-mono">/start</span> بده.
-        اگر جواب نداد، «آخرین خطای تلگرام» بالا را ببین — همان‌جا دلیلش نوشته می‌شود.
+        اگر جواب نداد، «آخرین خطای تلگرام» بالا را ببین؛ همان‌جا دلیلش نوشته می‌شود.
       </p>
     </div>
   );
