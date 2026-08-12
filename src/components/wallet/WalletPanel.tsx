@@ -34,6 +34,7 @@ const KIND: Record<string, { label: string; tone: "in" | "out" }> = {
 };
 
 const ERR: Record<string, string> = {
+  rate_limited: "درخواست‌های پیاپی بیش از حد بود. کمی صبر کنید و دوباره تلاش کنید.",
   telegram_required:
     "برای هر عملیات مالی باید حساب تلگرامت را وصل کنی. از صفحه‌ی دعوت وصلش کن یا مینی‌اپ را باز کن.",
   gateway_off: "درگاه پرداخت هنوز فعال نشده است.",

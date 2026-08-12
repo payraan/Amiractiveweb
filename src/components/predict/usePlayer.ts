@@ -62,6 +62,7 @@ export function usePlayer() {
 }
 
 const ERRORS: Record<string, string> = {
+  rate_limited: "درخواست‌های پیاپی بیش از حد بود. کمی صبر کنید و دوباره تلاش کنید.",
   bad_username: "نام کاربری باید حداقل ۳ کاراکتر و فقط حروف انگلیسی، عدد و _ باشد.",
   weak_password:
     "رمز عبور باید حداقل ۸ کاراکتر و شامل حرف و عدد باشد.",

@@ -13,6 +13,7 @@ import { MIN_WITHDRAW, withdrawAddressShapeValid } from "@/lib/wallet-rules";
 // حساب بلافاصله بفهمد — تنها لایه‌ی هشدار موجود.
 
 const ERR: Record<string, string> = {
+  rate_limited: "درخواست‌های پیاپی بیش از حد بود. کمی صبر کنید و دوباره تلاش کنید.",
   not_authed: "ابتدا وارد شوید.",
   gateway_off: "درگاه پرداخت فعال نیست.",
   amount_too_low: `حداقل برداشت ${MIN_WITHDRAW} تتر است.`,
@@ -154,9 +155,6 @@ export default function WithdrawScreen({
             ? "بیشتر از موجودی شما است."
             : `حداقل برداشت ${MIN_WITHDRAW} تتر است.`}
         </p>
-      )}
-      {address && !addressOk && (
-        <p className="mt-2 text-[11px] text-loss">آدرس کوتاه‌تر از حد مجاز است.</p>
       )}
 
       {msg && (

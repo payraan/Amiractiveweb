@@ -26,6 +26,7 @@ type Tier = {
 type State = ChallengeStateView | null;
 
 const START_ERRORS: Record<string, string> = {
+  rate_limited: "درخواست‌های پیاپی بیش از حد بود. کمی صبر کنید و دوباره تلاش کنید.",
   active_exists: "یک چالش فعال دارید؛ ابتدا آن را کامل کنید.",
   entry_limit:
     "سقف ورود به چالش حساب پیش‌بینی ۳ بار در ۳۰ روز است. کمی صبر کنید یا مسیر حساب معاملاتی را انتخاب کنید.",

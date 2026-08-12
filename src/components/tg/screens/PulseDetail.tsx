@@ -36,6 +36,7 @@ export type PulseMarket = {
 };
 
 const ERR: Record<string, string> = {
+  rate_limited: "درخواست‌های پیاپی بیش از حد بود. کمی صبر کنید و دوباره تلاش کنید.",
   not_authed: "ابتدا وارد شوید.",
   bad_asset: "این دارایی معتبر نیست.",
   bad_timeframe: "تایم‌فریم معتبر نیست.",

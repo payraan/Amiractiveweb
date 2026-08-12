@@ -39,6 +39,7 @@ const INTERVALS: { id: Interval; label: string }[] = [
 ];
 
 const ERRORS: Record<string, string> = {
+  rate_limited: "درخواست‌های پیاپی بیش از حد بود. کمی صبر کنید و دوباره تلاش کنید.",
   not_authed: "برای ثبت پیش‌بینی وارد شوید.",
   already_predicted: "روی این بازار قبلاً پیش‌بینی ثبت کرده‌اید.",
   insufficient_credits: "سهم رایگان امروز تمام شده و MOON کافی ندارید.",

@@ -15,6 +15,7 @@ import { useMainButton } from "@/components/tg/useMainButton";
 // رفتار متفاوت در دو رابط.
 
 const ERR: Record<string, string> = {
+  rate_limited: "درخواست‌های پیاپی بیش از حد بود. کمی صبر کنید و دوباره تلاش کنید.",
   not_authed: "برای پیشنهاد بازار وارد شوید.",
   bad_question: "سؤال باید بین ۱۵ تا ۲۰۰ کاراکتر باشد.",
   source_required: "منبع تسویه اجباری است و باید دقیق باشد.",

@@ -58,6 +58,7 @@ type State = {
 type Data = { authed: boolean; tiers: Tier[]; state: State | null };
 
 const ERR: Record<string, string> = {
+  rate_limited: "درخواست‌های پیاپی بیش از حد بود. کمی صبر کنید و دوباره تلاش کنید.",
   not_authed: "ابتدا وارد شوید.",
   telegram_required: "برای ورود به چالش باید حساب شما به تلگرام وصل باشد.",
   active_exists: "همین حالا یک چالش فعال داری.",

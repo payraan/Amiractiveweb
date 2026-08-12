@@ -11,6 +11,7 @@ import { haptic, showBackButton } from "@/components/tg/telegram";
 // game.ts می‌آیند نه از یک فهرست دوم، تا قیمت‌ها در دو رابط یکی بماند.
 
 const ERR: Record<string, string> = {
+  rate_limited: "درخواست‌های پیاپی بیش از حد بود. کمی صبر کنید و دوباره تلاش کنید.",
   not_authed: "ابتدا وارد شوید.",
   bad_pack: "این بسته معتبر نیست.",
   insufficient_funds: "موجودی تتر کافی نیست.",

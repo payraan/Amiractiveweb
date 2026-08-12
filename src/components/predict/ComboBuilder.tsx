@@ -46,6 +46,7 @@ const LEVERAGE_TIERS = [
 ];
 
 const ERRORS: Record<string, string> = {
+  rate_limited: "درخواست‌های پیاپی بیش از حد بود. کمی صبر کنید و دوباره تلاش کنید.",
   not_authed: "برای ثبت کمبو وارد حساب شوید.",
   too_few_legs: `کمبو حداقل به ${MIN_LEGS} انتخاب نیاز دارد.`,
   too_many_legs: `کمبو حداکثر ${MAX_LEGS} انتخاب می‌پذیرد.`,

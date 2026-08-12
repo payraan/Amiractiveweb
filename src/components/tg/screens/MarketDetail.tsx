@@ -29,6 +29,7 @@ export type Market = {
 };
 
 const ERR: Record<string, string> = {
+  rate_limited: "درخواست‌های پیاپی بیش از حد بود. کمی صبر کنید و دوباره تلاش کنید.",
   not_authed: "ابتدا وارد شوید.",
   stake_too_low: "مبلغ شرط از حداقل کمتر است.",
   insufficient_funds: "موجودی تتر کافی نیست.",

@@ -43,6 +43,7 @@ const SORTS = [
 type SortId = (typeof SORTS)[number]["id"];
 
 const ERR: Record<string, string> = {
+  rate_limited: "درخواست‌های پیاپی بیش از حد بود. کمی صبر کنید و دوباره تلاش کنید.",
   telegram_required:
     "برای هر عملیات مالی باید حساب تلگرامت را وصل کنی. از صفحه‌ی دعوت وصلش کن یا مینی‌اپ را باز کنید.",
   not_authed: "برای ثبت پیش‌بینی وارد شوید.",

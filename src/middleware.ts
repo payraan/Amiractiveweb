@@ -1,36 +1,155 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-// محدودیت نرخ ساده بر اساس IP برای مسیرهای حساس (ضد بروت‌فورس).
+// ═══ سقف نرخ روی مسیرهای حساس ════════════════════════════════
+//
+// این لایه قفل نیست، دست‌انداز است. قفل واقعیِ پول همان ترنزاکشن‌های
+// دیتابیس با SELECT … FOR UPDATE است که سر جایشان‌اند. کاری که اینجا
+// می‌کنیم دو چیز است:
+//
+//   ۱. سایت روی پا بماند. هر پیش‌بینی یک ترنزاکشن با قفل ردیف است و کل
+//      پلتفرم از یک استخر اتصال Postgres استفاده می‌کند؛ سیل درخواست روی
+//      یک روت، صفحه‌ی اصلی و مینی‌اپ را هم می‌خواباند.
+//   ۲. زمان واکنش خریده شود. تنها هشدار روی برداشت، پیام تلگرام است؛ اگر
+//      کسی سشن دزدیده بتواند بیست برداشت در سه ثانیه بزند، آن هشدار
+//      بی‌فایده است.
+//
+// ── چرا شمارش بر اساس هویت، نه فقط آی‌پی ──
+// مخاطب ما پشت VPN است و ده‌ها کاربر واقعی از یک آی‌پی خروجی می‌آیند. سقف
+// آی‌پی‌محورِ تنگ، کاربران سالم را به هم قفل می‌کند. برای روت‌هایی که
+// احراز هویت دارند، هر کاربر سطل خودش را می‌گیرد.
+//
+// ⚠️ کلید سطل از توکن ساخته می‌شود ولی فقط **شناسه‌ی بازیکن** از آن
+// برداشته می‌شود. هر دو توکن شکل `<شناسه>.<انقضا>.<امضا>` دارند
+// (`72.<exp>.<sig>` و `tg.72.<exp>.<sig>`)، پس دو بخش آخر دور ریخته
+// می‌شود. دو نتیجه دارد:
+//
+//   • هیچ اعتبارنامه‌ی قابل‌استفاده‌ای در حافظه‌ی این ماژول نمی‌نشیند.
+//   • انقضا هم بیرون می‌ماند، وگرنه هر بار ورود دوباره یک سطل نو می‌ساخت
+//     و کاربر می‌توانست با logout/login سقف خودش را صفر کند.
+//
+// اینجا امضا **سنجیده نمی‌شود** و لازم هم نیست: کسی که توکن الکی بسازد
+// سطل تازه می‌گیرد ولی خود روت ۴۰۱ می‌دهد، و آن ۴۰۱ بدون هیچ کوئری
+// دیتابیسی صادر می‌شود (تشخیص هویت فقط HMAC است).
+
 const WINDOW_MS = 10 * 60 * 1000; // ۱۰ دقیقه
 
-const RULES: { id: string; pattern: RegExp; max: number }[] = [
-  { id: "admin-login", pattern: /^\/api\/admin\/login/, max: 10 },
-  { id: "auth", pattern: /^\/api\/predict\/auth/, max: 30 },
-  { id: "admin", pattern: /^\/api\/admin\//, max: 120 },
+/**
+ * مسیرهایی که **هرگز** نباید محدود شوند.
+ *
+ * هر سه از یک منبع و با انفجار می‌آیند، و ۴۲۹ دادن به آن‌ها یعنی از دست
+ * رفتن پول یا داده — نه کند شدن یک مهاجم:
+ *
+ *   • وبهوک درگاه   → تأیید واریز گم می‌شود و پول کاربر شارژ نمی‌شود.
+ *   • وبهوک تلگرام  → پیام و کلیک کاربرها گم می‌شود (و با پخش سراسری،
+ *                     انفجار ورودی طبیعی است).
+ *   • تسویه‌ی کرون  → پول در وضعیت settling گیر می‌کند.
+ *
+ * این فهرست *قبل* از قواعد سنجیده می‌شود تا هیچ قاعده‌ی عمومی‌ای که بعدا
+ * اضافه شود نتواند تصادفا این سه را بگیرد.
+ */
+const NEVER_LIMIT: RegExp[] = [
+  /^\/api\/wallet\/webhook/,
+  /^\/api\/tg\/webhook/,
+  /^\/api\/predict\/settle/,
+];
+
+type By = "ip" | "identity";
+type Rule = { id: string; pattern: RegExp; max: number; by: By };
+
+// ترتیب مهم است: اولین تطابق برنده است، پس قواعد خاص باید بالاتر از
+// قواعد عمومی بمانند (مثلا admin-login پیش از admin).
+const RULES: Rule[] = [
+  // ── مرزهای احراز هویت: آی‌پی‌محور، چون هنوز هویتی وجود ندارد ──
+  { id: "admin-login", pattern: /^\/api\/admin\/login/, max: 10, by: "ip" },
+  { id: "auth", pattern: /^\/api\/predict\/auth/, max: 30, by: "ip" },
+  { id: "tg-auth", pattern: /^\/api\/tg\/auth/, max: 60, by: "ip" },
+  { id: "tg-setup", pattern: /^\/api\/tg\/setup/, max: 30, by: "ip" },
+  { id: "admin", pattern: /^\/api\/admin\//, max: 120, by: "ip" },
+
+  // ── پول واقعی: تنگ‌ترین سقف‌ها ──
+  { id: "withdraw", pattern: /^\/api\/wallet\/withdraw/, max: 5, by: "identity" },
+  { id: "buy-credits", pattern: /^\/api\/wallet\/buy-credits/, max: 20, by: "identity" },
+  { id: "ir-bet", pattern: /^\/api\/ir\/bet/, max: 60, by: "identity" },
+  { id: "ir-propose", pattern: /^\/api\/ir\/propose/, max: 10, by: "identity" },
+  { id: "ir-dispute", pattern: /^\/api\/ir\/dispute/, max: 10, by: "identity" },
+  { id: "challenge", pattern: /^\/api\/predict\/challenge/, max: 10, by: "identity" },
+
+  // ── امتیازی: سقف‌ها فقط برای پایداری، خیلی بالاتر از بازی طبیعی ──
+  { id: "predict-submit", pattern: /^\/api\/predict\/submit/, max: 60, by: "identity" },
+  { id: "poly-submit", pattern: /^\/api\/predict\/poly-submit/, max: 60, by: "identity" },
+  { id: "combo-submit", pattern: /^\/api\/predict\/combo-submit/, max: 30, by: "identity" },
+  { id: "ir-poll-me", pattern: /^\/api\/ir\/poll-me/, max: 120, by: "identity" },
+  { id: "tg-link", pattern: /^\/api\/predict\/tg-link/, max: 20, by: "identity" },
+  { id: "showcase", pattern: /^\/api\/profile\/showcase/, max: 20, by: "identity" },
 ];
 
 const hits = new Map<string, { n: number; ts: number }>();
 
-function cleanup(now: number) {
-  if (hits.size < 5000) return;
+// جاروی حافظه.
+//
+// نسخه‌ی قبلی هر بار که اندازه از ۵۰۰۰ می‌گذشت کل نقشه را می‌پیمود — یعنی
+// از آن نقطه به بعد، *هر درخواست* یک پیمایش کامل. با ده‌ها هزار کاربر
+// همین محافظ خودش کندی می‌ساخت. حالا حداکثر یک بار در دقیقه جارو می‌شود.
+const SWEEP_EVERY_MS = 60 * 1000;
+let lastSweep = 0;
+
+function sweep(now: number) {
+  if (now - lastSweep < SWEEP_EVERY_MS) return;
+  lastSweep = now;
   for (const [k, v] of hits) {
     if (now - v.ts > WINDOW_MS) hits.delete(k);
   }
+}
+
+/**
+ * کلید سطل: هویت کاربر بدون بخش امضا، و اگر هویتی نبود آی‌پی.
+ *
+ * مینی‌اپ اول سنجیده می‌شود، هم‌راستا با currentPlayerId: درخواستی که
+ * صریحا توکن مینی‌اپ آورده، همان هویت مقصودش است.
+ */
+function identityKey(req: NextRequest, ip: string): string {
+  const tg = req.headers.get("x-tg-auth");
+  if (tg) return `p:${playerPart(tg)}`;
+  const cookie = req.cookies.get("amir_session")?.value;
+  if (cookie) return `p:${playerPart(cookie)}`;
+  return `ip:${ip}`;
+}
+
+/**
+ * شناسه‌ی بازیکن از داخل توکن — یعنی همه‌چیز جز دو قطعه‌ی آخر (انقضا و
+ * امضا)، و بدون پیشوند `tg.` مینی‌اپ:
+ *
+ *   `72.<exp>.<sig>`     → `72`
+ *   `tg.72.<exp>.<sig>`  → `72`
+ *
+ * پیشوند عمدا حذف می‌شود تا یک کاربر با باز کردن همزمان سایت و مینی‌اپ دو
+ * سهمیه نگیرد — همان اصل «یک حساب» که currentPlayerId رویش ایستاده.
+ *
+ * توکن بدشکل همان‌طور که هست برمی‌گردد؛ اینجا اعتبارسنجی نمی‌کنیم، فقط
+ * سطل می‌سازیم و خودِ روت جلوی توکن نامعتبر را می‌گیرد.
+ */
+function playerPart(token: string): string {
+  const parts = token.split(".");
+  const body = parts.length >= 3 ? parts.slice(0, -2).join(".") : token;
+  return body.startsWith("tg.") ? body.slice(3) : body;
 }
 
 export function middleware(req: NextRequest) {
   if (req.method !== "POST") return NextResponse.next();
 
   const path = req.nextUrl.pathname;
+  if (NEVER_LIMIT.some((p) => p.test(path))) return NextResponse.next();
+
   const rule = RULES.find((r) => r.pattern.test(path));
   if (!rule) return NextResponse.next();
 
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  const key = `${rule.id}:${ip}`;
+  const who = rule.by === "identity" ? identityKey(req, ip) : `ip:${ip}`;
+  const key = `${rule.id}:${who}`;
   const now = Date.now();
-  cleanup(now);
+  sweep(now);
 
   const rec = hits.get(key);
   if (!rec || now - rec.ts > WINDOW_MS) {
@@ -39,9 +158,10 @@ export function middleware(req: NextRequest) {
   }
   rec.n++;
   if (rec.n > rule.max) {
+    const retryAfter = Math.ceil((rec.ts + WINDOW_MS - now) / 1000);
     return NextResponse.json(
       { ok: false, error: "rate_limited" },
-      { status: 429 }
+      { status: 429, headers: { "Retry-After": String(retryAfter) } }
     );
   }
   return NextResponse.next();
