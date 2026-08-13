@@ -73,7 +73,8 @@ type TgResult<T> = { ok: true; result: T } | { ok: false; error: string };
 /** تماس عمومی با Bot API. توکن هرگز از سرور بیرون نمی‌رود. */
 export async function tgCall<T = unknown>(
   method: string,
-  params: Record<string, unknown> = {}
+  params: Record<string, unknown> = {},
+  opts: { timeoutMs?: number } = {}
 ): Promise<TgResult<T>> {
   if (!BOT_TOKEN) return { ok: false, error: "bot_not_configured" };
   try {
@@ -82,7 +83,7 @@ export async function tgCall<T = unknown>(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(params),
       cache: "no-store",
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(opts.timeoutMs ?? 15000),
     });
     const j = (await res.json()) as {
       ok: boolean;
@@ -140,6 +141,7 @@ export async function ensureTelegramTables(): Promise<void> {
       await pool.query("ALTER TABLE players ADD COLUMN IF NOT EXISTS tg_linked_at TIMESTAMPTZ");
       await pool.query("ALTER TABLE players ADD COLUMN IF NOT EXISTS group_bonus_at TIMESTAMPTZ");
       await pool.query("ALTER TABLE players ADD COLUMN IF NOT EXISTS tg_blocked_at TIMESTAMPTZ");
+      await pool.query("ALTER TABLE players ADD COLUMN IF NOT EXISTS tg_checked_at TIMESTAMPTZ");
       await pool.query(
         `CREATE UNIQUE INDEX IF NOT EXISTS players_tg_user_id_key
            ON players (tg_user_id) WHERE tg_user_id IS NOT NULL`
@@ -393,10 +395,11 @@ export async function getTgStatus(playerId: number): Promise<TgStatus> {
     "SELECT group_bonus_at FROM players WHERE id=$1",
     [playerId]
   );
-  // همان بازبینی زنده‌ی مسیر پولی، تا صفحه‌ی وضعیت با آنچه هنگام خرج‌کردن
-  // اتفاق می‌افتد یکی باشد. کاربری که تازه آنبلاک کرده نباید اینجا «بلاک»
-  // ببیند و آنجا آزاد باشد.
-  const link = await checkTelegramLink(playerId);
+  // همان بازبینی مسیر پولی، تا صفحه‌ی وضعیت با آنچه هنگام خرج‌کردن اتفاق
+  // می‌افتد یکی باشد. ولی این روت با هر بارگذاری صفحه صدا زده می‌شود (نوار
+  // بالا)، پس اینجا نتیجه تا TTL کش می‌شود؛ مسیر پولی خودش همیشه تازه
+  // می‌پرسد.
+  const link = await checkTelegramLink(playerId, { maxAgeMs: TG_CHECK_TTL_MS });
   return {
     linked: link.linked,
     blocked: link.blocked,
@@ -474,11 +477,15 @@ async function noteSendFailure(tgUserId: number, error: string): Promise<void> {
   }
 }
 
+/** علامت بلاک را می‌زند و زمان بررسی را تازه می‌کند. */
 export async function markTelegramBlocked(tgUserId: number): Promise<void> {
   await ensureTelegramTables();
   const pool = await db();
   await pool.query(
-    "UPDATE players SET tg_blocked_at=now() WHERE tg_user_id=$1 AND tg_blocked_at IS NULL",
+    `UPDATE players
+        SET tg_blocked_at = COALESCE(tg_blocked_at, now()),
+            tg_checked_at = now()
+      WHERE tg_user_id = $1`,
     [tgUserId]
   );
 }
@@ -486,64 +493,98 @@ export async function markTelegramBlocked(tgUserId: number): Promise<void> {
 /**
  * علامت بلاک را برمی‌دارد.
  *
- * از وبهوک صدا زده می‌شود: هر پیام یا کلیکی که از کاربر برسد یعنی چت باز
- * است. این مسیر اصلی بازگشت است و هیچ هزینه‌ای ندارد.
+ * از وبهوک هم صدا زده می‌شود: هر پیام یا کلیکی که از کاربر برسد یعنی چت باز
+ * است. آن مسیر هیچ تماسی با تلگرام لازم ندارد.
  */
 export async function clearTelegramBlocked(tgUserId: number): Promise<void> {
   await ensureTelegramTables();
   const pool = await db();
   await pool.query(
-    "UPDATE players SET tg_blocked_at=NULL WHERE tg_user_id=$1 AND tg_blocked_at IS NOT NULL",
+    "UPDATE players SET tg_blocked_at=NULL, tg_checked_at=now() WHERE tg_user_id=$1",
     [tgUserId]
   );
 }
 
 /**
- * بازبینی زنده‌ی بلاک‌بودن، بدون فرستادن هیچ پیامی.
+ * بازبینی زنده‌ی چت، بدون فرستادن هیچ پیامی.
  *
  * sendChatAction فقط نشانگر «در حال تایپ» را روشن می‌کند — چیزی در چت
  * نمی‌ماند — ولی اگر ربات بلاک باشد همان ۴۰۳ را می‌دهد. getChat به این کار
  * نمی‌آید چون برای کاربرِ بلاک‌کننده هم موفق برمی‌گردد.
  *
- * `true` یعنی هنوز بلاک است.
+ * ⚠️ سه حالت دارد و این تفکیک حیاتی است. اگر «هر خطایی» را بلاک بگیریم، یک
+ * قطعی تلگرام یا توکن اشتباه، *همه‌ی* کاربران را از خرج‌کردن قفل می‌کند. پس:
+ *
+ *   • `blocked` فقط با همان رشته‌ی صریح تلگرام — تنها چیزی که علامت می‌زند.
+ *   • `open`    فقط با پاسخ موفق — تنها چیزی که علامت را برمی‌دارد.
+ *   • `unknown` هر چیز دیگر: وضعیت ذخیره‌شده دست‌نخورده می‌ماند.
+ *
+ * تایم‌اوت کوتاه است چون این تماس داخل مسیر خرج‌کردن کاربر می‌نشیند؛ تلگرامِ
+ * کند نباید ثبت پیش‌بینی را معطل کند. تایم‌اوت هم `unknown` است.
  */
-async function stillBlocked(tgUserId: number): Promise<boolean> {
-  const r = await tgCall("sendChatAction", {
-    chat_id: tgUserId,
-    action: "typing",
-  });
-  if (r.ok) return false;
-  // خطای شبکه یا ربات پیکربندی‌نشده نباید کاربر را آزاد کند؛ فقط خطای
-  // صریحِ «بلاک» و هر خطای دیگری را محتاطانه «هنوز بلاک» می‌گیریم مگر
-  // اینکه تماس اصلا انجام نشده باشد.
-  return r.error !== "bot_not_configured";
+async function probeChat(tgUserId: number): Promise<"open" | "blocked" | "unknown"> {
+  const r = await tgCall(
+    "sendChatAction",
+    { chat_id: tgUserId, action: "typing" },
+    { timeoutMs: 5000 }
+  );
+  if (r.ok) return "open";
+  return BLOCKED_RE.test(r.error) ? "blocked" : "unknown";
 }
 
 export type TgLink = { linked: boolean; blocked: boolean };
 
+/** فاصله‌ی پیش‌فرض بین دو بازبینی برای نمایش وضعیت. */
+export const TG_CHECK_TTL_MS = 10 * 60 * 1000;
+
 /**
- * وضعیت اتصال تلگرام برای تصمیم‌های پولی.
+ * وضعیت اتصال تلگرام.
  *
- * اگر حساب قبلا بلاک علامت خورده باشد، *یک بار* زنده بازبینی می‌شود تا
- * کاربری که ربات را آنبلاک کرده بلافاصله آزاد شود و مجبور نباشد اول به ربات
- * پیام بدهد. هزینه‌ی این تماس فقط روی حساب‌های علامت‌خورده است.
+ * ⚠️ **چرا اینجا فعالانه بازبینی می‌شود:** بلاک‌کردن ربات هیچ خبری به ما
+ * نمی‌دهد. اگر فقط منتظر شکستِ ارسال بمانیم، کاربری که ربات را بلاک کرده تا
+ * وقتی اتفاقی پیامی برایش نفرستیم «سالم» می‌ماند — و ممکن است هرگز نفرستیم.
+ * نسخه‌ی اول همین ایراد را داشت و در تست مالک هیچ‌چیز قفل نشد.
+ *
+ * `maxAgeMs` هزینه را مهار می‌کند: مسیرهای پولی صفر می‌دهند (همیشه بازبینی،
+ * چون آنجا دقت مهم‌تر از یک رفت‌وبرگشت است) و نمایش وضعیت `TG_CHECK_TTL_MS`.
  */
-export async function checkTelegramLink(playerId: number): Promise<TgLink> {
+export async function checkTelegramLink(
+  playerId: number,
+  opts: { maxAgeMs?: number } = {}
+): Promise<TgLink> {
   await ensureTelegramTables();
   const pool = await db();
-  const r = await pool.query<{ tg_user_id: string | null; tg_blocked_at: string | null }>(
-    "SELECT tg_user_id, tg_blocked_at FROM players WHERE id=$1",
+  const r = await pool.query<{
+    tg_user_id: string | null;
+    tg_blocked_at: string | null;
+    tg_checked_at: string | null;
+  }>(
+    "SELECT tg_user_id, tg_blocked_at, tg_checked_at FROM players WHERE id=$1",
     [playerId]
   );
   const row = r.rows[0];
   if (!row?.tg_user_id) return { linked: false, blocked: false };
-  if (!row.tg_blocked_at) return { linked: true, blocked: false };
 
-  if (await stillBlocked(Number(row.tg_user_id))) {
+  const tgId = Number(row.tg_user_id);
+  const stored = Boolean(row.tg_blocked_at);
+
+  const maxAge = opts.maxAgeMs ?? 0;
+  if (maxAge > 0 && row.tg_checked_at) {
+    const age = Date.now() - new Date(row.tg_checked_at).getTime();
+    if (age < maxAge) return { linked: true, blocked: stored };
+  }
+
+  const state = await probeChat(tgId);
+  if (state === "blocked") {
+    await markTelegramBlocked(tgId);
     return { linked: true, blocked: true };
   }
-  await clearTelegramBlocked(Number(row.tg_user_id));
-  return { linked: true, blocked: false };
+  if (state === "open") {
+    await clearTelegramBlocked(tgId);
+    return { linked: true, blocked: false };
+  }
+  // unknown: زمان بررسی هم به‌روز نمی‌شود تا دفعه‌ی بعد دوباره تلاش شود.
+  return { linked: true, blocked: stored };
 }
 
 // ── نظرسنجی بازار در کانال ───────────────────────────────────
