@@ -4,6 +4,7 @@ import { settlePolyDue } from "@/lib/poly";
 import { settleCombosDue } from "@/lib/combos";
 import { refreshMarketPosts } from "@/lib/ir-posts";
 import { settleDueIrMarkets } from "@/lib/iran";
+import { runBroadcastTick } from "@/lib/broadcast";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +51,15 @@ export async function POST(req: Request) {
     out.posts = await refreshMarketPosts();
   } catch (err) {
     out.postsError = err instanceof Error ? err.message : "error";
+  }
+
+  // تور ایمنی پخش سراسری. پخش خودش را زنجیر می‌کند و به این کرون وابسته
+  // نیست، ولی اگر پروسه وسط زنجیره ری‌استارت شود (هر دیپلوی) زنجیره پاره
+  // می‌شود. این تیک دوباره راهش می‌اندازد. اگر کاری نباشد بی‌هزینه است.
+  try {
+    out.broadcast = await runBroadcastTick(10_000);
+  } catch (err) {
+    out.broadcastError = err instanceof Error ? err.message : "error";
   }
 
   try {

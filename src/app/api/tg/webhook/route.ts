@@ -8,8 +8,10 @@ import {
   sendTelegram,
   sendScreen,
   editScreen,
+  editTelegram,
   answerCallback,
   escapeHtml,
+  tgCall,
 } from "@/lib/telegram";
 import {
   MENU,
@@ -37,6 +39,15 @@ import {
   WITHDRAW_ERROR,
 } from "@/lib/bot-wallet";
 import { db } from "@/lib/db";
+import {
+  isBroadcastAdmin,
+  createJob,
+  startJob,
+  cancelJob,
+  jobStats,
+  progressText,
+  jobKeyboard,
+} from "@/lib/broadcast";
 import { getFlow, setFlow, clearFlow } from "@/lib/bot-flow";
 import { requestWithdrawal } from "@/lib/withdrawal";
 import { requireLinkedTelegram } from "@/lib/money-guard";
@@ -66,6 +77,10 @@ type TgUpdate = {
     chat: { id: number; type?: string };
     from?: TgUser;
     text?: string;
+    /** کپشن عکس — ادمین می‌تواند دستور را همراه خود عکس بفرستد. */
+    caption?: string;
+    photo?: { file_id: string; file_size?: number }[];
+    reply_to_message?: { photo?: { file_id: string; file_size?: number }[] };
   };
   callback_query?: {
     id: string;
@@ -125,7 +140,8 @@ async function handleMessage(
   tg: TgUser,
   chatId: number,
   text: string,
-  isPrivate: boolean
+  isPrivate: boolean,
+  broadcastPhoto?: { file_id: string; file_size?: number }[]
 ) {
   const cmd = text.trim().split(/\s+/);
   const head = (cmd[0] ?? "").toLowerCase().split("@")[0];
@@ -186,6 +202,10 @@ async function handleMessage(
   }
   if (head === "/support") {
     await sendScreen(chatId, supportScreen());
+    return;
+  }
+  if (head === "/broadcast") {
+    await handleBroadcast(tg, chatId, text, broadcastPhoto);
     return;
   }
   if (head === "/bonus") return handleBonus(tg, chatId, player);
@@ -269,6 +289,109 @@ async function playerBalance(playerId: number): Promise<number> {
     [playerId]
   );
   return Number(r.rows[0]?.usdt_balance ?? 0);
+}
+
+/**
+ * `/broadcast <متن>` — فقط برای آیدی‌های داخل TG_ADMIN_IDS.
+ *
+ * دو راه برای عکس: دستور را کپشن خود عکس بگذار، یا روی عکسی که قبلا
+ * فرستاده‌ای ریپلای کن. هر دو به یک `file_id` می‌رسند.
+ *
+ * ⚠️ هیچ چیز فورا فرستاده نمی‌شود. اول پیش‌نویس ساخته می‌شود و ادمین
+ * دقیقا همان چیزی را که کاربران می‌بینند به‌علاوه‌ی تعداد مخاطب می‌بیند، و
+ * ارسال با یک دکمه‌ی جدا شروع می‌شود. پخش به ده‌ها هزار نفر برگشت‌ناپذیر
+ * است؛ یک تأیید اضافه ارزان‌ترین محافظ ممکن است.
+ */
+async function handleBroadcast(
+  tg: TgUser,
+  chatId: number,
+  text: string,
+  photo: { file_id: string; file_size?: number }[] | undefined
+) {
+  if (!isBroadcastAdmin(tg.id)) return; // بی‌صدا — وجود دستور لو نرود
+
+  const body = text.replace(/^\/broadcast(@\S+)?\s*/i, "").trim();
+  if (!body) {
+    await sendTelegram(
+      chatId,
+      `📣 <b>پخش سراسری</b>\n\n` +
+        `متن پیام را همراه دستور بنویسید:\n` +
+        `<code>/broadcast سلام، خبر تازه…</code>\n\n` +
+        `<b>برای پیام همراه عکس</b>، عکس را بفرستید و همین دستور را در ` +
+        `کپشنش بنویسید، یا روی عکس ریپلای کنید و دستور را بزنید.\n\n` +
+        `متن با HTML ساده کار می‌کند: <code>&lt;b&gt;پررنگ&lt;/b&gt;</code>`
+    );
+    return;
+  }
+
+  // بزرگ‌ترین نسخه‌ی عکس؛ تلگرام آرایه را از کوچک به بزرگ می‌دهد.
+  const photoId = photo?.length ? photo[photo.length - 1].file_id : null;
+
+  const s = await createJob(tg.id, body, photoId);
+  if (s.total === 0) {
+    await sendTelegram(chatId, "هیچ کاربر متصلی برای ارسال وجود ندارد.");
+    return;
+  }
+
+  // پیش‌نمایش دقیقا همان چیزی که کاربر می‌گیرد.
+  if (photoId) {
+    await tgCall("sendPhoto", {
+      chat_id: chatId,
+      photo: photoId,
+      caption: body,
+      parse_mode: "HTML",
+    });
+  } else {
+    await sendTelegram(chatId, body);
+  }
+  await sendTelegram(chatId, progressText(s), jobKeyboard(s));
+}
+
+/** دکمه‌های پخش: `b:<go|no|st>:<id>` */
+async function handleBroadcastButton(
+  cbId: string,
+  tg: TgUser,
+  chatId: number,
+  messageId: number,
+  data: string
+) {
+  if (!isBroadcastAdmin(tg.id)) {
+    await answerCallback(cbId, "");
+    return;
+  }
+  const [, op, idRaw] = data.split(":");
+  const jobId = Number(idRaw);
+  if (!Number.isInteger(jobId)) {
+    await answerCallback(cbId, "");
+    return;
+  }
+
+  if (op === "go") {
+    await answerCallback(cbId, "ارسال شروع شد");
+    await startJob(jobId);
+    // زنجیره را همین‌جا راه می‌اندازیم تا ادمین منتظر کرون بعدی نماند.
+    kickBroadcast();
+  } else if (op === "no") {
+    await answerCallback(cbId, "متوقف شد");
+    await cancelJob(jobId);
+  } else {
+    await answerCallback(cbId, "");
+  }
+
+  const s = await jobStats(jobId);
+  if (s) await editTelegram(chatId, messageId, progressText(s), jobKeyboard(s));
+}
+
+/** اولین تیک را بدون انتظار صدا می‌زند؛ خودِ روت بقیه را زنجیر می‌کند. */
+function kickBroadcast() {
+  const base = (process.env.SITE_URL ?? "").replace(/\/+$/, "");
+  const key = process.env.SETTLE_KEY;
+  if (!base || !key) return;
+  fetch(`${base}/api/bot/broadcast`, {
+    method: "POST",
+    headers: { "x-settle-key": key },
+    cache: "no-store",
+  }).catch(() => {});
 }
 
 /** دکمه‌های کیف پول: `w:*` */
@@ -473,17 +596,30 @@ export async function POST(req: Request) {
     if (who) await clearTelegramBlocked(who.id);
 
     const msg = update.message;
-    if (msg?.from && typeof msg.text === "string") {
+    // دستور می‌تواند در متن پیام باشد یا در کپشن یک عکس (پخش سراسری).
+    const body = typeof msg?.text === "string" ? msg.text : msg?.caption;
+    if (msg?.from && typeof body === "string") {
       await handleMessage(
         msg.from,
         msg.chat.id,
-        msg.text,
-        (msg.chat.type ?? "private") === "private"
+        body,
+        (msg.chat.type ?? "private") === "private",
+        msg.photo ?? msg.reply_to_message?.photo
       );
     }
 
     const cb = update.callback_query;
     if (cb?.data) {
+      if (cb.data.startsWith("b:") && cb.message) {
+        await handleBroadcastButton(
+          cb.id,
+          cb.from,
+          cb.message.chat.id,
+          cb.message.message_id,
+          cb.data
+        );
+        return NextResponse.json({ ok: true });
+      }
       if (cb.data.startsWith("w:") && cb.message) {
         await handleWallet(
           cb.id,
