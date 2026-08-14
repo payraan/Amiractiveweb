@@ -81,3 +81,28 @@ export function dualDateTime(iso: string): string {
     return "";
   }
 }
+
+/**
+ * زمان باقی‌مانده تا یک لحظه، مثل «۳ ساعت مانده».
+ *
+ * اینجاست و نه داخل صفحه‌ها، چون هم بازار ایران و هم ترید همین را
+ * می‌خواهند — و دو نسخه یعنی روزی یکی «۱ روز» بگوید و دیگری «۲۴ ساعت».
+ */
+export function remaining(iso: string | undefined): string {
+  const d = parse(iso ?? "");
+  if (!d) return "";
+  const ms = d.getTime() - Date.now();
+  if (ms <= 0) return "پایان‌یافته";
+  const h = Math.floor(ms / 3600_000);
+  if (h < 1) return "کمتر از یک ساعت";
+  if (h < 24) return `${h} ساعت مانده`;
+  return `${Math.floor(h / 24)} روز مانده`;
+}
+
+/** آیا تا ۲۴ ساعت آینده تعیین تکلیف می‌شود؟ */
+export function closingSoon(iso: string | undefined): boolean {
+  const d = parse(iso ?? "");
+  if (!d) return false;
+  const left = d.getTime() - Date.now();
+  return left > 0 && left <= 24 * 3600_000;
+}

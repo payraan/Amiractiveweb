@@ -5,6 +5,7 @@ import { useResource } from "@/components/tg/useResource";
 import { ErrorState, EmptyState, ScreenTitle, Skeleton } from "@/components/tg/ui";
 import { haptic } from "@/components/tg/telegram";
 import TradeDetail, { type PolyMarket } from "@/components/tg/screens/TradeDetail";
+import { remaining, closingSoon } from "@/lib/dates";
 
 // ترید — بازارهای رویداد پالی‌مارکت، از همان روت‌های سایت.
 //
@@ -36,9 +37,17 @@ const SORTS = [
 ] as const;
 type SortId = (typeof SORTS)[number]["id"];
 
+// همان قاعده‌ی بازار ایران: نوار داغ وقتی معنا دارد که فهرست آن‌قدر بلند
+// باشد که بازارهای بزرگ زیرش گم شوند، وگرنه فقط فهرست را دو بار نشان
+// می‌دهد و فضای عمودی می‌خورد.
+const HOT_COUNT = 4;
+const HOT_MIN_MARKETS = 10;
+
 export default function TradeScreen() {
   const [cat, setCat] = useState("all");
-  const [sort, setSort] = useState<SortId>("hot");
+  // مثل بازار ایران: پیش‌فرض «نزدیک به پایان» است تا فهرست، ترتیبِ نوار
+  // داغ را تکرار نکند و دو بخش مکمل هم باشند.
+  const [sort, setSort] = useState<SortId>("closing");
   const [hideDone, setHideDone] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
 
@@ -91,6 +100,12 @@ export default function TradeScreen() {
       return b.volume - a.volume;
     });
   })();
+
+  // نوار داغ از همان فهرستِ فیلترشده، تا با دسته‌ی انتخابی بخواند.
+  const hot =
+    shown && shown.length >= HOT_MIN_MARKETS
+      ? [...shown].sort((a, b) => b.volume - a.volume).slice(0, HOT_COUNT)
+      : [];
 
   return (
     <div>
@@ -166,6 +181,54 @@ export default function TradeScreen() {
         </button>
       </div>
 
+      {/* داغ‌ترین‌ها — پرحجم‌ترین بازارهای همین دسته، افقی. */}
+      {!markets.error && hot.length > 0 && (
+        <div className="mb-4">
+          <div className="mb-2 flex items-center gap-2">
+            <span className="text-[10px] font-bold text-gold">🔥 داغ‌ترین‌ها</span>
+            <span className="text-[9px] text-muted">بیشترین حجم معامله</span>
+            <span className="h-px flex-1 bg-line" />
+          </div>
+          <div className="no-scrollbar -mx-5 flex gap-2.5 overflow-x-auto px-5 pb-1">
+            {hot.map((m) => (
+              <article
+                key={m.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  haptic.press();
+                  setOpenId(m.id);
+                }}
+                className="w-[168px] shrink-0 cursor-pointer rounded-xl border border-gold/25 bg-gradient-to-bl from-gold/[0.07] to-surface/50 p-2.5 transition active:border-gold/60"
+              >
+                <p
+                  dir="auto"
+                  className="line-clamp-2 text-start text-[10.5px] font-bold leading-[1.6] text-cream"
+                >
+                  {m.question}
+                </p>
+                <div className="mt-2 h-[3px] overflow-hidden rounded-full bg-loss/30">
+                  <div
+                    className="h-full rounded-full bg-gain"
+                    style={{ width: `${m.yesPct}%` }}
+                  />
+                </div>
+                <div className="mt-1.5 flex items-center gap-1.5 text-[9px] text-muted">
+                  <span dir="ltr" className="font-mono font-bold text-gain">
+                    {Math.round(m.yesPct)}%
+                  </span>
+                  <span>بله</span>
+                  <span className="opacity-40">·</span>
+                  <span dir="ltr" className="font-mono text-cream">
+                    ${compact(m.volume)}
+                  </span>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      )}
+
       {markets.error && (
         <ErrorState message="بازارها نیامدند." onRetry={markets.reload} />
       )}
@@ -183,7 +246,7 @@ export default function TradeScreen() {
       )}
 
       {!markets.error && shown && shown.length > 0 && (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2.5">
           {shown.map((m) => {
             const done = doneIds.has(m.id);
             return (
@@ -195,45 +258,62 @@ export default function TradeScreen() {
                   haptic.press();
                   setOpenId(m.id);
                 }}
-                className="cursor-pointer overflow-hidden rounded-2xl border border-line bg-surface/40 transition active:border-gold/50"
+                className="cursor-pointer rounded-xl border border-line bg-surface/40 p-3 transition active:border-gold/50"
               >
-                <div className="p-4">
-                  <div className="mb-2.5 flex items-center gap-2">
-                    <span className="rounded-full border border-line bg-raised px-2 py-0.5 text-[9.5px] text-muted">
-                      {m.categoryLabel}
-                    </span>
-                    {done && (
-                      <span className="rounded-full border border-gain/40 bg-gain/10 px-2 py-0.5 text-[9.5px] font-bold text-gain">
-                        ثبت شده
-                      </span>
-                    )}
-                    <span className="ms-auto text-[10px] text-muted">
-                      حجم{" "}
-                      <span dir="ltr" className="font-mono text-cream">
-                        ${compact(m.volume)}
-                      </span>
-                    </span>
+                <div className="flex items-start gap-2.5">
+                  <div className="min-w-[46px] shrink-0 text-center">
+                    <div
+                      dir="ltr"
+                      className="font-mono text-[17px] font-black leading-none text-gain"
+                    >
+                      {Math.round(m.yesPct)}%
+                    </div>
+                    <div className="mt-1 text-[8.5px] text-muted">بله</div>
                   </div>
-
-                  <p className="text-[13.5px] font-bold leading-[1.9] text-cream">
+                  {/* dir="auto" نه rtl و نه ltr.
+                      عنوان پالی‌مارکت انگلیسی است و داخل ظرف rtl، الگوریتم
+                      دوطرفه‌ی یونیکد علامت پایانی را اول جمله می‌گذارد:
+                      «?Will George Russell…». ولی ltrِ ثابت هم جواب نیست،
+                      چون عنوان‌های فارسی‌شده (و فیکسچرهای فارسی) را چپ‌چین
+                      می‌کند. auto از روی اولین حرفِ جهت‌دار تصمیم می‌گیرد و
+                      هر دو حالت را درست می‌چیند. */}
+                  <p
+                    dir="auto"
+                    className="line-clamp-2 flex-1 text-start text-[12px] font-bold leading-[1.7] text-cream"
+                  >
                     {m.question}
                   </p>
+                </div>
 
-                  <div className="mt-3.5 flex h-7 w-full overflow-hidden rounded-lg bg-raised">
-                    <div
-                      className="flex items-center bg-gain/25 px-2"
-                      style={{ width: `${Math.max(14, Math.min(86, m.yesPct))}%` }}
-                    >
-                      <span dir="ltr" className="font-mono text-[10px] font-bold text-gain">
-                        {m.yesPct}%
+                <div className="mt-2.5 h-[3px] overflow-hidden rounded-full bg-loss/30">
+                  <div
+                    className="h-full rounded-full bg-gain"
+                    style={{ width: `${m.yesPct}%` }}
+                  />
+                </div>
+
+                <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[9.5px] text-muted">
+                  {done && (
+                    <span className="rounded-full border border-gain/40 bg-gain/10 px-1.5 py-px text-[8.5px] font-bold text-gain">
+                      ثبت شده
+                    </span>
+                  )}
+                  {m.endDate && (
+                    <>
+                      <span className={closingSoon(m.endDate) ? "font-bold text-gold" : ""}>
+                        {remaining(m.endDate)}
                       </span>
-                    </div>
-                    <div className="flex flex-1 items-center justify-end bg-loss/15 px-2">
-                      <span dir="ltr" className="font-mono text-[10px] font-bold text-loss">
-                        {Math.round((100 - m.yesPct) * 10) / 10}%
-                      </span>
-                    </div>
-                  </div>
+                      <span className="opacity-40">·</span>
+                    </>
+                  )}
+                  <span>{m.categoryLabel}</span>
+                  <span className="opacity-40">·</span>
+                  <span>
+                    حجم{" "}
+                    <span dir="ltr" className="font-mono text-cream">
+                      ${compact(m.volume)}
+                    </span>
+                  </span>
                 </div>
               </article>
             );

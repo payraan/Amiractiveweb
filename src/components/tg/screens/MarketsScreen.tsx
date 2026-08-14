@@ -7,6 +7,7 @@ import { ErrorState, EmptyState, ScreenTitle, Skeleton } from "@/components/tg/u
 import { haptic } from "@/components/tg/telegram";
 import ProposeScreen from "@/components/tg/screens/ProposeScreen";
 import MarketDetail, { type Market } from "@/components/tg/screens/MarketDetail";
+import { remaining, closingSoon } from "@/lib/dates";
 
 // فهرست بازارهای ایران — از همان /api/ir/markets که سایت استفاده می‌کند.
 
@@ -24,15 +25,6 @@ const STATUS: Record<string, { label: string; cls: string }> = {
 };
 
 const CAT_LABEL = Object.fromEntries(IR_CATEGORIES.map((c) => [c.id, c.label]));
-
-function remaining(iso: string): string {
-  const ms = new Date(iso).getTime() - Date.now();
-  if (ms <= 0) return "پایان‌یافته";
-  const h = Math.floor(ms / 3600000);
-  if (h < 1) return "کمتر از یک ساعت";
-  if (h < 24) return `${h} ساعت مانده`;
-  return `${Math.floor(h / 24)} روز مانده`;
-}
 
 const compact = (n: number) =>
   n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(Math.round(n));
@@ -73,12 +65,6 @@ function hotMarkets(list: Market[]): Market[] {
     .slice(0, HOT_COUNT);
 }
 
-/** «تا ۲۴ ساعت» — بازارهایی که همین امروز تعیین تکلیف می‌شوند. */
-const SOON_MS = 24 * 3600_000;
-function closingSoon(m: Market): boolean {
-  const left = new Date(m.closesAt).getTime() - Date.now();
-  return left > 0 && left <= SOON_MS;
-}
 
 function sortMarkets(list: Market[], sort: SortId): Market[] {
   return [...list].sort((a, b) => {
@@ -140,7 +126,7 @@ export default function MarketsScreen({
   const filtered = markets
     ? markets
         .filter((m) => (onlyOpen ? m.status === "open" : true))
-        .filter((m) => (onlySoon ? closingSoon(m) : true))
+        .filter((m) => (onlySoon ? closingSoon(m.closesAt) : true))
     : null;
   const shown = filtered ? sortMarkets(filtered, sort) : null;
 
@@ -373,7 +359,7 @@ export default function MarketsScreen({
                       {st.label}
                     </span>
                   )}
-                  <span className={closingSoon(m) ? "font-bold text-gold" : ""}>
+                  <span className={closingSoon(m.closesAt) ? "font-bold text-gold" : ""}>
                     {remaining(m.closesAt)}
                   </span>
                   <span className="opacity-40">·</span>
