@@ -178,6 +178,17 @@ export async function ensureIrTables(): Promise<void> {
         await pool.query(
           "UPDATE wallet_ledger SET demo = amount, demo_after = balance_after WHERE demo = 0"
         );
+        // شرط‌های موجود پیش از وجود این ستون ثبت شده‌اند و همه صفر گرفتند.
+        // بدون این، نمای «پول واقعی» کل پول قفل‌شده در بازارهای باز را
+        // واقعی نشان می‌دهد — دقیقا همان ۸۰۶۹ دلاری که در پنل دیده می‌شد،
+        // در حالی که یک تتر واقعی هم در آن نبود.
+        await pool.query(
+          "UPDATE ir_bets SET demo_stake = stake WHERE demo_stake = 0"
+        );
+        // و همین برای درآمدهای ثبت‌شده: همه‌شان کمیسیون بازارهای دمو بودند.
+        await pool.query(
+          "UPDATE platform_revenue SET demo_amount = amount, is_demo = true WHERE demo_amount = 0"
+        );
       }
 
       // ── اعتراض به نتیجه ──────────────────────────────────
