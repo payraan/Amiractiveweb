@@ -33,6 +33,7 @@ export default function Translations() {
   const [data, setData] = useState<Data | null>(null);
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
+  const [runMsg, setRunMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const r = await fetch(`/api/admin/translations?filter=${filter}`, {
@@ -63,6 +64,27 @@ export default function Translations() {
         delete n[hash];
         return n;
       });
+      await load();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function runNow() {
+    setBusy("__run");
+    setRunMsg(null);
+    try {
+      const r = await fetch("/api/admin/translations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ run: true }),
+      });
+      const j = await r.json();
+      setRunMsg(
+        j.ok
+          ? `${j.translated} ترجمه شد · ${j.failed} ناموفق · ${j.pending} در صف`
+          : "اجرا نشد."
+      );
       await load();
     } finally {
       setBusy(null);
@@ -104,6 +126,18 @@ export default function Translations() {
         <span>
           اصلاح‌شده: <b className="text-gold">{data.counts.edited}</b>
         </span>
+      </div>
+
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          disabled={busy === "__run"}
+          onClick={runNow}
+          className="rounded-lg bg-gold px-4 py-2 text-[11px] font-bold text-ink transition disabled:opacity-40"
+        >
+          {busy === "__run" ? "در حال ترجمه…" : "ترجمه‌ی همین حالا"}
+        </button>
+        {runMsg && <span className="text-[11px] text-muted">{runMsg}</span>}
       </div>
 
       <div className="mb-4 flex gap-2">

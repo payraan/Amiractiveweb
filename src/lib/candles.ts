@@ -16,17 +16,54 @@ export type Candle = {
 // استفاده می‌کند). قبلا اینجا فقط BTC و XAU هارد‌کد شده بودند و برای بقیه
 // undefined به URL می‌رفت، پس چارت ۴۰ دارایی از ۴۲ تا خالی می‌ماند.
 
-// interval → yahoo range+interval params
-const PARAMS: Record<string, { range: string; interval: string }> = {
+// ═══ چرا کندل‌ها تجمیع می‌شوند ════════════════════════════════
+//
+// **یاهو کندل ۴ ساعته و ۱۲ ساعته ندارد.** بازه‌هایش ۱، ۵، ۱۵، ۳۰، ۶۰ و ۹۰
+// دقیقه و روزانه است. پس برای این دو تایم‌فریم چاره‌ای جز ساختنشان نیست.
+//
+// دو تلاش قبلی همین‌جا شکست خورد:
+//  ۱. هر دو `interval=1h` بودند و فقط `range` فرق داشت — یعنی عملا یک
+//     نمودار با دو بازه‌ی زمانی.
+//  ۲. ۱۲ ساعته به `90m` تغییر کرد. داده واقعا فرق می‌کرد، ولی **کندل ۶۰
+//     دقیقه‌ای و ۹۰ دقیقه‌ای با چشم تفکیک‌ناپذیرند** و برچسب «12h candles»
+//     همچنان دروغ بود.
+//
+// حالا کندل ساعتی گرفته و به سطل‌های ۴ و ۱۲ ساعته تبدیل می‌شود: باز = باز
+// اولین، بسته = بسته آخرین، سقف و کف = بیشینه و کمینه‌ی بازه. این همان
+// تعریف استاندارد است و نتیجه‌اش کندلی است که واقعا ۱۲ ساعت را نشان می‌دهد.
+type Spec = { range: string; interval: string; bucketHours?: number };
+
+const PARAMS: Record<string, Spec> = {
   "1h": { range: "5d", interval: "15m" },
-  "4h": { range: "1mo", interval: "1h" },
-  // ۱۲ ساعته باید کندل درشت‌تری از ۴ ساعته داشته باشد. قبلا هر دو interval=1h
-  // بودند و فقط range فرق داشت، پس شکل کندل‌ها یکی بود و کاربر می‌دید که
-  // «۱۲ ساعته همان ۴ ساعته را نشان می‌دهد». یاهو 90m را فقط تا ۶۰ روز
-  // می‌دهد، پس range هم روی 60d بسته می‌شود.
-  "12h": { range: "60d", interval: "90m" },
+  "4h": { range: "1mo", interval: "1h", bucketHours: 4 },
+  // ۳ ماه داده‌ی ساعتی ≈ ۲۲۰۰ کندل ← حدود ۱۸۰ کندل ۱۲ ساعته.
+  "12h": { range: "3mo", interval: "1h", bucketHours: 12 },
   "24h": { range: "6mo", interval: "1d" },
 };
+
+/**
+ * کندل‌های ریز را به سطل‌های چندساعته تبدیل می‌کند.
+ *
+ * مرزها روی ساعت گرد می‌شوند (`floor` روی خودِ timestamp)، نه از اولین
+ * کندلِ داده — وگرنه با هر بار واکشی، مرزها کمی جابه‌جا می‌شدند و نمودار
+ * بین دو رفرش تکان می‌خورد.
+ */
+function bucket(candles: Candle[], hours: number): Candle[] {
+  const size = hours * 3600;
+  const out: Candle[] = [];
+  for (const c of candles) {
+    const t = Math.floor(c.time / size) * size;
+    const last = out[out.length - 1];
+    if (last && last.time === t) {
+      last.high = Math.max(last.high, c.high);
+      last.low = Math.min(last.low, c.low);
+      last.close = c.close;
+    } else {
+      out.push({ time: t, open: c.open, high: c.high, low: c.low, close: c.close });
+    }
+  }
+  return out;
+}
 
 const TTL_MS = 60_000;
 const cache = new Map<string, { data: Candle[]; ts: number }>();
@@ -72,9 +109,11 @@ export async function getCandles(
       }
     }
 
-    if (candles.length) {
-      cache.set(key, { data: candles, ts: Date.now() });
-      return candles;
+    const final = p.bucketHours ? bucket(candles, p.bucketHours) : candles;
+
+    if (final.length) {
+      cache.set(key, { data: final, ts: Date.now() });
+      return final;
     }
     if (hit) return hit.data;
     return [];

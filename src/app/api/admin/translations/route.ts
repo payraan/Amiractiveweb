@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { verifyAdmin, ADMIN_COOKIE } from "@/lib/admin";
-import { ensureTranslationTable, translatorReady } from "@/lib/translate";
+import {
+  ensureTranslationTable,
+  translatorReady,
+  translatePending,
+} from "@/lib/translate";
 
 export const dynamic = "force-dynamic";
 
@@ -59,11 +63,19 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
-  let body: { hash?: string; fa?: string; retry?: boolean };
+  let body: { hash?: string; fa?: string; retry?: boolean; run?: boolean };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ ok: false, error: "bad_json" }, { status: 400 });
+  }
+
+  // «ترجمه‌ی همین حالا» — تا مالک منتظر کرون بعدی نماند، و مهم‌تر: تا
+  // بلافاصله معلوم شود کلید کار می‌کند یا نه. اگر failed بالا برود، کلید
+  // مشکل دارد؛ این تنها بازخورد مستقیمی است که وجود دارد.
+  if (body.run) {
+    const r = await translatePending(12);
+    return NextResponse.json({ ok: true, ...r });
   }
 
   const hash = String(body.hash ?? "").trim();

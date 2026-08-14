@@ -273,14 +273,22 @@ export default function TradeScreen() {
                 className="cursor-pointer rounded-xl border border-line bg-surface/40 p-3 transition active:border-gold/50"
               >
                 <div className="flex items-start gap-2.5">
-                  <div className="min-w-[46px] shrink-0 text-center">
-                    <div
-                      dir="ltr"
-                      className="font-mono text-[17px] font-black leading-none text-gain"
-                    >
+                  {/* هر دو طرف نشان داده می‌شود، نه فقط «بله».
+                      یک بازار پیش‌بینی دو گزینه دارد و نشان دادن یکی، نصف
+                      اطلاعات را پنهان می‌کند — کاربر باید ۱۰۰ منهای عدد را
+                      در ذهنش حساب می‌کرد. */}
+                  <div className="min-w-[46px] shrink-0 text-center leading-none">
+                    <div dir="ltr" className="font-mono text-[16px] font-black text-gain">
                       {Math.round(m.yesPct)}%
                     </div>
-                    <div className="mt-1 text-[8.5px] text-muted">بله</div>
+                    <div className="mt-0.5 text-[8px] text-gain/70">بله</div>
+                    <div
+                      dir="ltr"
+                      className="mt-1.5 font-mono text-[13px] font-bold text-loss"
+                    >
+                      {100 - Math.round(m.yesPct)}%
+                    </div>
+                    <div className="mt-0.5 text-[8px] text-loss/70">خیر</div>
                   </div>
                   {/* dir="auto" نه rtl و نه ltr.
                       عنوان پالی‌مارکت انگلیسی است و داخل ظرف rtl، الگوریتم

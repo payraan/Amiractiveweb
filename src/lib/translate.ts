@@ -150,8 +150,18 @@ async function callGemini(texts: string[]): Promise<string[] | null> {
   }
 }
 
-/** چند عنوان در هر تماس. کوچک نگه داشته شده تا شکستِ یک دسته گران نباشد. */
-const BATCH = 20;
+/**
+ * چند عنوان در هر تماس.
+ *
+ * ⚠️ این عدد و تعداد دسته‌ها با هم، سرعت پرشدن صف را تعیین می‌کنند و
+ * نسخه‌ی اول خیلی محتاط بود: ۲۰×۲ در هر ۱۵ دقیقه یعنی ۳۵۲ بازار (حدود
+ * ۷۰۰ عنوان با احتساب نام رویداد) بیش از چهار ساعت طول می‌کشید.
+ *
+ * حسابش ساده است: کل عقب‌ماندگی حدود ۲۰ درخواست است، نه ۲۰ درخواست در
+ * روز. سقف رایگان روزانه صدها درخواست است، پس محدودکننده هرگز سقف نبود —
+ * فقط احتیاط بی‌جای من بود.
+ */
+const BATCH = 40;
 
 export type TranslateResult = { translated: number; failed: number; pending: number };
 
@@ -161,7 +171,7 @@ export type TranslateResult = { translated: number; failed: number; pending: num
  * ⚠️ ردیف‌های ویرایش‌شده‌ی دستی هرگز دوباره ترجمه نمی‌شوند — کلید `edited`
  * برای همین است. بدون آن، اولین اجرای کرون اصلاح دستی مالک را پاک می‌کرد.
  */
-export async function translatePending(maxBatches = 2): Promise<TranslateResult> {
+export async function translatePending(maxBatches = 12): Promise<TranslateResult> {
   await ensureTranslationTable();
   const pool = await db();
 

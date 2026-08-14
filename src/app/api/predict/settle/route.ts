@@ -56,7 +56,7 @@ export async function POST(req: Request) {
 
   // صف ترجمه‌ی عنوان بازارهای خارجی. بدون کلید بی‌هزینه رد می‌شود.
   try {
-    out.translate = await translatePending(2);
+    out.translate = await translatePending(6);
   } catch (err) {
     out.translateError = err instanceof Error ? err.message : "error";
   }

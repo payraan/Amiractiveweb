@@ -163,7 +163,7 @@ export default function MarketsScreen({
   return (
     <div>
       <div className="mb-4 flex items-start justify-between gap-3">
-        <div className="min-w-0"><ScreenTitle title="بازار ایران" subtitle="پیش‌بینی با تتر واقعی" /></div>
+        <div className="min-w-0"><ScreenTitle title="بازار ایران" subtitle="از نرخ ارز و طلا تا لیگ برتر" /></div>
         <button
           type="button"
           onClick={() => {
@@ -342,14 +342,22 @@ export default function MarketsScreen({
                     عدد صفحه است و نباید برای خواندنش چشم به سطر دیگری برود.
                     نتیجه‌اش هم دو برابر شدن تعداد کارت در یک صفحه است. */}
                 <div className="flex items-start gap-2.5">
-                  <div className="min-w-[46px] shrink-0 text-center">
-                    <div
-                      dir="ltr"
-                      className="font-mono text-[17px] font-black leading-none text-gain"
-                    >
+                  {/* هر دو طرف نشان داده می‌شود، نه فقط «بله».
+                      یک بازار پیش‌بینی دو گزینه دارد و نشان دادن یکی، نصف
+                      اطلاعات را پنهان می‌کند — کاربر باید ۱۰۰ منهای عدد را
+                      در ذهنش حساب می‌کرد. */}
+                  <div className="min-w-[46px] shrink-0 text-center leading-none">
+                    <div dir="ltr" className="font-mono text-[16px] font-black text-gain">
                       {Math.round(m.yesPct)}%
                     </div>
-                    <div className="mt-1 text-[8.5px] text-muted">بله</div>
+                    <div className="mt-0.5 text-[8px] text-gain/70">بله</div>
+                    <div
+                      dir="ltr"
+                      className="mt-1.5 font-mono text-[13px] font-bold text-loss"
+                    >
+                      {100 - Math.round(m.yesPct)}%
+                    </div>
+                    <div className="mt-0.5 text-[8px] text-loss/70">خیر</div>
                   </div>
                   <p className="line-clamp-2 flex-1 text-[12px] font-bold leading-[1.85] text-cream">
                     {m.question}
