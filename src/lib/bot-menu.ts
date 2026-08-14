@@ -128,7 +128,14 @@ const KEYS: { label: string; command?: string; tab?: string }[] = [
   { label: "❓ راهنما", command: "/help" },
 ];
 
-/** چیدمان دو ستونی — شش گزینه در سه ردیف. */
+/**
+ * چیدمان دو ستونی — شش گزینه در سه ردیف.
+ *
+ * ⚠️ هر جفت **وارونه** می‌شود. تلگرام صفحه‌کلید ثابت را چپ‌به‌راست می‌چیند
+ * (خانه‌ی اول سمت چپ) ولی کیبورد شیشه‌ای را در چت فارسی راست‌به‌چپ. بدون این
+ * وارونگی، دو منویی که همان گزینه‌ها را دارند آینه‌ی هم می‌شوند و کاربر
+ * فارسی‌زبان «بازار ایران» را یک‌بار راست و یک‌بار چپ می‌بیند.
+ */
 export function replyKeyboard(): KeyboardButton[][] {
   const btn = (k: (typeof KEYS)[number]): KeyboardButton =>
     k.tab !== undefined && SITE_URL
@@ -137,7 +144,7 @@ export function replyKeyboard(): KeyboardButton[][] {
 
   const rows: KeyboardButton[][] = [];
   for (let i = 0; i < KEYS.length; i += 2) {
-    rows.push(KEYS.slice(i, i + 2).map(btn));
+    rows.push(KEYS.slice(i, i + 2).map(btn).reverse());
   }
   return rows;
 }
