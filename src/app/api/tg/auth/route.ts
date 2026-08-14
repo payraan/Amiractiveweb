@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { findOrCreateTgPlayer } from "@/lib/telegram";
 import { attachReferral } from "@/lib/referral";
+import { TERMS_VERSION } from "@/lib/onboarding";
 import {
   verifyTelegramInitData,
   signTgSession,
@@ -56,8 +57,13 @@ export async function POST(req: Request) {
   }
 
   const pool = await db();
-  const me = await pool.query<{ credits: number; usdt_balance: string }>(
-    "SELECT credits, usdt_balance FROM players WHERE id=$1",
+  const me = await pool.query<{
+    credits: number;
+    usdt_balance: string;
+    terms_version: number | null;
+    tour_at: string | null;
+  }>(
+    "SELECT credits, usdt_balance, terms_version, tour_at FROM players WHERE id=$1",
     [player.id]
   );
 
@@ -72,6 +78,14 @@ export async function POST(req: Request) {
       credits: me.rows[0]?.credits ?? 0,
       usdtBalance: Number(me.rows[0]?.usdt_balance ?? 0),
     },
+    // دروازه‌های اولین ورود.
+    //
+    // `needsTerms` با **مقایسه‌ی نسخه** سنجیده می‌شود نه با «خالی بودن»:
+    // وقتی متن قوانین عوض شود و نسخه بالا برود، کسی که نسخه‌ی قبلی را
+    // پذیرفته باید دوباره ببیند. با شرطِ «تاریخ دارد یا نه» این هرگز
+    // اتفاق نمی‌افتاد.
+    needsTerms: (me.rows[0]?.terms_version ?? 0) < TERMS_VERSION,
+    needsTour: !me.rows[0]?.tour_at,
     // مقصد deep link تا کلاینت بداند کاربر را کجا ببرد
     startParam: check.startParam,
   });

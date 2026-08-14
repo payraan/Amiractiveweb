@@ -12,6 +12,7 @@ import ChallengeScreen from "@/components/tg/screens/ChallengeScreen";
 import WalletScreen from "@/components/tg/screens/WalletScreen";
 import ProfileScreen from "@/components/tg/screens/ProfileScreen";
 import { Skeleton } from "@/components/tg/ui";
+import { TermsGate, TourGate } from "@/components/tg/screens/Gate";
 import Logo from "@/components/Logo";
 
 // پوسته‌ی مینی‌اپ.
@@ -106,6 +107,10 @@ export default function MiniApp({ siteUrl }: { siteUrl: string }) {
   const [player, setPlayer] = useState<AuthedPlayer | null>(null);
   const [deepLink, setDeepLink] = useState<DeepLink | null>(null);
   const [created, setCreated] = useState(false);
+  // دو دروازه‌ی اولین ورود. ترتیبشان مهم است: قوانین اول، آموزش بعد — پذیرش
+  // شرط استفاده است، آموزش فقط کمک.
+  const [needsTerms, setNeedsTerms] = useState(false);
+  const [needsTour, setNeedsTour] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [outside, setOutside] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -127,6 +132,8 @@ export default function MiniApp({ siteUrl }: { siteUrl: string }) {
       }
       setPlayer(r.player);
       setCreated(r.created);
+      setNeedsTerms(r.needsTerms);
+      setNeedsTour(r.needsTour);
       // کسی که از دکمه‌ی کانال آمده باید مستقیم داخل همان بازار بیفتد، نه
       // در فهرست کلی — وگرنه باید بین ده‌ها بازار دنبال همانی بگردد که
       // رویش کلیک کرده.
@@ -169,7 +176,25 @@ export default function MiniApp({ siteUrl }: { siteUrl: string }) {
         onReady={start}
       />
 
-      <div className="mx-auto flex min-h-[100dvh] max-w-md flex-col">
+      {/* دروازه‌ها پیش از پوسته برمی‌گردند، نه به‌شکل لایه‌ی رویی: با لایه‌ی
+          رویی، هدر و نوار تب زیرش زنده می‌مانند و یک لمس اشتباه کاربری را که
+          هنوز قوانین را نپذیرفته وسط بازارها می‌اندازد. */}
+      {player && needsTerms && (
+        <div className="mx-auto max-w-md">
+          <TermsGate onAccept={() => setNeedsTerms(false)} />
+        </div>
+      )}
+      {player && !needsTerms && needsTour && (
+        <div className="mx-auto max-w-md">
+          <TourGate onDone={() => setNeedsTour(false)} />
+        </div>
+      )}
+
+      <div
+        className={`mx-auto flex min-h-[100dvh] max-w-md flex-col ${
+          player && (needsTerms || needsTour) ? "hidden" : ""
+        }`}
+      >
         {/* هدر چسبان: موجودی همیشه در دید است، چون در اپی که با پول کار
             می‌کند اولین چیزی است که کاربر دنبالش می‌گردد. */}
         <header className="tg-safe-top sticky top-0 z-10 flex items-center justify-between border-b border-line/60 bg-ink/85 px-5 pb-3 backdrop-blur-xl">

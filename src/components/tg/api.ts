@@ -26,7 +26,14 @@ export type AuthedPlayer = {
 };
 
 export type AuthResult =
-  | { ok: true; player: AuthedPlayer; created: boolean; startParam: string | null }
+  | {
+      ok: true;
+      player: AuthedPlayer;
+      created: boolean;
+      startParam: string | null;
+      needsTerms: boolean;
+      needsTour: boolean;
+    }
   | { ok: false; error: string };
 
 /** ورود با initData. همان چیزی که توکن را می‌سازد یا تازه می‌کند. */
@@ -50,6 +57,10 @@ export async function authenticate(): Promise<AuthResult> {
     player: j.player,
     created: Boolean(j.created),
     startParam: j.startParam ?? null,
+    // fail-closed نیست و نباید باشد: اگر سرور این فیلدها را نفرستد،
+    // دروازه بسته می‌ماند و کاربر پشت مودالی گیر می‌کند که راه بازش نیست.
+    needsTerms: Boolean(j.needsTerms),
+    needsTour: Boolean(j.needsTour),
   };
 }
 

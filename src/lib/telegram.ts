@@ -143,6 +143,14 @@ export async function ensureTelegramTables(): Promise<void> {
       await pool.query("ALTER TABLE players ADD COLUMN IF NOT EXISTS group_bonus_at TIMESTAMPTZ");
       await pool.query("ALTER TABLE players ADD COLUMN IF NOT EXISTS tg_blocked_at TIMESTAMPTZ");
       await pool.query("ALTER TABLE players ADD COLUMN IF NOT EXISTS tg_checked_at TIMESTAMPTZ");
+      // پذیرش قوانین: هم لحظه‌اش و هم **نسخه‌ی متنی** که پذیرفته شده. بدون
+      // نسخه، رکورد پذیرش بی‌ارزش است — متن که عوض شود، معلوم نیست کاربر چه
+      // چیزی را قبول کرده بود.
+      await pool.query("ALTER TABLE players ADD COLUMN IF NOT EXISTS terms_at TIMESTAMPTZ");
+      await pool.query("ALTER TABLE players ADD COLUMN IF NOT EXISTS terms_version INTEGER");
+      // آموزش اول ورود — عمدا در دیتابیس و نه localStorage: کاربری که اپ را
+      // روی گوشی دوم باز می‌کند نباید دوباره سه اسلاید ببیند.
+      await pool.query("ALTER TABLE players ADD COLUMN IF NOT EXISTS tour_at TIMESTAMPTZ");
       await pool.query(
         `CREATE UNIQUE INDEX IF NOT EXISTS players_tg_user_id_key
            ON players (tg_user_id) WHERE tg_user_id IS NOT NULL`
