@@ -683,6 +683,8 @@ export async function settleIrMarket(
  */
 export async function settleDueIrMarkets(limit = 50): Promise<{
   checked: number;
+  /** بازارهایی که مهلتشان گذشته بود و همین اجرا قفلشان کرد. */
+  locked: number;
   settled: number;
   voided: number;
   paid: number;
@@ -690,6 +692,23 @@ export async function settleDueIrMarkets(limit = 50): Promise<{
 }> {
   await ensureIrTables();
   const pool = await db();
+
+  // ── قفل خودکار بازارهایی که مهلتشان گذشته ──────────────────
+  //
+  // تا امروز تنها راه `open → locked` کلیک دستی ادمین بود. نتیجه‌اش این شد
+  // که بازارهایی با مهلتِ گذشته روزها `open` ماندند و پول شرکت‌کننده‌ها
+  // بی‌سروصدا قفل ماند، چون تسویه هرگز شروع نمی‌شود مگر از `settling` — و
+  // به `settling` هم فقط از `locked` می‌شود رسید.
+  //
+  // شرط‌بندی از قبل با مقایسه‌ی `closes_at` مسدود است، پس این قفل هیچ درِ
+  // بازی را نمی‌بندد؛ فقط وضعیت را با واقعیت هم‌خوان می‌کند. هیچ پولی هم
+  // جابه‌جا نمی‌شود — نتیجه را همچنان انسان ثبت می‌کند.
+  const locked = await pool.query(
+    `UPDATE ir_markets SET status='locked'
+      WHERE status='open' AND closes_at < now()
+      RETURNING id`
+  );
+
   const due = await pool.query<{ id: number }>(
     `SELECT m.id FROM ir_markets m
       WHERE m.status = 'settling'
@@ -723,5 +742,12 @@ export async function settleDueIrMarkets(limit = 50): Promise<{
     }
   }
 
-  return { checked: due.rows.length, settled, voided, paid, errors };
+  return {
+    checked: due.rows.length,
+    locked: locked.rowCount ?? 0,
+    settled,
+    voided,
+    paid,
+    errors,
+  };
 }
