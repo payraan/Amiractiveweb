@@ -34,6 +34,8 @@ export default function Translations() {
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [runMsg, setRunMsg] = useState<string | null>(null);
+  const [runErr, setRunErr] = useState<string | null>(null);
+  const [model, setModel] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const r = await fetch(`/api/admin/translations?filter=${filter}`, {
@@ -85,6 +87,22 @@ export default function Translations() {
           ? `${j.translated} ترجمه شد · ${j.failed} ناموفق · ${j.pending} در صف`
           : "اجرا نشد."
       );
+      setRunErr(j.error ?? null);
+      setModel(j.model ?? null);
+      await load();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function resetAll() {
+    setBusy("__reset");
+    try {
+      await fetch("/api/admin/translations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resetAll: true }),
+      });
       await load();
     } finally {
       setBusy(null);
@@ -137,8 +155,33 @@ export default function Translations() {
         >
           {busy === "__run" ? "در حال ترجمه…" : "ترجمه‌ی همین حالا"}
         </button>
+        <button
+          type="button"
+          disabled={busy === "__reset"}
+          onClick={resetAll}
+          title="شمارنده‌ی شکست همه را صفر می‌کند تا دوباره امتحان شوند"
+          className="rounded-lg border border-line px-3 py-2 text-[11px] text-muted transition disabled:opacity-40"
+        >
+          تلاش دوباره‌ی همه
+        </button>
         {runMsg && <span className="text-[11px] text-muted">{runMsg}</span>}
+        {model && (
+          <span className="text-[10px] text-muted" dir="ltr">
+            model: {model}
+          </span>
+        )}
       </div>
+
+      {/* خطای واقعی گوگل، بدون دستکاری. بدون این، «ناموفق» یک عدد بی‌معنا
+          بود و هیچ راهی برای فهمیدن علت وجود نداشت. */}
+      {runErr && (
+        <div
+          dir="ltr"
+          className="mb-4 rounded-xl border border-loss/40 bg-loss/5 p-3 text-start font-mono text-[11px] leading-6 text-loss"
+        >
+          {runErr}
+        </div>
+      )}
 
       <div className="mb-4 flex gap-2">
         {FILTERS.map((f) => (

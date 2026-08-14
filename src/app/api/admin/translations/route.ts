@@ -6,6 +6,7 @@ import {
   ensureTranslationTable,
   translatorReady,
   translatePending,
+  resetFailures,
 } from "@/lib/translate";
 
 export const dynamic = "force-dynamic";
@@ -63,7 +64,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
-  let body: { hash?: string; fa?: string; retry?: boolean; run?: boolean };
+  let body: {
+    hash?: string;
+    fa?: string;
+    retry?: boolean;
+    run?: boolean;
+    resetAll?: boolean;
+  };
   try {
     body = await req.json();
   } catch {
@@ -73,6 +80,11 @@ export async function POST(req: Request) {
   // «ترجمه‌ی همین حالا» — تا مالک منتظر کرون بعدی نماند، و مهم‌تر: تا
   // بلافاصله معلوم شود کلید کار می‌کند یا نه. اگر failed بالا برود، کلید
   // مشکل دارد؛ این تنها بازخورد مستقیمی است که وجود دارد.
+  if (body.resetAll) {
+    const n = await resetFailures();
+    return NextResponse.json({ ok: true, reset: n });
+  }
+
   if (body.run) {
     const r = await translatePending(12);
     return NextResponse.json({ ok: true, ...r });

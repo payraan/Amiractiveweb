@@ -115,39 +115,146 @@ const PROMPT = `تو یک مترجم حرفه‌ای فارسی هستی. عنو
 ورودی یک آرایه‌ی JSON از رشته‌هاست. خروجی **فقط** یک آرایه‌ی JSON از رشته‌های فارسی، دقیقا به همان تعداد و ترتیب. هیچ متن دیگری ننویس.`;
 
 type GeminiResponse = {
-  candidates?: { content?: { parts?: { text?: string }[] } }[];
+  candidates?: {
+    content?: { parts?: { text?: string }[] };
+    /** مثلا MAX_TOKENS یا SAFETY — دلیل خالی‌بودن پاسخ. */
+    finishReason?: string;
+  }[];
   error?: { message?: string };
 };
 
-/** یک دسته را به Gemini می‌دهد. `null` یعنی این دسته ترجمه نشد. */
-async function callGemini(texts: string[]): Promise<string[] | null> {
-  if (!KEY) return null;
+/**
+ * آخرین خطای واقعی — برای نمایش در پنل ادمین.
+ *
+ * ⚠️ نسخه‌ی اول همه‌ی خطاها را می‌بلعید و فقط `null` می‌داد. نتیجه‌اش این
+ * شد که «۴۰ ناموفق» دیده می‌شد و هیچ‌کس نمی‌دانست چرا: کلید غلط؟ مدل
+ * ناموجود؟ سهمیه تمام؟ خطای شبکه؟ یک شمارنده‌ی بی‌توضیح، عیب‌یابی را
+ * غیرممکن می‌کند.
+ */
+let lastError: string | null = null;
+export function lastTranslateError(): string | null {
+  return lastError;
+}
+
+/** مدلی که واقعا کار کرد — تا هر بار دوباره کشف نشود. */
+let workingModel: string | null = null;
+
+type ModelList = { models?: { name?: string; supportedGenerationMethods?: string[] }[] };
+
+/**
+ * وقتی مدلِ پیکربندی‌شده وجود ندارد، از خود گوگل می‌پرسیم چه چیزی هست.
+ *
+ * نام مدل‌های Gemini مرتبا عوض و بازنشسته می‌شوند، و یک نام کهنه در کد
+ * یعنی قابلیتی که یک روز بی‌صدا می‌میرد. این کار یک بار انجام و کش می‌شود.
+ */
+async function discoverModel(): Promise<string | null> {
   try {
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": KEY },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: PROMPT }] },
-          contents: [{ parts: [{ text: JSON.stringify(texts) }] }],
-          generationConfig: { temperature: 0.2, responseMimeType: "application/json" },
-        }),
-        cache: "no-store",
-        signal: AbortSignal.timeout(30_000),
-      }
+      "https://generativelanguage.googleapis.com/v1beta/models",
+      { headers: { "x-goog-api-key": KEY }, cache: "no-store", signal: AbortSignal.timeout(20_000) }
     );
-    const j = (await res.json()) as GeminiResponse;
-    const raw = j.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!raw) return null;
-
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed) || parsed.length !== texts.length) return null;
-    if (!parsed.every((x) => typeof x === "string" && x.trim())) return null;
-    return parsed as string[];
+    const j = (await res.json()) as ModelList;
+    const usable = (j.models ?? []).filter((m) =>
+      m.supportedGenerationMethods?.includes("generateContent")
+    );
+    // سریع‌ترین و ارزان‌ترین خانواده اول؛ اگر نبود، هر چه هست.
+    const pick =
+      usable.find((m) => m.name?.includes("flash-lite")) ??
+      usable.find((m) => m.name?.includes("flash")) ??
+      usable[0];
+    return pick?.name?.replace(/^models\//, "") ?? null;
   } catch {
     return null;
   }
+}
+
+async function rawCall(model: string, texts: string[]) {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": KEY },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: PROMPT }] },
+        contents: [{ role: "user", parts: [{ text: JSON.stringify(texts) }] }],
+        generationConfig: { temperature: 0.2, responseMimeType: "application/json" },
+      }),
+      cache: "no-store",
+      signal: AbortSignal.timeout(60_000),
+    }
+  );
+  const j = (await res.json()) as GeminiResponse;
+  return { status: res.status, body: j };
+}
+
+/** یک دسته را به Gemini می‌دهد. `null` یعنی این دسته ترجمه نشد. */
+async function callGemini(texts: string[]): Promise<string[] | null> {
+  if (!KEY) {
+    lastError = "کلید API ست نشده است.";
+    return null;
+  }
+
+  try {
+    let model = workingModel ?? MODEL;
+    let { status, body } = await rawCall(model, texts);
+
+    // مدل ناشناخته → یک بار کشف و تلاش دوباره.
+    if (status === 404 || /not found|not supported/i.test(body.error?.message ?? "")) {
+      const found = await discoverModel();
+      if (found && found !== model) {
+        model = found;
+        ({ status, body } = await rawCall(model, texts));
+      }
+    }
+
+    if (body.error?.message) {
+      lastError = `${status}: ${body.error.message.slice(0, 300)}`;
+      return null;
+    }
+    if (status !== 200) {
+      lastError = `HTTP ${status}`;
+      return null;
+    }
+
+    const raw = body.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!raw) {
+      const reason = body.candidates?.[0]?.finishReason;
+      lastError = `پاسخ خالی${reason ? ` (finishReason=${reason})` : ""}`;
+      return null;
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      lastError = `خروجی JSON نبود: ${raw.slice(0, 120)}`;
+      return null;
+    }
+    if (!Array.isArray(parsed)) {
+      lastError = "خروجی آرایه نبود.";
+      return null;
+    }
+    if (parsed.length !== texts.length) {
+      lastError = `تعداد نخواند: ${texts.length} فرستادیم، ${parsed.length} برگشت.`;
+      return null;
+    }
+    if (!parsed.every((x) => typeof x === "string" && x.trim())) {
+      lastError = "بعضی خروجی‌ها رشته‌ی معتبر نبودند.";
+      return null;
+    }
+
+    workingModel = model;
+    lastError = null;
+    return parsed as string[];
+  } catch (e) {
+    lastError = e instanceof Error ? e.message.slice(0, 300) : "خطای شبکه";
+    return null;
+  }
+}
+
+/** مدلی که آخرین بار جواب داد — برای نمایش در پنل. */
+export function activeModel(): string {
+  return workingModel ?? MODEL;
 }
 
 /**
@@ -163,7 +270,14 @@ async function callGemini(texts: string[]): Promise<string[] | null> {
  */
 const BATCH = 40;
 
-export type TranslateResult = { translated: number; failed: number; pending: number };
+export type TranslateResult = {
+  translated: number;
+  failed: number;
+  pending: number;
+  /** خطای واقعی آخرین تلاش — `null` یعنی مشکلی نبود. */
+  error: string | null;
+  model: string;
+};
 
 /**
  * صف ترجمه را جلو می‌برد. از کرون صدا زده می‌شود.
@@ -182,7 +296,17 @@ export async function translatePending(maxBatches = 12): Promise<TranslateResult
     return Number(r.rows[0]?.n ?? 0);
   };
 
-  if (!KEY) return { translated: 0, failed: 0, pending: await pendingCount() };
+  if (!KEY) {
+    return {
+      translated: 0,
+      failed: 0,
+      pending: await pendingCount(),
+      error: "کلید API ست نشده است.",
+      model: MODEL,
+    };
+  }
+
+  lastError = null;
 
   let translated = 0;
   let failed = 0;
@@ -219,5 +343,26 @@ export async function translatePending(maxBatches = 12): Promise<TranslateResult
     translated += rows.length;
   }
 
-  return { translated, failed, pending: await pendingCount() };
+  return {
+    translated,
+    failed,
+    pending: await pendingCount(),
+    error: lastError,
+    model: activeModel(),
+  };
+}
+
+/**
+ * شمارنده‌ی شکست همه‌ی ردیف‌ها را صفر می‌کند.
+ *
+ * لازم است چون علت شکست معمولا یک چیزِ مشترک است (کلید، نام مدل). وقتی آن
+ * درست شد، ردیف‌هایی که سه بار شکسته‌اند نباید برای همیشه سوخته بمانند.
+ */
+export async function resetFailures(): Promise<number> {
+  await ensureTranslationTable();
+  const pool = await db();
+  const r = await pool.query(
+    "UPDATE translations SET failures=0 WHERE fa IS NULL AND failures > 0"
+  );
+  return r.rowCount ?? 0;
 }
