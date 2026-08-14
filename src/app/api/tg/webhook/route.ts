@@ -20,10 +20,27 @@ import {
   helpScreen,
   helpTopicScreen,
   profileScreen,
-  walletScreen,
   appUrl,
   backRow,
 } from "@/lib/bot-menu";
+import {
+  WALLET,
+  walletHomeScreen,
+  historyScreen,
+  depositScreen,
+  askAmountScreen,
+  askAddressScreen,
+  confirmScreen,
+  resultScreen,
+  parseAmount,
+  addressLooksValid,
+  WITHDRAW_ERROR,
+} from "@/lib/bot-wallet";
+import { db } from "@/lib/db";
+import { getFlow, setFlow, clearFlow } from "@/lib/bot-flow";
+import { requestWithdrawal } from "@/lib/withdrawal";
+import { requireLinkedTelegram } from "@/lib/money-guard";
+import { MIN_WITHDRAW } from "@/lib/wallet-rules";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +62,11 @@ const SITE_URL = (process.env.SITE_URL ?? "").replace(/\/+$/, "");
 
 type TgUser = { id: number; username?: string; first_name?: string };
 type TgUpdate = {
-  message?: { chat: { id: number }; from?: TgUser; text?: string };
+  message?: {
+    chat: { id: number; type?: string };
+    from?: TgUser;
+    text?: string;
+  };
   callback_query?: {
     id: string;
     from: TgUser;
@@ -100,7 +121,12 @@ async function handleBonus(tg: TgUser, chatId: number, player: Player | null) {
   );
 }
 
-async function handleMessage(tg: TgUser, chatId: number, text: string) {
+async function handleMessage(
+  tg: TgUser,
+  chatId: number,
+  text: string,
+  isPrivate: boolean
+) {
   const cmd = text.trim().split(/\s+/);
   const head = (cmd[0] ?? "").toLowerCase().split("@")[0];
   const arg = cmd[1] ?? "";
@@ -108,7 +134,17 @@ async function handleMessage(tg: TgUser, chatId: number, text: string) {
   // پیام‌های غیردستوری همین‌جا رها می‌شوند. وقتی ربات در یک گروه شلوغ
   // ادمین شود، همه‌ی گپ روزمره هم به این وبهوک می‌رسد؛ بدون این شرط، هر
   // پیام گروه یک UPDATE روی جدول players می‌زد.
-  if (!head.startsWith("/")) return;
+  //
+  // استثنا: کاربری که وسط گفت‌وگوی برداشت است، جوابش عدد یا آدرس است نه
+  // دستور. `isPrivate` شرط لازم است — گفت‌وگوی پولی هرگز نباید از داخل یک
+  // گروه پیش برود.
+  if (!head.startsWith("/")) {
+    if (!isPrivate) return;
+    const p = await playerByTgUserId(tg.id, tg.username);
+    if (!p) return;
+    await handleWithdrawInput(tg, chatId, text, p);
+    return;
+  }
 
   // هندل را یک‌بار و به‌صورت مرکزی تازه می‌کنیم، نه داخل تک‌تک هندلرها.
   // اول این کار داخل هندلرها بود و نتیجه‌اش این شد که مثلا /app هندل را
@@ -135,7 +171,12 @@ async function handleMessage(tg: TgUser, chatId: number, text: string) {
   }
   if (head === "/wallet") {
     if (!player) return needAccount(chatId);
-    await sendScreen(chatId, walletScreen());
+    await sendScreen(chatId, await walletHomeScreen(player.id));
+    return;
+  }
+  if (head === "/cancel") {
+    await clearFlow(tg.id);
+    if (player) await sendScreen(chatId, await walletHomeScreen(player.id));
     return;
   }
   if (head === "/profile") {
@@ -159,6 +200,164 @@ async function handleMessage(tg: TgUser, chatId: number, text: string) {
 /** دستوری که حساب لازم دارد، ولی کاربر هنوز وصل نیست. */
 async function needAccount(chatId: number) {
   await sendScreen(chatId, guestScreen());
+}
+
+/**
+ * پیام متنی وسط گفت‌وگوی برداشت.
+ *
+ * کارت گفت‌وگو **ویرایش** می‌شود، نه اینکه کارت تازه بیاید: کاربر یک کارت
+ * می‌بیند که مرحله‌به‌مرحله جلو می‌رود. اگر ویرایش ممکن نبود (کارت پاک شده)
+ * `editScreen` خودش کارت تازه می‌فرستد و شناسه‌ی جدید ذخیره می‌شود.
+ *
+ * `true` یعنی این پیام مصرف شد و نباید به‌عنوان دستور هم خوانده شود.
+ */
+async function handleWithdrawInput(
+  tg: TgUser,
+  chatId: number,
+  text: string,
+  player: Player
+): Promise<boolean> {
+  const flow = await getFlow(tg.id);
+  if (!flow) return false;
+
+  const show = async (s: Awaited<ReturnType<typeof walletHomeScreen>>) => {
+    if (flow.messageId) await editScreen(chatId, flow.messageId, s);
+    else await sendScreen(chatId, s);
+  };
+
+  if (flow.step === "amount") {
+    const amount = parseAmount(text);
+    const bal = await playerBalance(player.id);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      await show(askAmountScreen(bal, "عدد معتبر نبود. فقط رقم بفرستید."));
+      return true;
+    }
+    if (amount < MIN_WITHDRAW) {
+      await show(askAmountScreen(bal, `حداقل برداشت ${MIN_WITHDRAW} تتر است.`));
+      return true;
+    }
+    if (amount > bal) {
+      await show(askAmountScreen(bal, "بیشتر از موجودی شماست."));
+      return true;
+    }
+    await setFlow(tg.id, { step: "address", amount, address: null });
+    await show(askAddressScreen(amount));
+    return true;
+  }
+
+  if (flow.step === "address") {
+    const address = text.trim();
+    const amount = flow.amount ?? 0;
+    if (!addressLooksValid(address)) {
+      await show(askAddressScreen(amount, "این آدرس با شبکه نمی‌خواند."));
+      return true;
+    }
+    await setFlow(tg.id, { step: "confirm", amount, address });
+    await show(confirmScreen(amount, address));
+    return true;
+  }
+
+  // مرحله‌ی تأیید: فقط دکمه. پیام متنی اینجا نباید پول جابه‌جا کند.
+  await show(confirmScreen(flow.amount ?? 0, flow.address ?? ""));
+  return true;
+}
+
+async function playerBalance(playerId: number): Promise<number> {
+  const pool = await db();
+  const r = await pool.query<{ usdt_balance: string }>(
+    "SELECT usdt_balance FROM players WHERE id=$1",
+    [playerId]
+  );
+  return Number(r.rows[0]?.usdt_balance ?? 0);
+}
+
+/** دکمه‌های کیف پول: `w:*` */
+async function handleWallet(
+  cbId: string,
+  tg: TgUser,
+  chatId: number,
+  messageId: number,
+  action: string
+) {
+  const player = await playerByTgUserId(tg.id, tg.username);
+  if (!player) {
+    await answerCallback(cbId, "");
+    await editScreen(chatId, messageId, guestScreen());
+    return;
+  }
+
+  if (action === WALLET.home || action === WALLET.cancel) {
+    await answerCallback(cbId, action === WALLET.cancel ? "لغو شد" : "");
+    await clearFlow(tg.id);
+    await editScreen(chatId, messageId, await walletHomeScreen(player.id));
+    return;
+  }
+  if (action === WALLET.history) {
+    await answerCallback(cbId, "");
+    await editScreen(chatId, messageId, await historyScreen(player.id));
+    return;
+  }
+  if (action === WALLET.deposit) {
+    // گرفتن آدرس از درگاه چند ثانیه طول می‌کشد؛ اول ساعت شنی دکمه برداشته
+    // می‌شود وگرنه کاربر فکر می‌کند گیر کرده.
+    await answerCallback(cbId, "در حال دریافت آدرس…");
+    await editScreen(chatId, messageId, await depositScreen(player.id));
+    return;
+  }
+  if (action === WALLET.withdrawStart) {
+    await answerCallback(cbId, "");
+    await setFlow(tg.id, { step: "amount", amount: null, address: null, messageId });
+    await editScreen(chatId, messageId, askAmountScreen(await playerBalance(player.id)));
+    return;
+  }
+
+  if (action === WALLET.withdrawConfirm) {
+    const flow = await getFlow(tg.id);
+    if (!flow || flow.step !== "confirm" || !flow.amount || !flow.address) {
+      await answerCallback(cbId, "");
+      await clearFlow(tg.id);
+      await editScreen(
+        chatId,
+        messageId,
+        resultScreen(false, "این درخواست منقضی شده. از کیف پول دوباره شروع کنید.")
+      );
+      return;
+    }
+
+    // ⚠️ همان نگهبانی که روت سایت دارد. بلاک‌بودن ربات برداشت را نمی‌بندد،
+    // ولی حساب بدون تلگرامِ متصل اصلا نباید به اینجا برسد.
+    const linked = await requireLinkedTelegram(player.id, { evenIfBlocked: true });
+    if (!linked.ok) {
+      await answerCallback(cbId, "");
+      await clearFlow(tg.id);
+      await editScreen(
+        chatId,
+        messageId,
+        resultScreen(false, WITHDRAW_ERROR.telegram_required)
+      );
+      return;
+    }
+
+    await answerCallback(cbId, "در حال ثبت…");
+    await clearFlow(tg.id);
+    const r = await requestWithdrawal(player.id, flow.amount, flow.address);
+    await editScreen(
+      chatId,
+      messageId,
+      r.ok
+        ? resultScreen(
+            true,
+            `درخواست برداشت <b>$${r.amount}</b> ثبت شد.\n\n` +
+              `پس از تأیید شبکه به آدرس شما واریز می‌شود. ` +
+              `وضعیتش را در تاریخچه‌ی کیف پول می‌بینید.`
+          )
+        : resultScreen(
+            false,
+            WITHDRAW_ERROR[r.error] ?? `درخواست ثبت نشد: ${escapeHtml(r.error)}`
+          )
+    );
+    return;
+  }
 }
 
 /**
@@ -209,7 +408,7 @@ async function handleMenu(
     return;
   }
   if (action === MENU.wallet) {
-    await editScreen(chatId, messageId, walletScreen());
+    await editScreen(chatId, messageId, await walletHomeScreen(player.id));
     return;
   }
 }
@@ -275,11 +474,26 @@ export async function POST(req: Request) {
 
     const msg = update.message;
     if (msg?.from && typeof msg.text === "string") {
-      await handleMessage(msg.from, msg.chat.id, msg.text);
+      await handleMessage(
+        msg.from,
+        msg.chat.id,
+        msg.text,
+        (msg.chat.type ?? "private") === "private"
+      );
     }
 
     const cb = update.callback_query;
     if (cb?.data) {
+      if (cb.data.startsWith("w:") && cb.message) {
+        await handleWallet(
+          cb.id,
+          cb.from,
+          cb.message.chat.id,
+          cb.message.message_id,
+          cb.data
+        );
+        return NextResponse.json({ ok: true });
+      }
       if ((cb.data.startsWith("m:") || cb.data.startsWith("h:")) && cb.message) {
         await handleMenu(cb.id, cb.from, cb.message.chat.id, cb.message.message_id, cb.data);
         return NextResponse.json({ ok: true });
