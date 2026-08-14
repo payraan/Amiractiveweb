@@ -52,7 +52,12 @@ import {
   jobKeyboard,
   attachCard,
 } from "@/lib/broadcast";
-import { getFlow, setFlow, clearFlow } from "@/lib/bot-flow";
+import {
+  getFlow,
+  setFlow,
+  clearFlow,
+  claimConfirmedFlow,
+} from "@/lib/bot-flow";
 import { requestWithdrawal } from "@/lib/withdrawal";
 import { requireLinkedTelegram } from "@/lib/money-guard";
 import { MIN_WITHDRAW } from "@/lib/wallet-rules";
@@ -212,6 +217,13 @@ async function handleMessage(
           ]
         : [backRow()]
     );
+    return;
+  }
+  // ⚠️ کیف پول و پروفایل **موجودی تتر** را نشان می‌دهند. اجرای این دستورها
+  // در گروه یعنی موجودی کاربر جلوی همه. همان نگهبانی که روی دکمه‌ها هست،
+  // اینجا هم لازم است — وگرنه فقط یکی از دو در بسته می‌شود.
+  if ((head === "/wallet" || head === "/profile") && !isPrivate) {
+    await sendTelegram(chatId, "کیف پول و پروفایل فقط در چت خصوصی با ربات باز می‌شوند.");
     return;
   }
   if (head === "/wallet") {
@@ -480,14 +492,22 @@ async function handleWallet(
   }
 
   if (action === WALLET.withdrawConfirm) {
-    const flow = await getFlow(tg.id);
-    if (!flow || flow.step !== "confirm" || !flow.amount || !flow.address) {
+    // ⚠️ **ادعای اتمیک، نه «بخوان بعد پاک کن».**
+    //
+    // دو لمس پشت‌سرهم روی «تأیید و ارسال» — یا دو callback که تلگرام تقریبا
+    // هم‌زمان می‌فرستد — هر دو گفت‌وگو را در وضعیت confirm می‌دیدند و هر دو
+    // برداشت می‌ساختند. با موجودی کافی، پول دو بار بیرون می‌رفت.
+    //
+    // `claimConfirmedFlow` با DELETE … RETURNING فقط به یکی سطر می‌دهد؛
+    // دومی `null` می‌گیرد و همان پیام «منقضی شده» را می‌بیند.
+    const flow = await claimConfirmedFlow(tg.id);
+    if (!flow) {
       await answerCallback(cbId, "");
       await clearFlow(tg.id);
       await editScreen(
         chatId,
         messageId,
-        resultScreen(false, "این درخواست منقضی شده. از کیف پول دوباره شروع کنید.")
+        resultScreen(false, "این درخواست منقضی شده. از کیف پول دوباره شروع کن.")
       );
       return;
     }
@@ -507,7 +527,6 @@ async function handleWallet(
     }
 
     await answerCallback(cbId, "در حال ثبت…");
-    await clearFlow(tg.id);
     const r = await requestWithdrawal(player.id, flow.amount, flow.address);
     await editScreen(
       chatId,
@@ -675,6 +694,31 @@ export async function POST(req: Request) {
         );
         return NextResponse.json({ ok: true });
       }
+      // ⚠️ **کیف پول و پروفایل فقط در چت خصوصی.**
+      //
+      // `callback_query.message.chat` فیلد `type` ندارد، پس این مسیر هرگز
+      // نمی‌فهمید در گروه است. شناسه‌ی گروه و سوپرگروه در تلگرام همیشه منفی
+      // است و همین تنها نشانه‌ی در دسترس است.
+      //
+      // دو دلیل: گفت‌وگوی برداشت نباید از گروه شروع شود، و مهم‌تر —
+      // پروفایل و کیف پول **موجودی تتر** را نشان می‌دهند. یک لمس در گروه
+      // یعنی موجودی کاربر جلوی همه.
+      const inGroup = Boolean(cb.message && cb.message.chat.id < 0);
+
+      const privateOnly =
+        cb.data.startsWith("w:") ||
+        cb.data === MENU.wallet ||
+        cb.data === MENU.profile;
+
+      if (privateOnly && inGroup) {
+        await answerCallback(
+          cb.id,
+          "این بخش فقط در چت خصوصی با ربات باز می‌شود.",
+          true
+        );
+        return NextResponse.json({ ok: true });
+      }
+
       if (cb.data.startsWith("w:") && cb.message) {
         await handleWallet(
           cb.id,

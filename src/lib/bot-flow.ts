@@ -87,6 +87,47 @@ export async function setFlow(
   );
 }
 
+/**
+ * برداشتنِ گفت‌وگوی آماده‌ی تأیید — یک‌بار و فقط یک‌بار.
+ *
+ * ⚠️ **حذف و خواندن در همان دستور انجام می‌شود.** الگوی «بخوان، بررسی کن،
+ * پاک کن، بعد برداشت بزن» اتمیک نیست: دو لمس پشت‌سرهم روی «تأیید و ارسال»
+ * (یا دو `callback_query` که تلگرام تقریبا هم‌زمان می‌فرستد) هر دو ردیف را
+ * در وضعیت `confirm` می‌بینند، هر دو از بررسی رد می‌شوند، و هر دو برداشت
+ * می‌سازند. با موجودی کافی، پول **دو بار** از حساب بیرون می‌رود.
+ *
+ * `DELETE … RETURNING` این را می‌بندد: فقط یکی از دو درخواست سطری می‌گیرد و
+ * دومی `null`. همان الگویی که `refundWithdrawal` در مسیر پول دارد.
+ *
+ * شرط‌های `amount`/`address` هم داخل خودِ دستور آمده‌اند، نه در JS بعدش —
+ * وگرنه بازهم یک پنجره بین بررسی و حذف باز می‌ماند.
+ */
+export async function claimConfirmedFlow(
+  tgUserId: number
+): Promise<{ amount: number; address: string; messageId: number | null } | null> {
+  await ensureFlowTable();
+  const pool = await db();
+  const r = await pool.query<{
+    amount: string;
+    address: string;
+    message_id: number | null;
+  }>(
+    `DELETE FROM tg_flows
+      WHERE tg_user_id=$1 AND flow='withdraw' AND step='confirm'
+        AND amount IS NOT NULL AND address IS NOT NULL
+        AND updated_at > now() - ($2 || ' minutes')::interval
+      RETURNING amount, address, message_id`,
+    [tgUserId, String(FLOW_TTL_MIN)]
+  );
+  const row = r.rows[0];
+  if (!row) return null;
+  return {
+    amount: Number(row.amount),
+    address: row.address,
+    messageId: row.message_id,
+  };
+}
+
 export async function clearFlow(tgUserId: number): Promise<void> {
   await ensureFlowTable();
   const pool = await db();
