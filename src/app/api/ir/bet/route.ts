@@ -38,7 +38,31 @@ export async function POST(req: Request) {
   try {
     await client.query("BEGIN");
 
-    // ردیف بازیکن اول قفل می‌شود تا درخواست‌های همزمان سریالی شوند
+    // ⚠️ **ترتیب قفل: اول بازار، بعد بازیکن.** این ترتیب در کل کدبیس یکی
+    // است و باید بماند.
+    //
+    // تسویه ناچار است اول بازار را قفل کند (تا وضعیتش عوض نشود) و بعد
+    // برنده‌ها را. اگر اینجا برعکس بود — بازیکن اول، بازار بعد — دو مسیر
+    // ترتیب معکوس داشتند و شرطِ هم‌زمان با تسویه به بن‌بست می‌خورد.
+    // Postgres بن‌بست را می‌گیرد و یکی را می‌کشد، ولی آن یکی می‌تواند تسویه
+    // باشد؛ یعنی پول برنده‌ها معلق می‌ماند.
+    const m = await client.query(
+      "SELECT status, closes_at FROM ir_markets WHERE id=$1 FOR UPDATE",
+      [marketId]
+    );
+    if (!m.rowCount) {
+      await client.query("ROLLBACK");
+      return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+    }
+    if (m.rows[0].status !== "open") {
+      await client.query("ROLLBACK");
+      return NextResponse.json({ ok: false, error: "market_closed" }, { status: 409 });
+    }
+    if (new Date(m.rows[0].closes_at).getTime() <= Date.now()) {
+      await client.query("ROLLBACK");
+      return NextResponse.json({ ok: false, error: "market_closed" }, { status: 409 });
+    }
+
     const pl = await client.query(
       "SELECT usdt_balance, demo_balance FROM players WHERE id=$1 FOR UPDATE",
       [playerId]
@@ -57,23 +81,6 @@ export async function POST(req: Request) {
         { ok: false, error: "insufficient_funds" },
         { status: 402 }
       );
-    }
-
-    const m = await client.query(
-      "SELECT status, closes_at FROM ir_markets WHERE id=$1 FOR UPDATE",
-      [marketId]
-    );
-    if (!m.rowCount) {
-      await client.query("ROLLBACK");
-      return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
-    }
-    if (m.rows[0].status !== "open") {
-      await client.query("ROLLBACK");
-      return NextResponse.json({ ok: false, error: "market_closed" }, { status: 409 });
-    }
-    if (new Date(m.rows[0].closes_at).getTime() <= Date.now()) {
-      await client.query("ROLLBACK");
-      return NextResponse.json({ ok: false, error: "market_closed" }, { status: 409 });
     }
 
     // moveFunds اول از دمو کم می‌کند و می‌گوید چقدرش دمو بود. همان عدد روی
