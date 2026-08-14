@@ -74,27 +74,42 @@ const num = (n: number) => n.toLocaleString("fa-IR");
 
 // ── منوی اصلی ────────────────────────────────────────────────
 
+/**
+ * منوی شیشه‌ای کارت خوش‌آمد.
+ *
+ * فقط چیزهایی که در صفحه‌کلید ثابت **نیستند**. پیش‌تر هر دو منو تقریبا یک
+ * فهرست را نشان می‌دادند و کاربر شش گزینه‌ی تکراری را دو بار در یک صفحه
+ * می‌دید؛ حالا مکمل‌اند: پرکاربردها همیشه پایین صفحه‌اند و این کارت فقط
+ * چیزهایی را می‌آورد که جای دیگری نیستند.
+ *
+ * ⚠️ تفاوت **محاسبه** می‌شود، نه دستی نوشته. اگر فهرست دستی بود، اولین باری
+ * که کسی گزینه‌ای به `KEYS` اضافه می‌کرد، همان گزینه بی‌سروصدا دوباره اینجا
+ * هم می‌ماند و تکرار برمی‌گشت.
+ */
 export function mainKeyboard(): InlineButton[][] {
+  const inKeyboard = new Set(KEYS.map((k) => k.label));
   const rows: InlineButton[][] = [];
+
   if (SITE_URL) {
-    rows.push([{ text: "🚀 اپلیکیشن نارمون", web_app: { url: appUrl() } }]);
-    rows.push([
+    const apps: InlineButton[] = [
+      { text: "🚀 اپلیکیشن نارمون", web_app: { url: appUrl() } },
       { text: "🇮🇷 بازار ایران", web_app: { url: appUrl("markets") } },
       { text: "📈 ترید", web_app: { url: appUrl("trade") } },
-    ]);
-    rows.push([
       { text: "📊 نبض بازار", web_app: { url: appUrl("pulse") } },
       { text: "🏆 چالش پراپ", web_app: { url: appUrl("challenge") } },
-    ]);
+    ].filter((b) => !inKeyboard.has(b.text));
+
+    for (let i = 0; i < apps.length; i += 2) rows.push(apps.slice(i, i + 2));
   }
-  rows.push([
+
+  const chat: InlineButton[] = [
     { text: "👛 کیف پول", callback_data: MENU.wallet },
     { text: "👤 پروفایل", callback_data: MENU.profile },
-  ]);
-  rows.push([
     { text: "🎧 پشتیبانی", callback_data: MENU.support },
     { text: "❓ راهنما", callback_data: MENU.help },
-  ]);
+  ].filter((b) => !inKeyboard.has(b.text));
+
+  for (let i = 0; i < chat.length; i += 2) rows.push(chat.slice(i, i + 2));
   return rows;
 }
 
@@ -186,7 +201,8 @@ export function homeText(displayName: string | null): string {
     `یک نکته را از همان اول بگویم: <b>امتیاز اینجا فروشی نیست.</b> ` +
     `هر مقدار پول هم بگذارید رتبه نمی‌خرید، و کسی که شانسی حدس بزند ` +
     `در بلندمدت امتیاز منفی می‌گیرد. این عمدی است.\n\n` +
-    `هرچه لازم دارید از همین پایین باز می‌شود.`
+    `منوی همیشگی زیر فیلد تایپ است — بازارها، کیف پول و کارنامه از همان‌جا ` +
+    `یک لمس فاصله دارند.`
   );
 }
 
