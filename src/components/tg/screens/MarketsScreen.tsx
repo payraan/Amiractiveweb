@@ -49,6 +49,37 @@ const SORTS = [
 ] as const;
 type SortId = (typeof SORTS)[number]["id"];
 
+/**
+ * چند بازار در نوار «داغ‌ترین‌ها»، و از چند بازار به بعد اصلا نشان داده شود.
+ *
+ * ⚠️ آستانه سخاوتمندانه است چون تکرار، بدترین حالتِ این نوار است. با ۸
+ * بازار، نوارِ شش‌تایی تقریبا همان فهرست را دو بار نشان می‌داد و فقط فضا
+ * می‌خورد. نوار وقتی معنا دارد که فهرست آن‌قدر بلند باشد که استخرهای بزرگ
+ * زیرش گم شوند.
+ */
+const HOT_COUNT = 4;
+const HOT_MIN_MARKETS = 10;
+
+/**
+ * داغ = بزرگ‌ترین استخر.
+ *
+ * ⚠️ فقط بازارهای باز. بازار قفل‌شده هرچقدر هم حجم داشته باشد، کاری از
+ * دست کاربر برنمی‌آید و بردنش به صدر یعنی هدر دادن گران‌ترین فضای صفحه.
+ */
+function hotMarkets(list: Market[]): Market[] {
+  return list
+    .filter((m) => m.status === "open" && m.volume > 0)
+    .sort((a, b) => b.volume - a.volume)
+    .slice(0, HOT_COUNT);
+}
+
+/** «تا ۲۴ ساعت» — بازارهایی که همین امروز تعیین تکلیف می‌شوند. */
+const SOON_MS = 24 * 3600_000;
+function closingSoon(m: Market): boolean {
+  const left = new Date(m.closesAt).getTime() - Date.now();
+  return left > 0 && left <= SOON_MS;
+}
+
 function sortMarkets(list: Market[], sort: SortId): Market[] {
   return [...list].sort((a, b) => {
     const rank = (STATUS_RANK[a.status] ?? 9) - (STATUS_RANK[b.status] ?? 9);
@@ -71,8 +102,15 @@ export default function MarketsScreen({
   deepLink?: { marketId: number; side: "yes" | "no" | null } | null;
 }) {
   const [cat, setCat] = useState("all");
-  const [sort, setSort] = useState<SortId>("hot");
+  // پیش‌فرض «نزدیک به پایان» است، نه «داغ‌ترین».
+  //
+  // دو دلیل: کاربر بیشتر دنبال بازاری است که همین حالا تعیین تکلیف می‌شود،
+  // و مهم‌تر اینکه نوار داغ خودش بر اساس حجم مرتب است — اگر فهرست هم همان
+  // ترتیب را داشته باشد، دو بار یک چیز را نشان می‌دهیم. این‌طور نوار و
+  // فهرست مکمل‌اند نه تکرار.
+  const [sort, setSort] = useState<SortId>("closing");
   const [onlyOpen, setOnlyOpen] = useState(false);
+  const [onlySoon, setOnlySoon] = useState(false);
   const [proposing, setProposing] = useState(false);
   // مقصد deep link به‌عنوان مقدار اولیه‌ی state می‌نشیند، نه در یک افکت:
   // این‌طور یک‌بار اعمال می‌شود، بازگشت کاربر آن را دوباره باز نمی‌کند، و
@@ -99,12 +137,16 @@ export default function MarketsScreen({
 
   // بازار باز شده را از همان فهرست برمی‌داریم — با شناسه نگه می‌داریم نه با
   // خودِ شیء، تا بعد از reload داده‌ی تازه نشان داده شود نه نسخه‌ی کهنه.
-  const shown = markets
-    ? sortMarkets(
-        onlyOpen ? markets.filter((m) => m.status === "open") : markets,
-        sort
-      )
+  const filtered = markets
+    ? markets
+        .filter((m) => (onlyOpen ? m.status === "open" : true))
+        .filter((m) => (onlySoon ? closingSoon(m) : true))
     : null;
+  const shown = filtered ? sortMarkets(filtered, sort) : null;
+
+  // نوار داغ از فهرستِ فیلترشده می‌آید، نه از کل بازارها: وقتی کاربر روی
+  // «ورزش» است، داغ‌ترینِ ورزش را می‌خواهد نه داغ‌ترینِ کل پلتفرم.
+  const hot = filtered && filtered.length >= HOT_MIN_MARKETS ? hotMarkets(filtered) : [];
 
   const open = markets?.find((m) => m.id === openId) ?? null;
   if (open && data) {
@@ -182,6 +224,24 @@ export default function MarketsScreen({
             </button>
           ))}
         </div>
+        {/* «تا ۲۴ ساعت» کنار مرتب‌سازی می‌نشیند نه داخلش: مرتب‌سازی ترتیب را
+            عوض می‌کند، این یکی فهرست را کوتاه می‌کند — و کاربری که دنبال
+            بازارِ امشب است، نمی‌خواهد ته فهرست هم بازارهای دو هفته‌ی دیگر
+            باشد. */}
+        <button
+          type="button"
+          onClick={() => {
+            haptic.tap();
+            setOnlySoon((v) => !v);
+          }}
+          className={`shrink-0 rounded-lg border px-2.5 py-1.5 text-[10.5px] transition ${
+            onlySoon
+              ? "border-gold/60 bg-gold/10 text-gold font-bold"
+              : "border-line bg-surface/40 text-muted"
+          }`}
+        >
+          تا ۲۴ ساعت
+        </button>
         <button
           type="button"
           onClick={() => {
@@ -197,6 +257,53 @@ export default function MarketsScreen({
           فقط باز
         </button>
       </div>
+
+      {/* ── داغ‌ترین‌ها ──────────────────────────────────────────
+          پیمایش افقی، جدا از فهرست عمودی. کاربری که نمی‌داند دنبال چه
+          می‌گردد اینجا کشف می‌کند؛ کسی که می‌داند، پایین‌تر می‌گردد. */}
+      {!error && hot.length > 0 && (
+        <div className="mb-4">
+          <div className="mb-2 flex items-center gap-2">
+            <span className="text-[10px] font-bold text-gold">🔥 داغ‌ترین‌ها</span>
+            <span className="text-[9px] text-muted">بزرگ‌ترین استخرها</span>
+            <span className="h-px flex-1 bg-line" />
+          </div>
+          <div className="no-scrollbar -mx-5 flex gap-2.5 overflow-x-auto px-5 pb-1">
+            {hot.map((m) => (
+              <article
+                key={m.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  haptic.press();
+                  setOpenId(m.id);
+                }}
+                className="w-[168px] shrink-0 cursor-pointer rounded-xl border border-gold/25 bg-gradient-to-bl from-gold/[0.07] to-surface/50 p-2.5 transition active:border-gold/60"
+              >
+                <p className="line-clamp-2 text-[10.5px] font-bold leading-[1.75] text-cream">
+                  {m.question}
+                </p>
+                <div className="mt-2 h-[3px] overflow-hidden rounded-full bg-loss/30">
+                  <div
+                    className="h-full rounded-full bg-gain"
+                    style={{ width: `${m.yesPct}%` }}
+                  />
+                </div>
+                <div className="mt-1.5 flex items-center gap-1.5 text-[9px] text-muted">
+                  <span dir="ltr" className="font-mono font-bold text-gain">
+                    {Math.round(m.yesPct)}%
+                  </span>
+                  <span>بله</span>
+                  <span className="opacity-40">·</span>
+                  <span dir="ltr" className="font-mono text-cream">
+                    ${compact(m.volume)}
+                  </span>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      )}
 
       {error && <ErrorState message="فهرست بازارها نیامد." onRetry={reload} />}
 
@@ -216,13 +323,12 @@ export default function MarketsScreen({
       )}
 
       {!error && shown && shown.length > 0 && (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2.5">
           {shown.map((m) => {
             const st = STATUS[m.status] ?? {
               label: m.status,
               cls: "border-line bg-raised text-muted",
             };
-            const noPct = Math.round((100 - m.yesPct) * 10) / 10;
             return (
               <article
                 key={m.id}
@@ -232,78 +338,55 @@ export default function MarketsScreen({
                   haptic.press();
                   setOpenId(m.id);
                 }}
-                className="cursor-pointer overflow-hidden rounded-2xl border border-line bg-surface/40 transition active:border-gold/50"
+                className="cursor-pointer rounded-xl border border-line bg-surface/40 p-3 transition active:border-gold/50"
               >
-                <div className="p-4">
-                  <div className="mb-2.5 flex items-center gap-2">
-                    <span
-                      className={`rounded-full border px-2 py-0.5 text-[9.5px] font-bold ${st.cls}`}
+                {/* درصد از نوار ۲۸ پیکسلی درآمد و کنار سؤال نشست: مهم‌ترین
+                    عدد صفحه است و نباید برای خواندنش چشم به سطر دیگری برود.
+                    نتیجه‌اش هم دو برابر شدن تعداد کارت در یک صفحه است. */}
+                <div className="flex items-start gap-2.5">
+                  <div className="min-w-[46px] shrink-0 text-center">
+                    <div
+                      dir="ltr"
+                      className="font-mono text-[17px] font-black leading-none text-gain"
                     >
-                      {st.label}
-                    </span>
-                    <span className="rounded-full border border-line bg-raised px-2 py-0.5 text-[9.5px] text-muted">
-                      {CAT_LABEL[m.category] ?? m.category}
-                    </span>
-                    <span className="ms-auto text-[10px] text-muted">
-                      {remaining(m.closesAt)}
-                    </span>
+                      {Math.round(m.yesPct)}%
+                    </div>
+                    <div className="mt-1 text-[8.5px] text-muted">بله</div>
                   </div>
-
-                  <p className="text-[13.5px] font-bold leading-[1.9] text-cream">
+                  <p className="line-clamp-2 flex-1 text-[12px] font-bold leading-[1.85] text-cream">
                     {m.question}
                   </p>
-
-                  {/* نوار اجماع با برچسب دو طرف — درصد روی خودِ نوار، تا چشم
-                      برای خواندنش به سطر دیگری نرود */}
-                  <div className="mt-3.5 flex h-7 w-full overflow-hidden rounded-lg bg-raised">
-                    <div
-                      className="flex items-center justify-start bg-gain/25 px-2"
-                      style={{ width: `${Math.max(14, Math.min(86, m.yesPct))}%` }}
-                    >
-                      <span dir="ltr" className="font-mono text-[10px] font-bold text-gain">
-                        {m.yesPct}%
-                      </span>
-                    </div>
-                    <div className="flex flex-1 items-center justify-end bg-loss/15 px-2">
-                      <span dir="ltr" className="font-mono text-[10px] font-bold text-loss">
-                        {noPct}%
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* فاصله با gap در فلکس، نه با ms/me: آن‌ها نسبت به جهتِ
-                      خودِ span حساب می‌شوند و چون span عددها ltr است، فاصله
-                      سمت اشتباه می‌افتد و برچسب به عدد می‌چسبد. */}
-                  <div className="mt-2 flex items-center justify-between text-[11px]">
-                    <span className="flex items-center gap-1.5 font-bold text-gain">
-                      بله
-                      {m.yesOdds > 0 && (
-                        <span dir="ltr" className="font-mono text-[10px] text-muted">
-                          ×{m.yesOdds}
-                        </span>
-                      )}
-                    </span>
-                    <span className="flex items-center gap-1.5 font-bold text-loss">
-                      {m.noOdds > 0 && (
-                        <span dir="ltr" className="font-mono text-[10px] text-muted">
-                          ×{m.noOdds}
-                        </span>
-                      )}
-                      خیر
-                    </span>
-                  </div>
                 </div>
 
-                {/* پانوشت آمار، جدا شده تا از سؤال و ضریب‌ها تفکیک شود */}
-                <div className="flex items-center gap-4 border-t border-line/70 bg-ink/40 px-4 py-2 text-[10px] text-muted">
+                <div className="mt-2.5 h-[3px] overflow-hidden rounded-full bg-loss/30">
+                  <div
+                    className="h-full rounded-full bg-gain"
+                    style={{ width: `${m.yesPct}%` }}
+                  />
+                </div>
+
+                {/* ضریب‌ها عمدا اینجا نیستند — کسی بر اساس ×۱.۹۱ در فهرست
+                    تصمیم نمی‌گیرد، و صفحه‌ی بازار جای بهتری برایشان است. */}
+                <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[9.5px] text-muted">
+                  {m.status !== "open" && (
+                    <span className={`rounded-full border px-1.5 py-px text-[8.5px] ${st.cls}`}>
+                      {st.label}
+                    </span>
+                  )}
+                  <span className={closingSoon(m) ? "font-bold text-gold" : ""}>
+                    {remaining(m.closesAt)}
+                  </span>
+                  <span className="opacity-40">·</span>
+                  <span>{CAT_LABEL[m.category] ?? m.category}</span>
+                  <span className="opacity-40">·</span>
                   <span>
                     <span dir="ltr" className="font-mono text-cream">
                       {m.bettors}
                     </span>{" "}
-                    شرکت‌کننده
+                    نفر
                   </span>
+                  <span className="opacity-40">·</span>
                   <span>
-                    حجم{" "}
                     <span dir="ltr" className="font-mono text-cream">
                       ${compact(m.volume)}
                     </span>
