@@ -11,6 +11,7 @@ import {
   editTelegram,
   answerCallback,
   escapeHtml,
+  sendKeyboard,
   tgCall,
 } from "@/lib/telegram";
 import {
@@ -24,6 +25,8 @@ import {
   profileScreen,
   appUrl,
   backRow,
+  keyboardCommand,
+  replyKeyboard,
 } from "@/lib/bot-menu";
 import {
   WALLET,
@@ -96,6 +99,18 @@ type Player = { id: number; displayName: string };
 
 /** `/start` بدون کد: کاربر شناخته‌شده یا تازه‌وارد. */
 async function handleStart(chatId: number, player: Player | null) {
+  // صفحه‌کلید ثابت **اول** فرستاده می‌شود تا کارت منو آخرین پیام چت بماند؛
+  // برعکسش یعنی کاربر یک خط راهنمای کوتاه می‌بیند و کارت اصلی بالای آن.
+  //
+  // هر بار /start نصب می‌شود، نه فقط بار اول: کاربری که صفحه‌کلید را بسته
+  // باشد باید راهی برای برگرداندنش داشته باشد، و /start همان جایی است که
+  // آدم‌ها برای «از نو» به آن برمی‌گردند.
+  await sendKeyboard(
+    chatId,
+    "منوی نارمون همیشه پایین همین صفحه در دسترس است 👇",
+    replyKeyboard()
+  );
+
   // تازه‌وارد به سایت فرستاده نمی‌شود: حساب داخل خود مینی‌اپ با همین تلگرام
   // ساخته می‌شود، پس هر قدم اضافه فقط ریزش است.
   await sendScreen(chatId, player ? homeScreen(player.displayName) : guestScreen());
@@ -144,7 +159,13 @@ async function handleMessage(
   isPrivate: boolean,
   broadcastPhoto?: { file_id: string; file_size?: number }[]
 ) {
-  const cmd = text.trim().split(/\s+/);
+  // لمس دکمه‌ی صفحه‌کلید ثابت، یک پیام متنی معمولی است. اینجا به همان دستور
+  // ترجمه می‌شود و از آن به بعد مسیرش دقیقا مسیر دستور است — نه یک شاخه‌ی
+  // موازی که روزی یک بررسی کمتر داشته باشد.
+  const keyed = keyboardCommand(text);
+  const raw = keyed ?? text;
+
+  const cmd = raw.trim().split(/\s+/);
   const head = (cmd[0] ?? "").toLowerCase().split("@")[0];
   const arg = cmd[1] ?? "";
 

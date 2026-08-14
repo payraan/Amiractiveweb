@@ -94,6 +94,67 @@ export function IconArrow({ up, className = "h-4 w-4" }: P & { up: boolean }) {
   );
 }
 
+// ── سه کنش کیف پول ──────────────────────────────────────────
+//
+// جهت پیکان معنی دارد و برعکسش گمراه‌کننده است: واریز رو به داخل (پایین)،
+// برداشت رو به بیرون (بالا). این‌ها در RTL هم نمی‌چرخند چون عمودی‌اند.
+
+/** واریز — پیکان به داخل سبد. */
+export function IconDeposit({ className = "h-[18px] w-[18px]" }: P) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path
+        d="M12 3v10m0 0 4-4m-4 4-4-4"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/** برداشت — پیکان به بیرون. */
+export function IconWithdraw({ className = "h-[18px] w-[18px]" }: P) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path
+        d="M12 13V3m0 0L8 7m4-4 4 4"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/** خرید MOON — هلال ماه، همان استعاره‌ی نام واحد. */
+export function IconMoon({ className = "h-[18px] w-[18px]" }: P) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path
+        d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function IconExternal({ className = "h-3.5 w-3.5" }: P) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>

@@ -2,6 +2,7 @@ import {
   escapeHtml,
   GROUP_BONUS_CREDITS,
   type InlineButton,
+  type KeyboardButton,
   type Screen,
   type ScreenMedia,
 } from "@/lib/telegram";
@@ -95,6 +96,61 @@ export function mainKeyboard(): InlineButton[][] {
     { text: "❓ راهنما", callback_data: MENU.help },
   ]);
   return rows;
+}
+
+// ── صفحه‌کلید ثابت پایین چت ──────────────────────────────────
+//
+// کنار منوی شیشه‌ای می‌نشیند، جایگزینش نمی‌شود. منوی شیشه‌ای روی یک پیام
+// مشخص سوار است و با بالا رفتن چت گم می‌شود؛ این یکی همیشه زیر فیلد تایپ
+// می‌ماند، پس رسیدن به کیف پول همیشه یک لمس فاصله دارد.
+//
+// ⚠️ رنگ دکمه ممکن نیست. Bot API (نسخه‌ی ۱۰.۲، جولای ۲۰۲۶) هیچ فیلدی برای
+// رنگ یا پس‌زمینه ندارد — نه برای inline و نه برای reply. آنچه در بعضی
+// ربات‌ها رنگی دیده می‌شود کارِ کلاینت غیررسمی یا تم کاربر است. تنها اهرم
+// واقعیِ ما ایموجی ابتدای متن است، و همین کار را می‌کند.
+
+/**
+ * دکمه‌های صفحه‌کلید ثابت و مقصدشان.
+ *
+ * `command` عمدا همان دستورهای موجود است و نه یک مسیر تازه: لمس «کیف پول»
+ * باید دقیقا همان کاری را بکند که `/wallet` می‌کند. اگر دو مسیر جدا
+ * می‌ساختیم، روزی یکی‌شان یک بررسی کمتر داشت.
+ *
+ * دکمه‌های `tab` مستقیم مینی‌اپ را باز می‌کنند و اصلا پیامی نمی‌فرستند —
+ * `KeyboardButton` هم `web_app` را پشتیبانی می‌کند، فقط در چت خصوصی.
+ */
+const KEYS: { label: string; command?: string; tab?: string }[] = [
+  { label: "🚀 اپلیکیشن نارمون", tab: "" },
+  { label: "👛 کیف پول", command: "/wallet" },
+  { label: "🇮🇷 بازار ایران", tab: "markets" },
+  { label: "📈 ترید", tab: "trade" },
+  { label: "👤 پروفایل", command: "/profile" },
+  { label: "❓ راهنما", command: "/help" },
+];
+
+/** چیدمان دو ستونی — شش گزینه در سه ردیف. */
+export function replyKeyboard(): KeyboardButton[][] {
+  const btn = (k: (typeof KEYS)[number]): KeyboardButton =>
+    k.tab !== undefined && SITE_URL
+      ? { text: k.label, web_app: { url: appUrl(k.tab || undefined) } }
+      : { text: k.label };
+
+  const rows: KeyboardButton[][] = [];
+  for (let i = 0; i < KEYS.length; i += 2) {
+    rows.push(KEYS.slice(i, i + 2).map(btn));
+  }
+  return rows;
+}
+
+/**
+ * دستورِ متناظر با متن یک دکمه‌ی صفحه‌کلید، یا `null` اگر متن دکمه نباشد.
+ *
+ * وبهوک با همین، متن را به دستور ترجمه می‌کند و بعد مسیر عادی را می‌رود.
+ * دکمه‌های `web_app` اینجا `null` می‌دهند چون اصلا پیامی نمی‌فرستند.
+ */
+export function keyboardCommand(text: string): string | null {
+  const t = text.trim();
+  return KEYS.find((k) => k.label === t)?.command ?? null;
 }
 
 /** دکمه‌ی بازگشت — ته هر زیرصفحه. */

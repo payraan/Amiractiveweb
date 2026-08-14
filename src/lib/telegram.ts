@@ -444,6 +444,51 @@ export type InlineButton = {
   web_app?: { url: string };
 };
 
+/**
+ * دکمه‌ی صفحه‌کلید ثابتِ پایین چت — جدا از دکمه‌ی شیشه‌ای.
+ *
+ * دو تفاوت بنیادی با `InlineButton`:
+ *  • `callback_data` ندارد. لمسش فقط `text` را به‌عنوان پیام عادی می‌فرستد،
+ *    پس مسیریابی‌اش از راه متن پیام است نه callback.
+ *  • `url` ندارد، ولی `web_app` دارد — و آن هم **فقط در چت خصوصی** کار
+ *    می‌کند. در گروه، تلگرام دکمه را می‌فرستد ولی لمسش هیچ کاری نمی‌کند.
+ */
+export type KeyboardButton = {
+  text: string;
+  web_app?: { url: string };
+};
+
+/**
+ * نصب صفحه‌کلید ثابت زیر فیلد تایپ.
+ *
+ * `is_persistent: true` یعنی تلگرام آن را باز نگه می‌دارد و کاربر برای
+ * رسیدن به منو مجبور نیست دنبال پیام قدیمی بگردد — همان مشکلی که این
+ * صفحه‌کلید برای حلش هست.
+ *
+ * ⚠️ یک پیام نمی‌تواند هم‌زمان `inline_keyboard` و `keyboard` داشته باشد؛
+ * `reply_markup` یک فیلد است و یکی جای دیگری را می‌گیرد. برای همین این
+ * صفحه‌کلید روی پیام خودش سوار می‌شود و کارت منو دست‌نخورده می‌ماند.
+ */
+export async function sendKeyboard(
+  chatId: number,
+  text: string,
+  keyboard: KeyboardButton[][]
+): Promise<boolean> {
+  const r = await tgCall("sendMessage", {
+    chat_id: chatId,
+    text,
+    parse_mode: "HTML",
+    link_preview_options: { is_disabled: true },
+    reply_markup: {
+      keyboard,
+      is_persistent: true,
+      resize_keyboard: true, // وگرنه تلگرام ارتفاع کامل می‌دهد و نصف صفحه را می‌خورد
+    },
+  });
+  if (!r.ok) await noteSendFailure(chatId, r.error);
+  return r.ok;
+}
+
 /** ارسال پیام مستقیم از سایت به کاربر — بدون نیاز به دخالت ربات. */
 export async function sendTelegram(
   tgUserId: number,

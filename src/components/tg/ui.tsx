@@ -5,9 +5,16 @@
 export function Skeleton({ className = "" }: { className?: string }) {
   // اسکلتون به‌جای صفحه‌ی سفید یا اسپینر: کاربر شکل نهایی را از همان لحظه‌ی
   // اول می‌بیند و پرش چیدمان (layout shift) موقع رسیدن داده ندارد.
+  //
+  // ⚠️ گردی پایه فقط وقتی اعمال می‌شود که فراخوان خودش گردی نداده باشد.
+  // گذاشتن `rounded-full` در className کافی نبود: هر دو کلاس ویژگی یکسان
+  // دارند و برنده را ترتیب فایل CSS تعیین می‌کند نه ترتیب رشته — و آنجا
+  // `rounded-xl` برنده می‌شد. نتیجه: اسکلتِ دکمه‌های گردِ کیف پول مربع
+  // درمی‌آمد و شکلِ چیزی را که می‌آمد نمی‌گرفت.
+  const radius = /(^|\s)rounded(-|\s|$)/.test(className) ? "" : "rounded-xl ";
   return (
     <div
-      className={`animate-pulse rounded-xl border border-line bg-surface/40 ${className}`}
+      className={`animate-pulse ${radius}border border-line bg-surface/40 ${className}`}
     />
   );
 }
