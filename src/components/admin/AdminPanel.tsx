@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import IrMarkets from "@/components/admin/IrMarkets";
 import TradePoll from "@/components/admin/TradePoll";
+import Withdrawals from "@/components/admin/Withdrawals";
 import UsersTable from "@/components/admin/UsersTable";
 import RevenueLedger from "@/components/admin/RevenueLedger";
 import BotStatus from "@/components/admin/BotStatus";
@@ -80,12 +81,13 @@ export default function AdminPanel() {
 /** پوسته‌ی تب‌دار — بخش‌های موجود حفظ شده‌اند و دو بخش تازه اضافه شده. */
 function AdminShell() {
   const [tab, setTab] = useState<
-    "home" | "ir" | "trade" | "revenue" | "users" | "bot" | "tr"
+    "home" | "ir" | "trade" | "wd" | "revenue" | "users" | "bot" | "tr"
   >("home");
   const TABS = [
     { id: "home" as const, label: "شارژ و آمار" },
     { id: "ir" as const, label: "بازار ایران" },
     { id: "trade" as const, label: "کارت ترید" },
+    { id: "wd" as const, label: "برداشت‌ها" },
     { id: "revenue" as const, label: "دفترکل درآمد" },
     { id: "users" as const, label: "کاربران" },
     { id: "bot" as const, label: "ربات تلگرام" },
@@ -118,6 +120,7 @@ function AdminShell() {
       {tab === "home" && <AdminHome />}
       {tab === "ir" && <IrMarkets />}
       {tab === "trade" && <TradePoll />}
+      {tab === "wd" && <Withdrawals />}
       {tab === "revenue" && <RevenueLedger />}
       {tab === "users" && <UsersTable />}
       {tab === "bot" && <BotStatus />}
