@@ -527,26 +527,5 @@ export async function profileScreen(playerId: number): Promise<Screen> {
   return { media: media("profile.jpg"), text, buttons };
 }
 
-/**
- * کیف پول — فعلا کارت معرفی با تصویر.
- *
- * ⚠️ ناتمام: موجودی، تاریخچه، واریز و برداشت باید همین‌جا در چت انجام شوند،
- * نه با فرستادن کاربر به مینی‌اپ. برداشت به یک گفت‌وگوی چندمرحله‌ای و نگه
- * داشتن حالت بین پیام‌ها نیاز دارد که ربات هنوز ندارد.
- */
-export function walletScreen(): Screen {
-  const buttons: InlineButton[][] = [];
-  if (SITE_URL) {
-    buttons.push([{ text: "👛 باز کردن کیف پول", web_app: { url: appUrl("wallet") } }]);
-  }
-  buttons.push(backRow());
-  return {
-    media: media("wallet.jpg"),
-    text:
-      `👛 <b>کیف پول</b>\n\n` +
-      `موجودی تتر، تاریخچه‌ی تراکنش‌ها، واریز و برداشت.\n\n` +
-      `حداقل برداشت <b>${num(MIN_WITHDRAW)} تتر</b> است و هر برداشت یک ` +
-      `اعلان تلگرام دارد. آدرس مقصد پیش از ارسال بررسی می‌شود.`,
-    buttons,
-  };
-}
+// کیف پول در `bot-wallet.ts` است — کارت اینجا حذف شد چون کاربر را به
+// مینی‌اپ می‌فرستاد، و کیف پول حالا کامل داخل چت کار می‌کند.

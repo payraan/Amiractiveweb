@@ -169,6 +169,13 @@ async function handleMessage(
   // برای حلش ساخته شد.
   const player = await playerByTgUserId(tg.id, tg.username);
 
+  // هر دستوری یعنی کاربر از گفت‌وگوی نیمه‌کاره بیرون آمده.
+  //
+  // ⚠️ بدون این، کسی که برداشت را شروع می‌کرد و رهایش می‌کرد، تا ۱۵ دقیقه
+  // یک گفت‌وگوی باز داشت؛ بعد اولین پیام بی‌ربطش — مثلا یک عدد — به‌عنوان
+  // مبلغ برداشت خوانده می‌شد و او را وسط مرحله‌ی آدرس می‌انداخت.
+  if (isPrivate) await clearFlow(tg.id);
+
   if (head === "/start") {
     if (arg.startsWith("link_")) return handleLink(tg, chatId, arg.slice(5));
     return handleStart(chatId, player);
