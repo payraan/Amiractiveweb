@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useResource } from "@/components/tg/useResource";
-import { ErrorState, EmptyState, ScreenTitle, Skeleton } from "@/components/tg/ui";
+import { ErrorState, EmptyState, ScreenTitle, Skeleton, SearchBar } from "@/components/tg/ui";
+import { matchesQuery } from "@/lib/search";
 import { haptic } from "@/components/tg/telegram";
 import TradeDetail, { type PolyMarket } from "@/components/tg/screens/TradeDetail";
 import { remaining, closingSoon } from "@/lib/dates";
@@ -42,6 +43,7 @@ type SortId = (typeof SORTS)[number]["id"];
 // می‌دهد و فضای عمودی می‌خورد.
 const HOT_COUNT = 4;
 const HOT_MIN_MARKETS = 10;
+const SEARCH_MIN = 8;
 
 export default function TradeScreen() {
   const [cat, setCat] = useState("all");
@@ -50,6 +52,7 @@ export default function TradeScreen() {
   const [sort, setSort] = useState<SortId>("closing");
   const [hideDone, setHideDone] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [q, setQ] = useState("");
 
   const markets = useResource<{ markets: PolyMarket[] }>("/api/predict/poly-markets");
   const me = useResource<Me>("/api/predict/poly-me");
@@ -86,6 +89,9 @@ export default function TradeScreen() {
     if (!list) return null;
     let out = cat === "all" ? [...list] : list.filter((m) => m.category === cat);
     if (hideDone) out = out.filter((m) => !doneIds.has(m.id));
+    // عنوان رویداد هم جست‌وجو می‌شود: کاربر «F1» را از عنوان رویداد به یاد
+    // می‌آورد، نه از متن کامل پرسش.
+    out = out.filter((m) => matchesQuery(q, m.question, m.eventTitle));
     return out.sort((a, b) => {
       if (sort === "closing") {
         return (
@@ -123,6 +129,10 @@ export default function TradeScreen() {
             {me.data.freeLeft}
           </span>
         </div>
+      )}
+
+      {(list?.length ?? 0) >= SEARCH_MIN && (
+        <SearchBar value={q} onChange={setQ} placeholder="جست‌وجو در بازارها…" />
       )}
 
       <div className="no-scrollbar -mx-5 mb-4 flex gap-2 overflow-x-auto px-5 pb-1">

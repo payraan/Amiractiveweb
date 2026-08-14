@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useResource } from "@/components/tg/useResource";
-import { ErrorState, ScreenTitle, Skeleton } from "@/components/tg/ui";
+import { ErrorState, ScreenTitle, Skeleton, SearchBar } from "@/components/tg/ui";
+import { matchesQuery } from "@/lib/search";
 import { haptic } from "@/components/tg/telegram";
 import PulseDetail, { type PulseMarket } from "@/components/tg/screens/PulseDetail";
 import { CATEGORIES } from "@/lib/assets";
@@ -22,6 +23,9 @@ export type Me = {
   freeRemaining: Record<string, number>;
 };
 
+/** از چند دارایی به بعد فیلد جست‌وجو نشان داده شود. */
+const SEARCH_MIN = 8;
+
 export default function PulseScreen() {
   const [cat, setCat] = useState<string>("crypto");
   const [openId, setOpenId] = useState<string | null>(null);
@@ -29,13 +33,16 @@ export default function PulseScreen() {
   // می‌افتد. قبلا تایم‌فریم فقط *بعد* از باز کردن دارایی دیده می‌شد، پس
   // برای عوض کردن بازه باید هر بار به عقب برمی‌گشت.
   const [timeframe, setTimeframe] = useState<string>("24h");
+  const [q, setQ] = useState("");
 
   const markets = useResource<{ markets: PulseMarket[] }>(
     `/api/predict/market?category=${cat}`
   );
   const me = useResource<Me>("/api/predict/me");
 
-  const list = markets.data?.markets ?? null;
+  const all = markets.data?.markets ?? null;
+  // نام فارسی و تیکر لاتین هر دو: کاربر ممکن است «بیت‌کوین» بزند یا «btc».
+  const list = all ? all.filter((m) => matchesQuery(q, m.label, m.asset)) : null;
   const open = list?.find((m) => m.asset === openId) ?? null;
 
   if (open) {
@@ -111,6 +118,10 @@ export default function PulseScreen() {
           })}
         </div>
       </div>
+
+      {(all?.length ?? 0) >= SEARCH_MIN && (
+        <SearchBar value={q} onChange={setQ} placeholder="جست‌وجوی دارایی…" />
+      )}
 
       <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
         {CATEGORIES.map((c) => {

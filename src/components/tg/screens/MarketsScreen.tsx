@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useResource } from "@/components/tg/useResource";
 import { IR_CATEGORIES } from "@/lib/ir-categories";
-import { ErrorState, EmptyState, ScreenTitle, Skeleton } from "@/components/tg/ui";
+import { ErrorState, EmptyState, ScreenTitle, Skeleton, SearchBar } from "@/components/tg/ui";
+import { matchesQuery } from "@/lib/search";
 import { haptic } from "@/components/tg/telegram";
 import ProposeScreen from "@/components/tg/screens/ProposeScreen";
 import MarketDetail, { type Market } from "@/components/tg/screens/MarketDetail";
@@ -52,6 +53,9 @@ type SortId = (typeof SORTS)[number]["id"];
 const HOT_COUNT = 4;
 const HOT_MIN_MARKETS = 10;
 
+/** از چند بازار به بعد فیلد جست‌وجو نشان داده شود. */
+const SEARCH_MIN = 8;
+
 /**
  * داغ = بزرگ‌ترین استخر.
  *
@@ -97,6 +101,7 @@ export default function MarketsScreen({
   const [sort, setSort] = useState<SortId>("closing");
   const [onlyOpen, setOnlyOpen] = useState(false);
   const [onlySoon, setOnlySoon] = useState(false);
+  const [q, setQ] = useState("");
   const [proposing, setProposing] = useState(false);
   // مقصد deep link به‌عنوان مقدار اولیه‌ی state می‌نشیند، نه در یک افکت:
   // این‌طور یک‌بار اعمال می‌شود، بازگشت کاربر آن را دوباره باز نمی‌کند، و
@@ -127,6 +132,7 @@ export default function MarketsScreen({
     ? markets
         .filter((m) => (onlyOpen ? m.status === "open" : true))
         .filter((m) => (onlySoon ? closingSoon(m.closesAt) : true))
+        .filter((m) => matchesQuery(q, m.question))
     : null;
   const shown = filtered ? sortMarkets(filtered, sort) : null;
 
@@ -169,6 +175,12 @@ export default function MarketsScreen({
           + بازار بساز
         </button>
       </div>
+
+      {/* آستانه از روی کل بازارها حساب می‌شود نه فهرست فیلترشده، وگرنه
+          جست‌وجویی که نتیجه را کم می‌کند خودش را ناپدید می‌کرد. */}
+      {(markets?.length ?? 0) >= SEARCH_MIN && (
+        <SearchBar value={q} onChange={setQ} placeholder="جست‌وجو در بازارها…" />
+      )}
 
       <div className="no-scrollbar -mx-5 mb-4 flex gap-2 overflow-x-auto px-5 pb-1">
         {[{ id: "all", label: "همه" }, ...IR_CATEGORIES].map((c) => (

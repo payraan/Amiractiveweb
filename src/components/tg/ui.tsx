@@ -106,3 +106,50 @@ export function ScreenTitle({
     </div>
   );
 }
+
+/**
+ * فیلد جست‌وجوی فهرست‌ها.
+ *
+ * با ده بازار فیلتر دسته کافی است؛ با صد بازار نیست، و کاربر باید بتواند
+ * «دلار» یا «استقلال» را تایپ کند. به همین دلیل خودِ فراخوان تصمیم می‌گیرد
+ * کِی نشانش بدهد (معمولا از یک آستانه‌ی تعداد به بعد) — یک فیلد جست‌وجو
+ * روی فهرست پنج‌تایی فقط فضای عمودی می‌خورد.
+ */
+export function SearchBar({
+  value,
+  onChange,
+  placeholder = "جست‌وجو…",
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <div className="relative mb-3">
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        aria-label={placeholder}
+        className="no-zoom w-full rounded-xl border border-line bg-surface/40 py-2 pe-9 ps-3 text-[12px] text-cream outline-none transition placeholder:text-muted focus:border-gold/50"
+      />
+      {/* ذره‌بین و ضربدر جای هم می‌نشینند، هر دو در سمت end.
+          ⚠️ ضربدر نباید سمت start باشد: در چیدمان راست‌به‌چپ، start همان
+          لبه‌ای است که متن از آن شروع می‌شود و دکمه روی حرف اول می‌افتد. */}
+      {value ? (
+        <button
+          type="button"
+          onClick={() => onChange("")}
+          aria-label="پاک کردن جست‌وجو"
+          className="absolute inset-y-0 end-1 flex items-center px-2 text-[12px] text-muted transition active:text-cream"
+        >
+          ✕
+        </button>
+      ) : (
+        <span className="pointer-events-none absolute inset-y-0 end-3 flex items-center text-[13px] text-muted">
+          ⌕
+        </span>
+      )}
+    </div>
+  );
+}
