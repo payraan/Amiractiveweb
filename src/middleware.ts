@@ -80,6 +80,7 @@ const RULES: Rule[] = [
   { id: "poly-submit", pattern: /^\/api\/predict\/poly-submit/, max: 60, by: "identity" },
   { id: "combo-submit", pattern: /^\/api\/predict\/combo-submit/, max: 30, by: "identity" },
   { id: "ir-poll-me", pattern: /^\/api\/ir\/poll-me/, max: 120, by: "identity" },
+  { id: "trade-poll-me", pattern: /^\/api\/trade\/poll-me/, max: 120, by: "identity" },
   { id: "tg-link", pattern: /^\/api\/predict\/tg-link/, max: 20, by: "identity" },
   { id: "showcase", pattern: /^\/api\/profile\/showcase/, max: 20, by: "identity" },
 ];

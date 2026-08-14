@@ -1,6 +1,11 @@
 import { db } from "@/lib/db";
 import { ensureIrTables, impliedPct } from "@/lib/iran";
-import { editMarketPoll, sendMarketPoll, type PollMode } from "@/lib/telegram";
+import {
+  DEAD_POST_RE,
+  editMarketPoll,
+  sendMarketPoll,
+  type PollMode,
+} from "@/lib/telegram";
 
 // کارت‌های منتشرشده‌ی بازار در کانال‌ها.
 //
@@ -48,6 +53,7 @@ export async function postMarket(
   const sent = await sendMarketPoll(
     chatId,
     {
+      kind: "ir",
       id: m.id,
       question: m.question,
       category: m.category,
@@ -112,6 +118,7 @@ export async function refreshMarketPosts(): Promise<{
       r.chat_id,
       Number(r.message_id),
       {
+        kind: "ir",
         id: r.market_id,
         question: r.question,
         category: r.category,
@@ -130,9 +137,7 @@ export async function refreshMarketPosts(): Promise<{
       edited++;
     } else if (
       // پیام پاک شده یا ربات از کانال بیرون انداخته شده — ردیف بی‌مصرف است.
-      /message to edit not found|chat not found|bot was kicked|not enough rights/i.test(
-        res.error ?? ""
-      )
+      DEAD_POST_RE.test(res.error ?? "")
     ) {
       await pool.query("DELETE FROM ir_market_posts WHERE id=$1", [r.id]);
     }

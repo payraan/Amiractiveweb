@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import IrMarkets from "@/components/admin/IrMarkets";
+import TradePoll from "@/components/admin/TradePoll";
 import UsersTable from "@/components/admin/UsersTable";
 import RevenueLedger from "@/components/admin/RevenueLedger";
 import BotStatus from "@/components/admin/BotStatus";
@@ -78,12 +79,13 @@ export default function AdminPanel() {
 
 /** پوسته‌ی تب‌دار — بخش‌های موجود حفظ شده‌اند و دو بخش تازه اضافه شده. */
 function AdminShell() {
-  const [tab, setTab] = useState<"home" | "ir" | "revenue" | "users" | "bot" | "tr">(
-    "home"
-  );
+  const [tab, setTab] = useState<
+    "home" | "ir" | "trade" | "revenue" | "users" | "bot" | "tr"
+  >("home");
   const TABS = [
     { id: "home" as const, label: "شارژ و آمار" },
     { id: "ir" as const, label: "بازار ایران" },
+    { id: "trade" as const, label: "کارت ترید" },
     { id: "revenue" as const, label: "دفترکل درآمد" },
     { id: "users" as const, label: "کاربران" },
     { id: "bot" as const, label: "ربات تلگرام" },
@@ -93,7 +95,9 @@ function AdminShell() {
     <div className="mx-auto max-w-7xl px-5 py-8">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <h1 className="font-display text-2xl font-black">پنل مدیریت نارمون</h1>
-        <div className="flex gap-2">
+        {/* flex-wrap لازم است، نه تزئینی: با هفت تب، ردیفِ بدون شکست در عرض
+            موبایل کل صفحه را افقی سرریز می‌کند. */}
+        <div className="flex flex-wrap gap-2">
           {TABS.map((t) => (
             <button
               key={t.id}
@@ -113,6 +117,7 @@ function AdminShell() {
 
       {tab === "home" && <AdminHome />}
       {tab === "ir" && <IrMarkets />}
+      {tab === "trade" && <TradePoll />}
       {tab === "revenue" && <RevenueLedger />}
       {tab === "users" && <UsersTable />}
       {tab === "bot" && <BotStatus />}

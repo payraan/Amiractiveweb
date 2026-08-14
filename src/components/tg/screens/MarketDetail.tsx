@@ -220,7 +220,7 @@ export default function MarketDetail({
               const code = e instanceof ApiError ? e.code : "";
               setMsg(
                 code === "send_failed"
-                  ? "اول چت ربات را باز کنید و Start را بزنیدید، بعد دوباره امتحان کنید."
+                  ? "اول چت ربات را باز کنید و Start را بزنید، بعد دوباره امتحان کنید."
                   : code === "telegram_required"
                     ? "برای این کار باید حساب شما به تلگرام وصل باشد."
                     : "ارسال کارت به ربات انجام نشد."

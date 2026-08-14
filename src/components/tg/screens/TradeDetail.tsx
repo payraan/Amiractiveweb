@@ -41,18 +41,24 @@ export default function TradeDetail({
   market,
   freeLeft,
   already,
+  initialSide,
   onBack,
   onDone,
 }: {
   market: PolyMarket;
   freeLeft: number;
   already: boolean;
+  // از دکمه‌ی «بله/خیر» کارت تلگرامی می‌آید: کسی که در کانال روی «بله» زده،
+  // نباید داخل اپ دوباره همان را انتخاب کند.
+  initialSide?: "yes" | "no" | null;
   onBack: () => void;
   onDone: () => void;
 }) {
-  const [choice, setChoice] = useState<"yes" | "no" | null>(null);
+  const [choice, setChoice] = useState<"yes" | "no" | null>(initialSide ?? null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const [sentToBot, setSentToBot] = useState(false);
   const nativeButton = typeof window === "undefined" ? true : hasMainButton();
 
   useEffect(() => showBackButton(onBack), [onBack]);
@@ -224,6 +230,59 @@ export default function TradeDetail({
         >
           {busy ? "در حال ثبت…" : "ثبت پیش‌بینی"}
         </button>
+      )}
+
+      {/* همان مسیر بازار ایران: ربات کارت دکمه‌دار را در چت خصوصی می‌فرستد و
+          کاربر فورواردش می‌کند. ربات هیچ‌جا ادمین نمی‌شود و دکمه‌ها بعد از
+          فوروارد هم کار می‌کنند، چون از نوع لینک‌اند نه callback. */}
+      <button
+        type="button"
+        disabled={sending}
+        onClick={async () => {
+          haptic.press();
+          setSending(true);
+          try {
+            await api("/api/trade/poll-me", {
+              method: "POST",
+              body: JSON.stringify({ marketId: market.id }),
+            });
+            haptic.success();
+            setSentToBot(true);
+          } catch (e) {
+            haptic.error();
+            // تلگرام اجازه نمی‌دهد ربات به کسی پیام بدهد که هرگز چت را شروع
+            // نکرده. کاربری که مینی‌اپ را از لینک مستقیم باز کرده ممکن است
+            // هیچ‌وقت /start نزده باشد، پس این حالت واقعی است و باید بگوید
+            // چه کار کند، نه فقط «انجام نشد».
+            const code = e instanceof ApiError ? e.code : "";
+            setMsg(
+              code === "send_failed"
+                ? "اول چت ربات را باز کنید و Start را بزنید، بعد دوباره امتحان کنید."
+                : code === "telegram_required"
+                  ? "برای این کار باید حساب شما به تلگرام وصل باشد."
+                  : code === "not_found"
+                    ? "این بازار دیگر در فهرست نیست."
+                    : "ارسال کارت به ربات انجام نشد."
+            );
+          } finally {
+            setSending(false);
+          }
+        }}
+        className="mt-4 w-full rounded-xl border border-gold/40 bg-gold/10 py-3.5 text-[12px] font-bold text-gold transition active:border-gold disabled:opacity-50"
+      >
+        {sending
+          ? "در حال ارسال…"
+          : sentToBot
+            ? "✓ در ربات فرستاده شد؛ آن را فوروارد کنید"
+            : "📢 اشتراک‌گذاری کارت در کانال یا گروه"}
+      </button>
+
+      {sentToBot && (
+        <p className="mt-2 rounded-xl border border-gain/30 bg-gain/5 px-4 py-3 text-[10.5px] leading-6 text-gain">
+          کارت در چت ربات برای شما فرستاده شد. آن را به هر کانال یا گروهی که
+          ادمین آن هستید فوروارد کنید؛ دکمه‌هایش بعد از فوروارد هم کار می‌کنند و
+          ربات لازم نیست جایی ادمین شود.
+        </p>
       )}
     </div>
   );

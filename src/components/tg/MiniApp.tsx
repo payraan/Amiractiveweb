@@ -24,17 +24,43 @@ import Logo from "@/components/Logo";
 /**
  * مقصد deep link از startapp.
  *
- * شکل‌ها: `market_42`، `market_42_yes`، `market_42_no`، `join_42`
- * (`join_` از دکمه‌ی «حساب ندارم» می‌آید و مقصدش همان بازار است — کاربر باید
- * ببیند سرِ چه چیزی ثبت‌نام می‌کند، نه اینکه در فهرست کلی رها شود.)
+ * گرامر: `<پیشوند>_<شناسه>[_yes|_no]`
+ *   • `market_42` / `join_42`   → بازار ایران، شناسه‌ی عددی
+ *   • `trade_51671` / `tjoin_…` → بازار ترید، شناسه‌ی رشته‌ای پالی‌مارکت
+ *
+ * (`join_` و `tjoin_` از دکمه‌ی «حساب ندارم» می‌آیند و مقصدشان همان بازار
+ * است — کاربر باید ببیند سرِ چه چیزی ثبت‌نام می‌کند، نه اینکه در فهرست کلی
+ * رها شود.)
+ *
+ * ⚠️ شناسه‌ی ترید عمدا رشته می‌ماند و به عدد تبدیل نمی‌شود: پالی‌مارکت آن را
+ * رشته می‌دهد و مقایسه در `TradeScreen` هم رشته‌ای است.
  */
-function parseStartParam(
-  raw: string | null
-): { marketId: number; side: "yes" | "no" | null } | null {
+type DeepLink =
+  | { tab: "markets"; marketId: number; side: "yes" | "no" | null }
+  | { tab: "trade"; marketId: string; side: "yes" | "no" | null };
+
+function parseStartParam(raw: string | null): DeepLink | null {
   if (!raw) return null;
-  const m = /^(?:market|join)_(\d+)(?:_(yes|no))?$/.exec(raw);
-  if (!m) return null;
-  return { marketId: Number(m[1]), side: (m[2] as "yes" | "no") ?? null };
+
+  const ir = /^(?:market|join)_(\d+)(?:_(yes|no))?$/.exec(raw);
+  if (ir) {
+    return {
+      tab: "markets",
+      marketId: Number(ir[1]),
+      side: (ir[2] as "yes" | "no") ?? null,
+    };
+  }
+
+  const trade = /^(?:trade|tjoin)_([A-Za-z0-9-]{1,48})(?:_(yes|no))?$/.exec(raw);
+  if (trade) {
+    return {
+      tab: "trade",
+      marketId: trade[1],
+      side: (trade[2] as "yes" | "no") ?? null,
+    };
+  }
+
+  return null;
 }
 
 const TAB_IDS: TabId[] = ["markets", "trade", "pulse", "challenge", "wallet", "profile"];
@@ -78,10 +104,7 @@ export default function MiniApp({ siteUrl }: { siteUrl: string }) {
     else setTab(t);
   };
   const [player, setPlayer] = useState<AuthedPlayer | null>(null);
-  const [deepLink, setDeepLink] = useState<{
-    marketId: number;
-    side: "yes" | "no" | null;
-  } | null>(null);
+  const [deepLink, setDeepLink] = useState<DeepLink | null>(null);
   const [created, setCreated] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [outside, setOutside] = useState(false);
@@ -110,7 +133,7 @@ export default function MiniApp({ siteUrl }: { siteUrl: string }) {
       const target = parseStartParam(r.startParam);
       if (target) {
         setDeepLink(target);
-        setTab("markets");
+        setTab(target.tab);
       } else {
         // لینک بازار مقدم است: کسی که روی یک بازار مشخص کلیک کرده باید
         // همان‌جا بیفتد، نه در تبی که آدرس می‌گوید.
@@ -228,10 +251,19 @@ export default function MiniApp({ siteUrl }: { siteUrl: string }) {
                 <MarketsScreen
                   key={`markets-${homeNonce}`}
                   siteUrl={siteUrl}
-                  deepLink={homeNonce === 0 ? deepLink : null}
+                  deepLink={
+                    homeNonce === 0 && deepLink?.tab === "markets" ? deepLink : null
+                  }
                 />
               )}
-              {tab === "trade" && <TradeScreen key={`trade-${homeNonce}`} />}
+              {tab === "trade" && (
+                <TradeScreen
+                  key={`trade-${homeNonce}`}
+                  deepLink={
+                    homeNonce === 0 && deepLink?.tab === "trade" ? deepLink : null
+                  }
+                />
+              )}
               {tab === "pulse" && <PulseScreen key={`pulse-${homeNonce}`} />}
               {tab === "challenge" && (
                 <ChallengeScreen key={`challenge-${homeNonce}`} />

@@ -46,13 +46,19 @@ const HOT_COUNT = 4;
 const HOT_MIN_MARKETS = 10;
 const SEARCH_MIN = 8;
 
-export default function TradeScreen() {
+export default function TradeScreen({
+  deepLink,
+}: {
+  deepLink?: { marketId: string; side: "yes" | "no" | null } | null;
+}) {
   const [cat, setCat] = useState("all");
   // مثل بازار ایران: پیش‌فرض «نزدیک به پایان» است تا فهرست، ترتیبِ نوار
   // داغ را تکرار نکند و دو بخش مکمل هم باشند.
   const [sort, setSort] = useState<SortId>("closing");
   const [hideDone, setHideDone] = useState(false);
-  const [openId, setOpenId] = useState<string | null>(null);
+  // مثل بازار ایران، مقصد deep link مقدار اولیه‌ی state است نه یک افکت: یک‌بار
+  // اعمال می‌شود و برگشتِ کاربر دوباره همان بازار را باز نمی‌کند.
+  const [openId, setOpenId] = useState<string | null>(deepLink?.marketId ?? null);
   const [q, setQ] = useState("");
   // کارنامه ته صفحه بود، زیر چهارصد کارت — یعنی عملا وجود نداشت. حالا یک
   // کلید دوحالته است که جای همان کادر «رایگان امروز» می‌نشیند، پس دیدنِ
@@ -76,6 +82,7 @@ export default function TradeScreen() {
         market={open}
         freeLeft={me.data?.freeLeft ?? 0}
         already={doneIds.has(open.id)}
+        initialSide={open.id === deepLink?.marketId ? deepLink.side : null}
         onBack={() => setOpenId(null)}
         onDone={() => {
           setOpenId(null);

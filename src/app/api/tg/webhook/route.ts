@@ -565,7 +565,8 @@ async function handleVote(
   cbId: string,
   tg: TgUser,
   side: "yes" | "no",
-  marketId: number
+  kind: "ir" | "trade",
+  marketId: string
 ) {
   const label = side === "yes" ? "بله" : "خیر";
   const player = await playerByTgUserId(tg.id, tg.username);
@@ -581,14 +582,23 @@ async function handleVote(
 
   await answerCallback(cbId, `«${label}» انتخاب شد؛ ادامه در چت ربات`);
 
+  const slug = kind === "trade" ? "trade" : "market";
   const deep = SITE_URL
-    ? `https://t.me/${process.env.TG_BOT_USERNAME}/market?startapp=market_${marketId}_${side}`
+    ? `https://t.me/${process.env.TG_BOT_USERNAME}/market?startapp=${slug}_${marketId}_${side}`
     : "";
+
+  // دلیلِ «چرا همین‌جا ثبت نمی‌شود» در دو اقتصاد فرق دارد و متن هم باید فرق
+  // کند: در بازار ایران پای پول است، در ترید پای سهمیه‌ی روزانه و MOON.
+  const why =
+    kind === "ir"
+      ? `برای ثبت پیش‌بینی، مبلغ آن را در اپ تأیید کنید؛ از یک دکمه نمی‌شود مبلغ گرفت و ` +
+        `نمی‌خواهیم پول با یک لمس جابه‌جا شود.`
+      : `پیش‌بینی را در اپ نهایی کنید. هر ثبت از سهمیه‌ی رایگان روزانه کم می‌کند، ` +
+        `پس نباید با یک لمس اتفاقی خرج شود.`;
+
   await sendTelegram(
     tg.id,
-    `گزینه‌ی <b>${label}</b> را انتخاب کردید.\n\n` +
-      `برای ثبت پیش‌بینی، مبلغ آن را در اپ تأیید کنید؛ از یک دکمه نمی‌شود مبلغ گرفت و ` +
-      `نمی‌خواهیم پول با یک لمس جابه‌جا شود.`,
+    `گزینه‌ی <b>${label}</b> را انتخاب کردید.\n\n${why}`,
     deep ? [[{ text: `ثبت پیش‌بینی روی ${label}`, url: deep }]] : []
   );
 }
@@ -651,13 +661,16 @@ export async function POST(req: Request) {
         await handleMenu(cb.id, cb.from, cb.message.chat.id, cb.message.message_id, cb.data);
         return NextResponse.json({ ok: true });
       }
-      const m = /^v:([yn]):(\d+)$/.exec(cb.data);
-      if (m) {
+      // `v:` بازار ایران (شناسه‌ی عددی) · `t:` بازار ترید (شناسه‌ی رشته‌ای).
+      // جدا بودنشان لازم است: شناسه‌ی ۴۲ در دو اقتصاد دو بازار متفاوت است.
+      const m = /^([vt]):([yn]):([A-Za-z0-9-]{1,48})$/.exec(cb.data);
+      if (m && (m[1] === "t" || /^\d+$/.test(m[3]))) {
         await handleVote(
           cb.id,
           cb.from,
-          m[1] === "y" ? "yes" : "no",
-          Number(m[2])
+          m[2] === "y" ? "yes" : "no",
+          m[1] === "t" ? "trade" : "ir",
+          m[3]
         );
       } else {
         // دکمه‌ی ناشناخته را هم باید جواب داد، وگرنه تلگرام تا ۳۰ ثانیه

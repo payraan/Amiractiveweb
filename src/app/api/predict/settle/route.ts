@@ -3,6 +3,7 @@ import { settleDueRounds } from "@/lib/settle";
 import { settlePolyDue } from "@/lib/poly";
 import { settleCombosDue } from "@/lib/combos";
 import { refreshMarketPosts } from "@/lib/ir-posts";
+import { refreshTradePosts } from "@/lib/trade-posts";
 import { settleDueIrMarkets } from "@/lib/iran";
 import { runBroadcastTick } from "@/lib/broadcast";
 import { translatePending } from "@/lib/translate";
@@ -52,6 +53,11 @@ export async function POST(req: Request) {
     out.posts = await refreshMarketPosts();
   } catch (err) {
     out.postsError = err instanceof Error ? err.message : "error";
+  }
+  try {
+    out.tradePosts = await refreshTradePosts();
+  } catch (err) {
+    out.tradePostsError = err instanceof Error ? err.message : "error";
   }
 
   // صف ترجمه‌ی عنوان بازارهای خارجی. بدون کلید بی‌هزینه رد می‌شود.

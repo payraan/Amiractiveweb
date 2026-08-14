@@ -4,6 +4,7 @@
 import { randomBytes, timingSafeEqual } from "crypto";
 import { db } from "@/lib/db";
 import { WELCOME_CREDITS } from "@/lib/game";
+import { losePoints, winPoints } from "@/lib/poly-scoring";
 
 export const GROUP_BONUS_CREDITS = 20; // هدیه‌ی عضویت در گروه
 export const LINK_CODE_TTL_MIN = 15;
@@ -608,15 +609,54 @@ export async function checkTelegramLink(
 // دکمه‌ها لینک‌اند نه callback_query: با لینک، تلگرام خودش مینی‌اپ را روی
 // همان بازار باز می‌کند و ما یک رفت‌وبرگشت و یک حالت میانی کمتر داریم.
 
-export type MarketPollInput = {
-  id: number;
-  question: string;
-  category: string;
-  yesPct: number;
-  bettors: number;
-  volume: number;
-  closesAt: string;
-};
+/**
+ * ورودی کارت — یکی از دو اقتصادِ پلتفرم.
+ *
+ * عمدا اتحاد تفکیک‌شده است و نه یک شکل با فیلدهای اختیاری: بازار ایران
+ * استخر تتری دارد و بازار ترید امتیاز. اگر یک شکل مشترک بود، روزی متن تتری
+ * روی کارت ترید می‌نشست و به کاربر وعده‌ی پولی داده می‌شد که وجود ندارد.
+ * تایپ باید جلوی این را بگیرد، نه حواس‌جمعیِ نویسنده‌ی بعدی.
+ *
+ * ⚠️ `question` برای ترید باید از قبل فارسی‌شده باشد (`displayTitle`)؛
+ * اینجا ترجمه‌ای انجام نمی‌شود.
+ */
+export type MarketPollInput =
+  | {
+      kind: "ir";
+      id: number;
+      question: string;
+      category: string;
+      yesPct: number;
+      bettors: number;
+      volume: number; // تتر
+      closesAt: string;
+    }
+  | {
+      kind: "trade";
+      id: string; // شناسه‌ی پالی‌مارکت رشته است، نه عدد
+      question: string;
+      category: string;
+      yesPct: number;
+      volume: number; // دلار — حجم خودِ پالی‌مارکت
+      closesAt: string;
+    };
+
+/**
+ * خطاهایی که یعنی این کارت دیگر وجود ندارد یا دست ما نیست.
+ *
+ * در یک جا نوشته شده چون هر دو موتور به‌روزرسانی (بازار ایران و ترید) به آن
+ * تکیه می‌کنند؛ کپی‌شدنش یعنی روزی یکی‌شان یک حالت را نمی‌شناسد و ردیف مرده
+ * برای همیشه در جدول می‌ماند و هر ۱۵ دقیقه دوباره تلاش می‌شود.
+ */
+export const DEAD_POST_RE =
+  /message to edit not found|message can't be edited|chat not found|bot was kicked|bot was blocked|not enough rights/i;
+
+/** حجم دلاری پالی‌مارکت به شکل خوانا: ۱۲.۴M / ۸۵۰K. */
+function usdShort(v: number): string {
+  if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 1_000) return `$${Math.round(v / 1_000)}K`;
+  return `$${Math.round(v)}`;
+}
 
 function bar(yesPct: number): string {
   const filled = Math.round((Math.max(0, Math.min(100, yesPct)) / 100) * 10);
@@ -654,24 +694,58 @@ export function marketPoll(
 ): { text: string; buttons: InlineButton[][] } {
   const noPct = Math.round((100 - m.yesPct) * 10) / 10;
   const app = BOT_USERNAME ? `https://t.me/${BOT_USERNAME}/market` : "";
-  const deep = app ? `${app}?startapp=market_${m.id}` : "";
+  // پیشوند لینک عمیق، مقصدِ تب مینی‌اپ را تعیین می‌کند: `market_` تب بازار
+  // ایران، `trade_` تب ترید. parseStartParam در MiniApp همین دو را می‌خواند.
+  const slug = m.kind === "trade" ? "trade" : "market";
+  const deep = app ? `${app}?startapp=${slug}_${m.id}` : "";
+  // callback هم باید بگوید کدام اقتصاد است — شناسه‌ی ۴۲ در بازار ایران و در
+  // پالی‌مارکت دو چیز کاملا متفاوت‌اند.
+  const cb = m.kind === "trade" ? "t" : "v";
 
   const freshness =
     mode === "live"
       ? "🔄 درصدها خودکار به‌روز می‌شوند"
       : "💡 درصدهای فوق مربوط به لحظه اشتراک‌گذاری هستند. برای مشاهده آمار لحظه‌ای و ثبت پیش‌بینی، روی دکمه‌های زیر کلیک کنید.";
 
+  // ⚠️ دو متن پایین عمدا جدا نوشته شده‌اند و نباید یکی شوند: بازار ایران
+  // استخر تتری دارد و ترید فقط امتیاز. یک متن مشترکِ «پاداش بگیرید» روی
+  // کارت ترید یعنی وعده‌ی پولی که وجود ندارد.
+  const facts =
+    m.kind === "ir"
+      ? `👥 تعداد پیش‌بینی‌ها: ${m.bettors} نفر\n` +
+        `💎 مجموع استخر: ${m.volume.toFixed(0)} USDT\n`
+      : `💵 حجم بازار: ${usdShort(m.volume)}\n`;
+
+  const close =
+    m.kind === "ir"
+      ? `⚖ نظر شما با اکثریت موافق است یا مخالف؟ پیش‌بینی دقیق خود را ثبت کنید ` +
+        `و از استخر تتری (USDT) پاداش بگیرید.`
+      : // فرمول صفر-انتظار با عددِ همین بازار نوشته می‌شود، نه به‌شکل کلی:
+        // «۲۹ در برابر ۷۱» را کسی که تازه کارت را دیده هم می‌فهمد، در حالی
+        // که «۱۰۰ منهای احتمال» توضیح لازم دارد.
+        //
+        // ⚠️ اعداد از `poly-scoring` می‌آیند نه از حساب دستی. آن فایل صریح
+        // می‌گوید فرمول نباید کپی شود، و کارتی که عددش با اپ نخواند روی
+        // امتیاز به کاربر دروغ گفته است.
+        `⚖ روی «بله» اگر درست دربیایی ${Math.round(winPoints(m.yesPct))} امتیاز ` +
+        `می‌گیری و اگر غلط، ${Math.round(-losePoints(m.yesPct))} امتیاز می‌دهی؛ ` +
+        `روی «خیر» دقیقا برعکس. گزینه‌ی امن برد کمی دارد — امتیاز وقتی جمع ` +
+        `می‌شود که بهتر از بازار دیده باشی.`;
+
+  const head =
+    m.kind === "ir"
+      ? "📊 <b>بازار پیش‌بینی جدید در نارمون:</b>"
+      : "📈 <b>بازار ترید جدید در نارمون:</b>";
+
   const text =
-    `📊 <b>بازار پیش‌بینی جدید در نارمون:</b>\n\n` +
+    `${head}\n\n` +
     `🔹 ${escapeHtml(m.question)}\n\n` +
     `<code>${bar(m.yesPct)}</code>\n` +
     `🟩 بله ${m.yesPct}٪  ·  🟥 خیر ${noPct}٪\n\n` +
-    `👥 تعداد پیش‌بینی‌ها: ${m.bettors} نفر\n` +
-    `💎 مجموع استخر: ${m.volume.toFixed(0)} USDT\n` +
+    `${facts}` +
     `⏳ مهلت باقی‌مانده: تا ${faDate(m.closesAt)}\n` +
     `${freshness}\n\n` +
-    `⚖ نظر شما با اکثریت موافق است یا مخالف؟ پیش‌بینی دقیق خود را ثبت کنید ` +
-    `و از استخر تتری (USDT) پاداش بگیرید.`;
+    `${close}`;
 
   if (mode === "live") {
     // callback_data سقف ۶۴ بایت دارد، پس کوتاه نگه داشته می‌شود.
@@ -679,8 +753,8 @@ export function marketPoll(
       text,
       buttons: [
         [
-          { text: `✅ بله (${m.yesPct}٪)`, callback_data: `v:y:${m.id}` },
-          { text: `❌ خیر (${noPct}٪)`, callback_data: `v:n:${m.id}` },
+          { text: `✅ بله (${m.yesPct}٪)`, callback_data: `${cb}:y:${m.id}` },
+          { text: `❌ خیر (${noPct}٪)`, callback_data: `${cb}:n:${m.id}` },
         ],
         ...(deep ? [[{ text: "📊 باز کردن بازار", url: deep }]] : []),
       ],
@@ -698,7 +772,12 @@ export function marketPoll(
           { text: `❌ خیر (${noPct}٪)`, url: `${deep}_no` },
         ],
         [{ text: "📊 مشاهده بازار و ثبت پیش‌بینی", url: deep }],
-        [{ text: "🆕 ساخت حساب کاربری (ثبت‌نام)", url: `${app}?startapp=join_${m.id}` }],
+        [
+          {
+            text: "🆕 ساخت حساب کاربری (ثبت‌نام)",
+            url: `${app}?startapp=${m.kind === "trade" ? "tjoin" : "join"}_${m.id}`,
+          },
+        ],
       ]
     : [];
 
