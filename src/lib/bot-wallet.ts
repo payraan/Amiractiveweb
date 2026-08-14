@@ -1,7 +1,8 @@
 import { db } from "@/lib/db";
 import { escapeHtml, type InlineButton, type Screen } from "@/lib/telegram";
 import { ensureIrTables } from "@/lib/iran";
-import { getDepositAddress, gatewayReady, USDT_NETWORK } from "@/lib/zovix";
+import { gatewayReady, USDT_NETWORK } from "@/lib/zovix";
+import { depositAddressFor } from "@/lib/deposit-address";
 import { MIN_WITHDRAW, withdrawAddressShapeValid } from "@/lib/wallet-rules";
 import { ledgerLabel } from "@/lib/ledger-labels";
 
@@ -146,7 +147,7 @@ export async function depositScreen(playerId: number): Promise<Screen> {
     };
   }
 
-  const r = await getDepositAddress(playerId);
+  const r = await depositAddressFor(playerId);
   if (!r.ok) {
     return {
       media: media("wallet.jpg"),
@@ -161,7 +162,7 @@ export async function depositScreen(playerId: number): Promise<Screen> {
     text:
       `⬇️ <b>واریز تتر</b>\n\n` +
       `آدرس اختصاصی شما روی شبکه‌ی <b>${USDT_NETWORK}</b>:\n\n` +
-      `<code>${escapeHtml(r.data.address)}</code>\n\n` +
+      `<code>${escapeHtml(r.address)}</code>\n\n` +
       `<i>روی آدرس بزنید تا کپی شود.</i>\n\n` +
       `⚠️ فقط <b>تتر</b> و فقط روی <b>${USDT_NETWORK}</b> بفرستید. ` +
       `ارز دیگر یا شبکه‌ی دیگر قابل بازگشت نیست.\n\n` +

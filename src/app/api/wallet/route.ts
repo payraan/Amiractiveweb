@@ -3,7 +3,8 @@ import { db } from "@/lib/db";
 import { currentPlayerId } from "@/lib/current-player";
 import { hasLinkedTelegram } from "@/lib/telegram";
 import { ensureIrTables } from "@/lib/iran";
-import { getDepositAddress, gatewayReady, USDT_NETWORK } from "@/lib/zovix";
+import { gatewayReady, USDT_NETWORK } from "@/lib/zovix";
+import { depositAddressFor } from "@/lib/deposit-address";
 
 export const dynamic = "force-dynamic";
 
@@ -36,8 +37,9 @@ export async function GET() {
   let address: string | null = null;
   let addressError: string | null = null;
   if (gatewayReady() && linked) {
-    const r = await getDepositAddress(playerId);
-    if (r.ok) address = r.data.address;
+    // از دیتابیس، و فقط بار اول از درگاه — دلیلش در deposit-address.ts
+    const r = await depositAddressFor(playerId);
+    if (r.ok) address = r.address;
     else addressError = r.error;
   }
 
