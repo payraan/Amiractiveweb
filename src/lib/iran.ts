@@ -67,6 +67,28 @@ export async function ensureIrTables(): Promise<void> {
         "CREATE INDEX IF NOT EXISTS wl_player_idx ON wallet_ledger(player_id, created_at DESC)"
       );
 
+      // ── پول دمو ──────────────────────────────────────────
+      //
+      // موجودی جداگانه، نه یک برچسب روی حساب. برچسبِ `is_demo` روی *حساب*
+      // بود و همین باعث می‌شد کمیسیون یک بازارِ کاملا دمو «واقعی» ثبت شود:
+      // پرداخت‌کننده‌ی مشخصی نداشت و از روی سازنده‌ی بازار حساب می‌شد.
+      // با ستون جدا، رد خودِ پول گرفته می‌شود نه رد صاحبش.
+      //
+      // قاعده: خرج همیشه اول از دمو برداشته می‌شود؛ برگشتِ اصلِ پول به دمو
+      // برمی‌گردد و هر چه بالاتر از آن بود سود است و واقعی می‌شود. برداشت
+      // فقط به `usdt_balance` دست می‌زند، پس دمو ذاتا برداشت‌ناپذیر است.
+      await pool.query(
+        "ALTER TABLE players ADD COLUMN IF NOT EXISTS demo_balance NUMERIC(18,6) NOT NULL DEFAULT 0"
+      );
+      // سهم دمو از همین سطر، و موجودی دموی پس از آن — تا دفترکل به‌تنهایی
+      // قابل حسابرسی بماند و لازم نباشد از جای دیگری بازسازی شود.
+      await pool.query(
+        "ALTER TABLE wallet_ledger ADD COLUMN IF NOT EXISTS demo NUMERIC(18,6) NOT NULL DEFAULT 0"
+      );
+      await pool.query(
+        "ALTER TABLE wallet_ledger ADD COLUMN IF NOT EXISTS demo_after NUMERIC(18,6) NOT NULL DEFAULT 0"
+      );
+
       await pool.query(
         `CREATE TABLE IF NOT EXISTS ir_markets (
            id SERIAL PRIMARY KEY,
@@ -109,6 +131,54 @@ export async function ensureIrTables(): Promise<void> {
       await pool.query(
         "CREATE INDEX IF NOT EXISTS irb_market_idx ON ir_bets(market_id, player_id)"
       );
+
+      // سهم دمو از اصلِ همین شرط. تسویه از روی همین تصمیم می‌گیرد چقدر از
+      // پرداختی به دمو برگردد و چقدرش سودِ واقعی است.
+      await pool.query(
+        "ALTER TABLE ir_bets ADD COLUMN IF NOT EXISTS demo_stake NUMERIC(18,6) NOT NULL DEFAULT 0"
+      );
+
+      // ── مهاجرت یک‌باره ────────────────────────────────────
+      //
+      // تا امروز هیچ پول واقعی‌ای وارد سیستم نشده (هیچ ردیف واریزِ درگاه
+      // وجود ندارد)، پس هر موجودی‌ای که هست دمو است. این را یک بار به ستون
+      // تازه منتقل می‌کنیم، وگرنه پول دموی موجود «واقعی» می‌ماند و قابل
+      // برداشت.
+      //
+      // شرطِ «هیچ واریزی ثبت نشده» عمدی است: اگر روزی این کد روی دیتابیسی
+      // اجرا شود که پول واقعی دارد، هیچ کاری نمی‌کند. مهاجرتی که بتواند دو
+      // بار اجرا شود و بار دوم خراب کند، از نبودش بدتر است.
+      // ⚠️ `gateway_deposits` را وبهوک درگاه می‌سازد، نه این بلوک — پس ممکن
+      // است هنوز وجود نداشته باشد و ارجاع مستقیم، کل اسکیما را می‌شکست.
+      // نبودنِ جدول یعنی قطعا هیچ واریزی نبوده، که همان شرط ماست.
+      //
+      // ⚠️ دو کوئری جدا، نه یک CASE. Postgres کل دستور را **پیش از اجرا**
+      // تجزیه می‌کند و ارجاع به جدولِ ناموجود همان‌جا خطا می‌دهد — حتی اگر
+      // شاخه‌ی CASE هرگز اجرا نشود. `to_regclass` در زمان اجراست، خیلی دیر.
+      // نسخه‌ی اول همین را داشت و روی دیتابیسی که هنوز واریزی ندیده بود کل
+      // اسکیما را می‌شکست.
+      const tbl = await pool.query<{ t: string | null }>(
+        "SELECT to_regclass('public.gateway_deposits')::text AS t"
+      );
+      let noReal = true;
+      if (tbl.rows[0]?.t) {
+        const r = await pool.query<{ ok: boolean }>(
+          "SELECT NOT EXISTS (SELECT 1 FROM gateway_deposits WHERE credited) AS ok"
+        );
+        noReal = Boolean(r.rows[0]?.ok);
+      }
+      if (noReal) {
+        await pool.query(
+          `UPDATE players SET demo_balance = usdt_balance, usdt_balance = 0
+            WHERE usdt_balance > 0 AND demo_balance = 0`
+        );
+        // ردیف‌های قدیمی دفترکل سهم دمو ندارند. بدون این، جمع ستون `demo`
+        // با `demo_balance` نمی‌خواند و دفترکل — که تنها مبنای حسابرسی
+        // است — از همان روز اول قابل اتکا نیست.
+        await pool.query(
+          "UPDATE wallet_ledger SET demo = amount, demo_after = balance_after WHERE demo = 0"
+        );
+      }
 
       // ── اعتراض به نتیجه ──────────────────────────────────
       // تا امروز «پنجره‌ی اعتراض» فقط یک تایمر بود که جلوی تسویه را می‌گرفت و
@@ -164,6 +234,14 @@ export async function ensureIrTables(): Promise<void> {
       );
       await pool.query(
         "ALTER TABLE platform_revenue ADD COLUMN IF NOT EXISTS is_demo BOOLEAN NOT NULL DEFAULT false"
+      );
+      // سهم دموی همین درآمد.
+      //
+      // بولین کافی نبود: کمیسیون یک بازار می‌تواند هم‌زمان از پول واقعی و
+      // پول دمو بیاید، چون در استخر parimutuel پول همه با هم مخلوط می‌شود.
+      // «واقعی یا دمو» برای چنین ردیفی پرسش غلطی است؛ پرسش درست «چقدرش» است.
+      await pool.query(
+        "ALTER TABLE platform_revenue ADD COLUMN IF NOT EXISTS demo_amount NUMERIC(18,6) NOT NULL DEFAULT 0"
       );
       await pool.query(
         "CREATE INDEX IF NOT EXISTS prv_kind_idx ON platform_revenue(kind, created_at DESC)"
@@ -228,6 +306,18 @@ export function wouldBeVoid(
  * تغییر موجودی کیف پول با ثبت در دفترکل.
  * حتما داخل ترنزاکشنی صدا زده شود که ردیف بازیکن را با FOR UPDATE قفل کرده.
  */
+export type FundsResult = {
+  /** موجودی واقعی پس از تغییر — همان چیزی که قابل برداشت است. */
+  real: number;
+  /** موجودی دمو پس از تغییر. */
+  demo: number;
+  /**
+   * سهم دمو از همین جابه‌جایی. برای بدهی مثبت است (چقدر دمو خرج شد) و
+   * برای بستانکاری هم مثبت (چقدر از اعتبار، دمو بود).
+   */
+  demoPart: number;
+};
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function moveFunds(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -235,21 +325,80 @@ export async function moveFunds(
   playerId: number,
   amount: number,
   kind: string,
-  ref?: string
-): Promise<number> {
-  const res = await client.query(
-    `UPDATE players SET usdt_balance = usdt_balance + $1
-      WHERE id = $2 RETURNING usdt_balance`,
-    [amount, playerId]
+  ref?: string,
+  opts: {
+    /**
+     * فقط برای بستانکاری: چه مقدار از این پول دمو است.
+     *
+     * پیش‌فرضش صفر (همه واقعی) است و نه «به نسبت». حدس‌زدنِ سهم دمو یعنی
+     * جایی که فراخوان یادش برود، پول دمو بی‌سروصدا واقعی می‌شود — و پول
+     * واقعیِ بی‌پشتوانه چیزی است که در برداشت خودش را نشان می‌دهد.
+     */
+    creditDemo?: number;
+    /**
+     * فقط برای بدهی: از دمو برندار، حتی اگر موجودی دمو داشته باشد.
+     *
+     * ⚠️ تنها مصرفش برداشت است و همان‌جا حیاتی است. بدون این، `moveFunds`
+     * چون همیشه اول از دمو کم می‌کند، بونوس را از سیستم بیرون می‌فرستاد —
+     * دقیقا همان چیزی که این ستون برای جلوگیری‌اش ساخته شد.
+     */
+    realOnly?: boolean;
+  } = {}
+): Promise<FundsResult> {
+  // ⚠️ ردیف باید از قبل با FOR UPDATE قفل شده باشد (قرارداد این تابع)، پس
+  // خواندن و بعد نوشتن اینجا امن است و مسابقه نمی‌سازد.
+  const cur = await client.query(
+    "SELECT usdt_balance, demo_balance FROM players WHERE id=$1",
+    [playerId]
   );
-  const after = Number(res.rows[0].usdt_balance);
-  if (after < 0) throw new Error("insufficient_funds");
+  if (!cur.rowCount) throw new Error("player_not_found");
+  const realBefore = Number(cur.rows[0].usdt_balance);
+  const demoBefore = Number(cur.rows[0].demo_balance);
+
+  let dReal: number;
+  let dDemo: number;
+
+  if (amount < 0) {
+    const spend = -amount;
+    if (opts.realOnly) {
+      // برداشت: دمو اصلا لمس نمی‌شود.
+      if (spend > realBefore + 1e-9) throw new Error("insufficient_funds");
+      dDemo = 0;
+      dReal = -spend;
+    } else {
+      // خرج عادی: اول از دمو، تا بونوس واقعا مصرف شود.
+      if (spend > demoBefore + realBefore + 1e-9) {
+        throw new Error("insufficient_funds");
+      }
+      dDemo = -Math.min(spend, demoBefore);
+      dReal = -(spend + dDemo); // dDemo منفی است، پس این باقی‌مانده است
+    }
+  } else {
+    // اعتبار: سهم دمو از بیرون می‌آید و هرگز از خودِ مبلغ بیشتر نمی‌شود.
+    dDemo = Math.max(0, Math.min(opts.creditDemo ?? 0, amount));
+    dReal = amount - dDemo;
+  }
+
+  const realAfter = round6(realBefore + dReal);
+  const demoAfter = round6(demoBefore + dDemo);
+  if (realAfter < 0 || demoAfter < 0) throw new Error("insufficient_funds");
+
   await client.query(
-    `INSERT INTO wallet_ledger (player_id, amount, kind, ref, balance_after)
-     VALUES ($1,$2,$3,$4,$5)`,
-    [playerId, amount, kind, ref ?? null, after]
+    "UPDATE players SET usdt_balance=$2, demo_balance=$3 WHERE id=$1",
+    [playerId, realAfter, demoAfter]
   );
-  return after;
+  await client.query(
+    `INSERT INTO wallet_ledger (player_id, amount, kind, ref, balance_after, demo, demo_after)
+     VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+    [playerId, amount, kind, ref ?? null, realAfter, round6(dDemo), demoAfter]
+  );
+
+  return { real: realAfter, demo: demoAfter, demoPart: Math.abs(round6(dDemo)) };
+}
+
+/** گرد کردن به شش رقم — همان دقتی که ستون‌های NUMERIC(18,6) دارند. */
+function round6(n: number): number {
+  return Math.round(n * 1e6) / 1e6;
 }
 
 /**
@@ -268,26 +417,39 @@ export async function recordRevenue(
   client: any,
   kind: RevenueKind,
   amount: number,
-  opts: { marketId?: number; playerId?: number; note?: string } = {}
+  opts: {
+    marketId?: number;
+    playerId?: number;
+    note?: string;
+    /** چه مقدار از این درآمد از پول دمو آمده. پیش‌فرض صفر یعنی همه‌اش واقعی. */
+    demoAmount?: number;
+  } = {}
 ): Promise<void> {
   if (!Number.isFinite(amount) || amount === 0) return;
-  // is_demo از روی خودِ حساب پرداخت‌کننده خوانده می‌شود، نه پارامتر ورودی —
-  // تا هیچ مسیری نتواند فراموش کند علامت بزند. اگر بازیکن مشخص نیست (مثل
-  // کمیسیون تسویه که چند نفر در آن سهیم‌اند)، از سازنده‌ی بازار حساب می‌شود.
+
+  // ⚠️ سهم دمو از **خودِ پول** می‌آید، نه از برچسبِ حساب.
+  //
+  // نسخه‌ی قبلی `is_demo` بازیکن یا سازنده‌ی بازار را می‌خواند. نتیجه‌اش این
+  // شد که کمیسیون یک بازارِ کاملا دمو «واقعی» ثبت شد — چون کمیسیون تسویه
+  // پرداخت‌کننده‌ی مشخصی ندارد و به سازنده‌ی بازار سقوط می‌کرد، و سازنده
+  // اتفاقا حساب دمو علامت نخورده بود. برچسبِ حساب هرگز نمی‌تواند بگوید
+  // «این پول از کجا آمده».
+  const demo = Math.min(Math.abs(opts.demoAmount ?? 0), Math.abs(amount));
+  const signedDemo = amount < 0 ? -demo : demo;
+
   await client.query(
-    `INSERT INTO platform_revenue (kind, amount, market_id, player_id, note, is_demo)
-     VALUES ($1,$2,$3,$4,$5,
-       COALESCE(
-         (SELECT is_demo FROM players WHERE id = $4),
-         (SELECT p.is_demo FROM ir_markets m JOIN players p ON p.id = m.creator_id WHERE m.id = $3),
-         false
-       ))`,
+    `INSERT INTO platform_revenue (kind, amount, market_id, player_id, note, demo_amount, is_demo)
+     VALUES ($1,$2,$3,$4,$5,$6,$7)`,
     [
       kind,
-      Math.round(amount * 1e6) / 1e6,
+      round6(amount),
       opts.marketId ?? null,
       opts.playerId ?? null,
       opts.note ?? null,
+      round6(signedDemo),
+      // برای گزارش‌های قدیمی که هنوز بولین می‌خوانند: «کاملا دمو» یعنی هیچ
+      // بخشی از این درآمد پول واقعی نبوده.
+      Math.abs(demo) >= Math.abs(amount) - 1e-9,
     ]
   );
 }
@@ -363,7 +525,7 @@ export async function settleIrMarket(
     const outcome = row.outcome as "yes" | "no" | "void" | null;
 
     const bets = await client.query(
-      `SELECT id, player_id, side, stake FROM ir_bets
+      `SELECT id, player_id, side, stake, demo_stake FROM ir_bets
         WHERE market_id = $1 AND status = 'open'`,
       [marketId]
     );
@@ -371,7 +533,16 @@ export async function settleIrMarket(
     // مسیر باطل: برگشت کامل بدون کمیسیون
     if (!outcome || outcome === "void" || wouldBeVoid(yes, no, outcome)) {
       for (const b of bets.rows) {
-        await moveFunds(client, b.player_id, Number(b.stake), "ir_refund", `m${marketId}`);
+        // برگشت کامل یعنی دقیقا همان چیزی که رفت برمی‌گردد: سهم دمو دمو
+        // می‌ماند و سهم واقعی واقعی. اینجا سودی در کار نیست.
+        await moveFunds(
+          client,
+          b.player_id,
+          Number(b.stake),
+          "ir_refund",
+          `m${marketId}`,
+          { creditDemo: Number(b.demo_stake) }
+        );
         await client.query(
           "UPDATE ir_bets SET status='refunded', payout=$1 WHERE id=$2",
           [Number(b.stake), b.id]
@@ -393,10 +564,22 @@ export async function settleIrMarket(
     const winnerTotal = outcome === "yes" ? yes : no;
     if (winnerTotal <= 0) {
       let kept = 0;
+      let keptDemo = 0;
       for (const b of bets.rows) {
         const back = Number(b.stake) * (1 - COMMISSION);
+        // کمتر از اصل برمی‌گردد، پس سودی نیست؛ سهم دمو هم به همان نسبت کم
+        // می‌شود، وگرنه کمیسیون فقط از پول واقعی کسر می‌شد.
+        const backDemo = Number(b.demo_stake) * (1 - COMMISSION);
         kept += Number(b.stake) - back;
-        await moveFunds(client, b.player_id, back, "ir_refund", `m${marketId}`);
+        keptDemo += Number(b.demo_stake) - backDemo;
+        await moveFunds(
+          client,
+          b.player_id,
+          back,
+          "ir_refund",
+          `m${marketId}`,
+          { creditDemo: backDemo }
+        );
         await client.query(
           "UPDATE ir_bets SET status='refunded', payout=$1 WHERE id=$2",
           [back, b.id]
@@ -404,6 +587,7 @@ export async function settleIrMarket(
       }
       await recordRevenue(client, "ir_commission_void", kept, {
         marketId,
+        demoAmount: keptDemo,
         note: `استخر ${(yes + no).toFixed(2)}؛ هیچ‌کس روی گزینه‌ی برنده پیش‌بینی نکرد`,
       });
       await client.query(
@@ -417,11 +601,33 @@ export async function settleIrMarket(
     // مسیر عادی
     const odds = oddsFor(yes, no, outcome);
     let paid = 0;
+    // دموی واردشده به استخر، و دمویی که با پرداختی‌ها بیرون رفت. تفاضلشان
+    // همان بخشی از کمیسیون است که از پول دمو آمده — یعنی درآمدِ کاغذی، نه
+    // پول واقعی. جمع‌کردنشان با درآمد واقعی، دفترکل را دروغ می‌کند.
+    let demoIn = 0;
+    let demoOut = 0;
     for (const b of bets.rows) {
       const won = b.side === outcome;
       const amt = won ? Number(b.stake) * odds : 0;
+      demoIn += Number(b.demo_stake);
       if (won) {
-        await moveFunds(client, b.player_id, amt, "ir_payout", `m${marketId}`);
+        // ⚠️ قاعده‌ی مصوب مالک: **اصلِ پول به دمو برمی‌گردد، سود واقعی
+        // می‌شود.** کاربری که با بونوس بُرد، سودش را می‌تواند برداشت کند
+        // ولی خودِ بونوس هرگز از سیستم بیرون نمی‌رود.
+        //
+        // `min` لازم است چون ضریب می‌تواند زیر ۱ باشد (کمیسیون روی بازارِ
+        // خیلی نامتوازن)؛ آن‌وقت پرداختی از اصل کمتر است و همه‌اش دمو
+        // می‌ماند.
+        const demoBack = Math.min(Number(b.demo_stake), amt);
+        demoOut += demoBack;
+        await moveFunds(
+          client,
+          b.player_id,
+          amt,
+          "ir_payout",
+          `m${marketId}`,
+          { creditDemo: demoBack }
+        );
         paid += amt;
       }
       await client.query(
@@ -433,6 +639,7 @@ export async function settleIrMarket(
     // پرداخت شد حساب می‌شود، نه فرمول جدا، تا هرگز از پرداخت واقعی جدا نیفتد.
     await recordRevenue(client, "ir_commission", yes + no - paid, {
       marketId,
+      demoAmount: demoIn - demoOut,
       note: `استخر ${(yes + no).toFixed(2)}؛ پرداختی ${paid.toFixed(2)}`,
     });
     await client.query("UPDATE ir_markets SET status='settled' WHERE id=$1", [

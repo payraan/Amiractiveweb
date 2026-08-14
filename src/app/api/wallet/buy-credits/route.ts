@@ -67,7 +67,7 @@ export async function POST(req: Request) {
       );
     }
 
-    await moveFunds(
+    const paid = await moveFunds(
       client,
       playerId,
       -pack.priceUsdt,
@@ -82,6 +82,7 @@ export async function POST(req: Request) {
     await recordRevenue(client, "credit_sale", pack.priceUsdt, {
       playerId,
       note: `${pack.credits} MOON`,
+      demoAmount: paid.demoPart,
     });
 
     await client.query("COMMIT");

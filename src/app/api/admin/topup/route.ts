@@ -90,20 +90,32 @@ export async function POST(req: Request) {
           { status: pl.error === "player_not_found" ? 404 : 409 }
         );
       }
-      // شارژ دستی = پول دمو. پول واقعی فقط از وبهوک درگاه می‌آید، پس هر
-      // حسابی که اینجا شارژ شود حساب تستی است و آمارش باید جدا بماند.
+      // شارژ دستی = پول دمو. پول واقعی فقط از وبهوک درگاه می‌آید.
+      //
+      // `is_demo` هنوز روی حساب علامت می‌خورد چون گزارش‌های قدیمی ادمین به آن
+      // تکیه دارند، ولی دیگر مبنای حسابداری نیست: مبنا خودِ ستون
+      // `demo_balance` است. برچسبِ حساب نمی‌توانست بگوید «این *پول* دمو
+      // است»، فقط می‌گفت «این *آدم* یک بار شارژ دستی گرفته».
       if (amount > 0) {
         await client.query("UPDATE players SET is_demo = true WHERE id=$1", [pl.id]);
       }
+      // کل مبلغِ شارژ دستی دمو است — چه مثبت و چه منفی. برای مبلغ منفی،
+      // moveFunds خودش اول از دمو کم می‌کند، که همان رفتار درست است.
       const after = await moveFunds(
         client,
         pl.id,
         amount,
         "admin_adjust",
-        note || "manual"
+        note || "manual",
+        { creditDemo: amount > 0 ? amount : 0 }
       );
       await client.query("COMMIT");
-      return NextResponse.json({ ok: true, username, newUsdt: after });
+      return NextResponse.json({
+        ok: true,
+        username,
+        newUsdt: after.real,
+        newDemo: after.demo,
+      });
     } catch (err) {
       await client.query("ROLLBACK").catch(() => {});
       const msg = err instanceof Error ? err.message : "server_error";

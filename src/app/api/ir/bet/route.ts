@@ -40,14 +40,18 @@ export async function POST(req: Request) {
 
     // ردیف بازیکن اول قفل می‌شود تا درخواست‌های همزمان سریالی شوند
     const pl = await client.query(
-      "SELECT usdt_balance FROM players WHERE id=$1 FOR UPDATE",
+      "SELECT usdt_balance, demo_balance FROM players WHERE id=$1 FOR UPDATE",
       [playerId]
     );
     if (!pl.rowCount) {
       await client.query("ROLLBACK");
       return NextResponse.json({ ok: false, error: "not_authed" }, { status: 401 });
     }
-    if (Number(pl.rows[0].usdt_balance) < stake) {
+    // قدرت خرید = واقعی + دمو. پول دمو با پول واقعی شرط می‌بندد و همین
+    // هدفش است؛ چیزی که ممنوع است برداشتِ آن است، نه خرج‌کردنش.
+    const buyingPower =
+      Number(pl.rows[0].usdt_balance) + Number(pl.rows[0].demo_balance);
+    if (buyingPower < stake) {
       await client.query("ROLLBACK");
       return NextResponse.json(
         { ok: false, error: "insufficient_funds" },
@@ -72,7 +76,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: "market_closed" }, { status: 409 });
     }
 
-    await moveFunds(client, playerId, -stake, "ir_bet", `m${marketId}`);
+    // moveFunds اول از دمو کم می‌کند و می‌گوید چقدرش دمو بود. همان عدد روی
+    // خودِ شرط ثبت می‌شود، چون تسویه باید بداند اصلِ این پول از کجا آمده:
+    // اصل به دمو برمی‌گردد و سود واقعی می‌شود.
+    const spent = await moveFunds(client, playerId, -stake, "ir_bet", `m${marketId}`);
 
     // آیا این کاربر برای اولین بار روی این بازار شرط می‌بندد؟
     const prev = await client.query(
@@ -81,9 +88,9 @@ export async function POST(req: Request) {
     );
 
     await client.query(
-      `INSERT INTO ir_bets (market_id, player_id, side, stake)
-       VALUES ($1,$2,$3,$4)`,
-      [marketId, playerId, side, stake]
+      `INSERT INTO ir_bets (market_id, player_id, side, stake, demo_stake)
+       VALUES ($1,$2,$3,$4,$5)`,
+      [marketId, playerId, side, stake, spent.demoPart]
     );
     await client.query(
       `UPDATE ir_markets

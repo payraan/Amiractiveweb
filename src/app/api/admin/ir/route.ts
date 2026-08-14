@@ -143,18 +143,32 @@ export async function POST(req: Request) {
         await client.query("SELECT id FROM players WHERE id=$1 FOR UPDATE", [
           row.creator_id,
         ]);
+        // چقدر از کارمزد اصلی دمو بود؟ از دفترکل خوانده می‌شود، نه حدس:
+        // پول باید دقیقا به همان جیبی برگردد که از آن رفت، وگرنه یک برگشتِ
+        // ساده، پول دمو را بی‌سروصدا به پول واقعیِ قابل‌برداشت تبدیل می‌کند.
+        const orig = await client.query(
+          `SELECT COALESCE(-SUM(demo), 0) AS demo FROM wallet_ledger
+            WHERE player_id=$1 AND kind='ir_propose_fee' AND ref=$2`,
+          [row.creator_id, `m${id}`]
+        );
+        const feeDemo = Math.min(
+          Number(orig.rows[0]?.demo ?? 0),
+          Number(row.fee_usdt)
+        );
         await moveFunds(
           client,
           row.creator_id,
           Number(row.fee_usdt),
           "ir_propose_refund",
-          `m${id}`
+          `m${id}`,
+          { creditDemo: feeDemo }
         );
         // برگشت، درآمد قبلی را خنثی می‌کند → سطر منفی
         await recordRevenue(client, "ir_propose_refund", -Number(row.fee_usdt), {
           marketId: id,
           playerId: row.creator_id,
           note: "بازار رد شد",
+          demoAmount: feeDemo,
         });
       }
       await client.query("COMMIT");

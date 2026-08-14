@@ -101,6 +101,11 @@ export async function requestWithdrawal(
 
     // پول *پیش از* تماس با درگاه کسر می‌شود تا کاربر نتواند با درخواست
     // همزمان بیشتر از موجودی‌اش برداشت کند.
+    //
+    // ⚠️ **فقط `usdt_balance` سنجیده می‌شود، نه مجموع با دمو.** اینجا تنها
+    // جایی است که ممنوعیتِ برداشتِ پول دمو اجرا می‌شود: بونوس می‌تواند شرط
+    // ببندد، ولی خودش هرگز از سیستم بیرون نمی‌رود. سودی که از آن به دست
+    // آمده در لحظه‌ی تسویه واقعی شده و همین‌جا قابل برداشت است.
     const pl = await client.query(
       "SELECT usdt_balance FROM players WHERE id=$1 FOR UPDATE",
       [playerId]
@@ -110,7 +115,9 @@ export async function requestWithdrawal(
       return { ok: false, error: "insufficient_funds" };
     }
 
-    await moveFunds(client, playerId, -amount, "withdraw_hold", uniqueParam);
+    await moveFunds(client, playerId, -amount, "withdraw_hold", uniqueParam, {
+      realOnly: true,
+    });
     await client.query(
       `INSERT INTO withdrawals (player_id, unique_param, amount, to_address, network)
        VALUES ($1,$2,$3,$4,$5)`,

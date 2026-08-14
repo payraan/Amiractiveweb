@@ -97,7 +97,10 @@ export async function POST(req: Request) {
        VALUES ($1,$2,$3,$4,$5,'pending',$6) RETURNING id`,
       [playerId, question, category, sourceNote, closesAt.toISOString(), PROPOSE_FEE_USDT]
     );
-    await moveFunds(
+    // سهم دمو از همین پرداخت را خودِ moveFunds برمی‌گرداند و به دفترکل
+    // درآمد داده می‌شود؛ حدس‌زدنش از روی برچسبِ حساب همان اشتباهی بود که
+    // کمیسیون بازارها را «واقعی» نشان می‌داد.
+    const fee = await moveFunds(
       client,
       playerId,
       -PROPOSE_FEE_USDT,
@@ -107,6 +110,7 @@ export async function POST(req: Request) {
     await recordRevenue(client, "ir_propose_fee", PROPOSE_FEE_USDT, {
       marketId: ins.rows[0].id,
       playerId,
+      demoAmount: fee.demoPart,
     });
 
     await touchActivity(client, playerId);
