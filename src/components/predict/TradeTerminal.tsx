@@ -26,6 +26,7 @@ type Market = {
 type MyPred = {
   marketId: string;
   question: string;
+  questionFa?: string | null;
   choice: string;
   probPct: number;
   points: number | null;
@@ -770,8 +771,8 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
                     i % 2 ? "bg-surface/25 hover:bg-raised/40" : "hover:bg-raised/40"
                   }`}
                 >
-                  <span className="line-clamp-1 flex-1 text-[11px]" dir="ltr">
-                    {p.question}
+                  <span className="line-clamp-1 flex-1 text-start text-[11px]" dir="auto">
+                    {displayTitle(p.question, p.questionFa)}
                   </span>
                   <span
                     className={`w-12 shrink-0 text-end text-[11px] font-bold ${
@@ -800,8 +801,8 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
                     i % 2 ? "bg-surface/25" : ""
                   }`}
                 >
-                  <span className="line-clamp-1 flex-1 text-[11px]" dir="ltr">
-                    {p.question}
+                  <span className="line-clamp-1 flex-1 text-start text-[11px]" dir="auto">
+                    {displayTitle(p.question, p.questionFa)}
                   </span>
                   <span
                     className={`w-12 shrink-0 text-end text-[11px] font-bold ${

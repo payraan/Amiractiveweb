@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentPlayerId } from "@/lib/current-player";
 import { ensurePolyTables, POLY_FREE_PER_DAY } from "@/lib/poly";
+import { translationsFor } from "@/lib/translate";
 
 export const dynamic = "force-dynamic";
 
@@ -31,12 +32,23 @@ export async function GET() {
     ),
   ]);
 
+  // عنوان اینجا از دیتابیس می‌آید (لحظه‌ی ثبت ذخیره شده)، نه از فهرست
+  // زنده — پس ترجمه‌اش هم باید جداگانه پیدا شود، وگرنه کارنامه‌ی خود کاربر
+  // انگلیسی می‌ماند در حالی که همان بازار در فهرست فارسی است.
+  let fa = new Map<string, string>();
+  try {
+    fa = await translationsFor(preds.rows.map((r) => String(r.question)));
+  } catch {
+    /* بدون ترجمه ادامه می‌دهیم */
+  }
+
   return NextResponse.json({
     ok: true,
     freeLeft: Math.max(0, POLY_FREE_PER_DAY - cnt.rows[0].n),
     predictions: preds.rows.map((r) => ({
       marketId: r.market_id,
       question: r.question,
+      questionFa: fa.get(String(r.question).trim()) ?? null,
       choice: r.choice,
       probPct: Math.round(Number(r.prob) * 100),
       points: r.points,

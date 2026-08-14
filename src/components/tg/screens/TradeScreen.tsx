@@ -20,6 +20,7 @@ type MyPrediction = {
   probPct: number;
   points: number | null;
   status: string;
+  questionFa?: string | null;
 };
 
 type Me = { freeLeft: number; predictions: MyPrediction[] };
@@ -301,7 +302,7 @@ export default function TradeScreen() {
                     dir="auto"
                     className="line-clamp-2 flex-1 text-start text-[12px] font-bold leading-[1.7] text-cream"
                   >
-                    {m.question}
+                    {displayTitle(m.question, m.questionFa)}
                   </p>
                 </div>
 
@@ -353,7 +354,9 @@ export default function TradeScreen() {
                 className="flex items-center gap-3 rounded-xl border border-line bg-surface/30 px-3 py-2.5"
               >
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-[11.5px] text-cream">{p.question}</div>
+                  <div dir="auto" className="truncate text-start text-[11.5px] text-cream">
+                    {displayTitle(p.question, p.questionFa)}
+                  </div>
                   <div className="mt-0.5 text-[10px] text-muted">
                     {p.choice === "yes" ? "بله" : "خیر"} در{" "}
                     <span dir="ltr" className="font-mono">
