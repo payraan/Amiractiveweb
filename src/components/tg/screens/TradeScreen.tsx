@@ -54,6 +54,10 @@ export default function TradeScreen() {
   const [hideDone, setHideDone] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [q, setQ] = useState("");
+  // کارنامه ته صفحه بود، زیر چهارصد کارت — یعنی عملا وجود نداشت. حالا یک
+  // کلید دوحالته است که جای همان کادر «رایگان امروز» می‌نشیند، پس دیدنِ
+  // نتایج یک لمس فاصله دارد و ارتفاع صفحه هم عوض نشده.
+  const [view, setView] = useState<"markets" | "mine">("markets");
 
   const markets = useResource<{ markets: PolyMarket[] }>("/api/predict/poly-markets");
   const me = useResource<Me>("/api/predict/poly-me");
@@ -61,6 +65,9 @@ export default function TradeScreen() {
   const list = markets.data?.markets ?? null;
   const mine = me.data?.predictions ?? [];
   const doneIds = new Set(mine.map((p) => p.marketId));
+  const openPreds = mine.filter((p) => p.points === null);
+  const settledPreds = mine.filter((p) => p.points !== null);
+  const totalPoints = settledPreds.reduce((sum, p) => sum + (p.points ?? 0), 0);
 
   const open = list?.find((m) => m.id === openId) ?? null;
   if (open) {
@@ -120,24 +127,44 @@ export default function TradeScreen() {
     <div>
       <ScreenTitle title="ترید" subtitle="بازارهای رویداد جهانی، امتیازی" />
 
-      {me.data && (
-        <div className="mb-4 flex items-center justify-between rounded-xl border border-line bg-surface/40 px-4 py-3">
-          <span className="text-[11px] text-muted">پیش‌بینی رایگان امروز</span>
-          <span
-            dir="ltr"
-            className={`font-mono text-[13px] font-bold ${
-              me.data.freeLeft > 0 ? "text-gain" : "text-muted"
-            }`}
-          >
-            {me.data.freeLeft}
+      <div className="mb-4 flex gap-2 rounded-xl border border-line bg-surface/40 p-1">
+        <button
+          type="button"
+          onClick={() => {
+            haptic.tap();
+            setView("markets");
+          }}
+          className={`flex-1 rounded-lg px-3 py-2 text-center transition ${
+            view === "markets" ? "bg-gold text-ink" : "text-muted"
+          }`}
+        >
+          <span className="block text-[12px] font-bold">بازارها</span>
+          <span className="mt-0.5 block text-[9px] opacity-80">
+            {me.data ? `${me.data.freeLeft} پیش‌بینی رایگان امروز` : "\u00a0"}
           </span>
-        </div>
-      )}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            haptic.tap();
+            setView("mine");
+          }}
+          className={`flex-1 rounded-lg px-3 py-2 text-center transition ${
+            view === "mine" ? "bg-gold text-ink" : "text-muted"
+          }`}
+        >
+          <span className="block text-[12px] font-bold">پیش‌بینی‌های من</span>
+          <span className="mt-0.5 block text-[9px] opacity-80">
+            {mine.length > 0 ? `${mine.length} مورد` : "هنوز خالی"}
+          </span>
+        </button>
+      </div>
 
-      {(list?.length ?? 0) >= SEARCH_MIN && (
+      {view === "markets" && (list?.length ?? 0) >= SEARCH_MIN && (
         <SearchBar value={q} onChange={setQ} placeholder="جست‌وجو در بازارها…" />
       )}
 
+      {view === "markets" && (
       <div className="no-scrollbar -mx-5 mb-4 flex gap-2 overflow-x-auto px-5 pb-1">
         {[{ id: "all", label: "همه" }, ...cats].map((c) => (
           <button
@@ -157,7 +184,9 @@ export default function TradeScreen() {
           </button>
         ))}
       </div>
+      )}
 
+      {view === "markets" && (
       <div className="mb-4 flex items-center gap-2">
         <div className="no-scrollbar flex flex-1 gap-2 overflow-x-auto">
           {SORTS.map((sOpt) => (
@@ -193,9 +222,10 @@ export default function TradeScreen() {
           ثبت‌نشده
         </button>
       </div>
+      )}
 
       {/* داغ‌ترین‌ها — پرحجم‌ترین بازارهای همین دسته، افقی. */}
-      {!markets.error && hot.length > 0 && (
+      {view === "markets" && !markets.error && hot.length > 0 && (
         <div className="mb-4">
           <div className="mb-2 flex items-center gap-2">
             <span className="text-[10px] font-bold text-gold">🔥 داغ‌ترین‌ها</span>
@@ -242,11 +272,11 @@ export default function TradeScreen() {
         </div>
       )}
 
-      {markets.error && (
+      {view === "markets" && markets.error && (
         <ErrorState message="بازارها نیامدند." onRetry={markets.reload} />
       )}
 
-      {!markets.error && list === null && (
+      {view === "markets" && !markets.error && list === null && (
         <div className="flex flex-col gap-3">
           <Skeleton className="h-32" />
           <Skeleton className="h-32" />
@@ -254,11 +284,11 @@ export default function TradeScreen() {
         </div>
       )}
 
-      {!markets.error && shown?.length === 0 && (
+      {view === "markets" && !markets.error && shown?.length === 0 && (
         <EmptyState title="بازاری در این دسته نیست" hint="دسته‌ی دیگری را ببینید." />
       )}
 
-      {!markets.error && shown && shown.length > 0 && (
+      {view === "markets" && !markets.error && shown && shown.length > 0 && (
         <div className="flex flex-col gap-2.5">
           {shown.map((m) => {
             const done = doneIds.has(m.id);
@@ -342,45 +372,101 @@ export default function TradeScreen() {
         </div>
       )}
 
-      {mine.length > 0 && (
+      {view === "mine" && (
         <>
-          <h3 className="mb-2 mt-6 text-xs font-bold text-cream">
-            پیش‌بینی‌های اخیر تو
-          </h3>
-          <div className="flex flex-col gap-1.5">
-            {mine.slice(0, 10).map((p, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-3 rounded-xl border border-line bg-surface/30 px-3 py-2.5"
-              >
-                <div className="min-w-0 flex-1">
-                  <div dir="auto" className="truncate text-start text-[11.5px] text-cream">
-                    {displayTitle(p.question, p.questionFa)}
+          {mine.length === 0 ? (
+            <EmptyState
+              title="هنوز پیش‌بینی‌ای ثبت نکرده‌اید"
+              hint="از تب بازارها یکی را انتخاب کنید."
+            />
+          ) : (
+            <>
+              {/* خلاصه اول: کسی که کارنامه‌اش را باز می‌کند، اول می‌خواهد
+                  بداند در مجموع جلوست یا عقب، نه اینکه ردیف‌ها را جمع بزند. */}
+              <div className="mb-4 flex gap-2">
+                <div className="flex-1 rounded-xl border border-line bg-surface/40 p-3 text-center">
+                  <div dir="ltr" className="font-mono text-[16px] font-black text-cream">
+                    {openPreds.length}
                   </div>
-                  <div className="mt-0.5 text-[10px] text-muted">
-                    {p.choice === "yes" ? "بله" : "خیر"} در{" "}
-                    <span dir="ltr" className="font-mono">
-                      {p.probPct}%
-                    </span>
-                  </div>
+                  <div className="mt-0.5 text-[9px] text-muted">در جریان</div>
                 </div>
-                {p.points === null ? (
-                  <span className="shrink-0 text-[10px] text-muted">در جریان</span>
-                ) : (
-                  <span
+                <div className="flex-1 rounded-xl border border-line bg-surface/40 p-3 text-center">
+                  <div dir="ltr" className="font-mono text-[16px] font-black text-cream">
+                    {settledPreds.length}
+                  </div>
+                  <div className="mt-0.5 text-[9px] text-muted">تسویه‌شده</div>
+                </div>
+                <div className="flex-1 rounded-xl border border-line bg-surface/40 p-3 text-center">
+                  <div
                     dir="ltr"
-                    className={`shrink-0 font-mono text-[12px] font-bold ${
-                      p.points >= 0 ? "text-gain" : "text-loss"
+                    className={`font-mono text-[16px] font-black ${
+                      totalPoints > 0 ? "text-gain" : totalPoints < 0 ? "text-loss" : "text-cream"
                     }`}
                   >
-                    {p.points >= 0 ? "+" : ""}
-                    {p.points}
-                  </span>
-                )}
+                    {totalPoints > 0 ? "+" : ""}
+                    {totalPoints}
+                  </div>
+                  <div className="mt-0.5 text-[9px] text-muted">امتیاز</div>
+                </div>
               </div>
-            ))}
-          </div>
+
+              {openPreds.length > 0 && (
+                <>
+                  <h3 className="mb-2 text-[11px] font-bold text-cream">در جریان</h3>
+                  <div className="mb-5 flex flex-col gap-1.5">
+                    {openPreds.map((p, i) => (
+                      <PredRow key={`o${i}`} p={p} />
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {settledPreds.length > 0 && (
+                <>
+                  <h3 className="mb-2 text-[11px] font-bold text-cream">تسویه‌شده</h3>
+                  <div className="flex flex-col gap-1.5">
+                    {settledPreds.map((p, i) => (
+                      <PredRow key={`s${i}`} p={p} />
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
+          )}
         </>
+      )}
+
+    </div>
+  );
+}
+
+/** یک ردیف کارنامه — در جریان یا تسویه‌شده. */
+function PredRow({ p }: { p: MyPrediction }) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-line bg-surface/30 px-3 py-2.5">
+      <div className="min-w-0 flex-1">
+        <div dir="auto" className="truncate text-start text-[11.5px] text-cream">
+          {displayTitle(p.question, p.questionFa)}
+        </div>
+        <div className="mt-0.5 text-[10px] text-muted">
+          {p.choice === "yes" ? "بله" : "خیر"} در{" "}
+          <span dir="ltr" className="font-mono">
+            {p.probPct}%
+          </span>
+        </div>
+      </div>
+      {p.points === null ? (
+        <span className="shrink-0 text-[10px] text-muted">در جریان</span>
+      ) : (
+        <span
+          dir="ltr"
+          className={`shrink-0 font-mono text-[12px] font-bold ${
+            p.points >= 0 ? "text-gain" : "text-loss"
+          }`}
+        >
+          {p.points >= 0 ? "+" : ""}
+          {p.points}
+        </span>
       )}
     </div>
   );
