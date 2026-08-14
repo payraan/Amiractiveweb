@@ -3,6 +3,7 @@ import { escapeHtml, type InlineButton, type Screen } from "@/lib/telegram";
 import { ensureIrTables } from "@/lib/iran";
 import { getDepositAddress, gatewayReady, USDT_NETWORK } from "@/lib/zovix";
 import { MIN_WITHDRAW, withdrawAddressShapeValid } from "@/lib/wallet-rules";
+import { ledgerLabel } from "@/lib/ledger-labels";
 
 // ═══ کیف پول داخل ربات ═══════════════════════════════════════
 //
@@ -30,20 +31,6 @@ export const WALLET = {
 
 const money = (n: number) =>
   n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-/** برچسب فارسی هر نوع تراکنش — همان واژگان سایت. */
-const KIND: Record<string, string> = {
-  deposit: "واریز",
-  withdraw_hold: "برداشت",
-  withdraw_refund: "بازگشت برداشت",
-  ir_bet: "ثبت پیش‌بینی",
-  ir_payout: "پاداش پیش‌بینی",
-  ir_refund: "بازگشت پیش‌بینی",
-  buy_credits: "خرید MOON",
-  propose_fee: "کارمزد ساخت بازار",
-  propose_refund: "بازگشت کارمزد بازار",
-  admin_adjust: "تنظیم دستی",
-};
 
 const fa = (iso: string) =>
   new Date(iso).toLocaleDateString("fa-IR", {
@@ -90,7 +77,7 @@ function ledgerLines(rows: Row[]): string {
   return rows
     .map((r) => {
       const sign = r.amount >= 0 ? "🟢 +" : "🔴 −";
-      const label = KIND[r.kind] ?? r.kind;
+      const label = ledgerLabel(r.kind);
       return `${sign}$${money(Math.abs(r.amount))} · ${label} · ${fa(r.createdAt)}`;
     })
     .join("\n");
@@ -114,7 +101,8 @@ export async function walletHomeScreen(playerId: number): Promise<Screen> {
     media: media("wallet.jpg"),
     text:
       `👛 <b>کیف پول</b>\n\n` +
-      `موجودی قابل استفاده\n<b>$${money(d.balance)}</b>  <i>${USDT_NETWORK}</i>\n` +
+      `موجودی قابل استفاده\n<b>${money(d.balance)} تتر</b>  <i>(USDT)</i>\n` +
+      `شبکه: <b>${USDT_NETWORK}</b>\n` +
       (d.openBets > 0
         ? `\n🔒 درگیر در ${d.openBets} پیش‌بینی باز: $${money(d.locked)}\n`
         : "") +

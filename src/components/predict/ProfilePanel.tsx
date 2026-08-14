@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import AuthCallout from "@/components/predict/AuthCallout";
+import { ledgerLabel } from "@/lib/ledger-labels";
 import {
   BADGES,
   MAX_SHOWCASE,
@@ -58,18 +59,6 @@ type Profile = {
   }[];
 };
 
-const KIND_LABEL: Record<string, string> = {
-  deposit: "واریز",
-  withdraw_hold: "برداشت",
-  withdraw_refund: "برگشت برداشت",
-  admin_adjust: "واریز / اصلاح سیستمی",
-  ir_bet: "ثبت پیش‌بینی (بازار ایران)",
-  ir_payout: "پاداش پیش‌بینی موفق",
-  ir_refund: "برگشت بازار باطل",
-  ir_propose_fee: "کارمزد ایجاد بازار",
-  ir_propose_refund: "برگشت هزینه‌ی ساخت",
-  credit_purchase: "خرید MOON",
-};
 
 const usd = (n: number) => `$${(Math.round(n * 100) / 100).toFixed(2)}`;
 
@@ -368,7 +357,7 @@ export default function ProfilePanel() {
                     <td className="whitespace-nowrap px-3 py-2 text-muted">
                       {fa(l.createdAt)}
                     </td>
-                    <td className="px-3 py-2">{KIND_LABEL[l.kind] ?? l.kind}</td>
+                    <td className="px-3 py-2">{ledgerLabel(l.kind)}</td>
                     <td
                       className={`px-3 py-2 text-end font-mono font-bold ${
                         l.amount >= 0 ? "text-gain" : "text-loss"

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePlayer } from "@/components/predict/usePlayer";
+import { ledgerLabel } from "@/lib/ledger-labels";
 import { MIN_WITHDRAW, withdrawAddressShapeValid } from "@/lib/wallet-rules";
 
 type Ledger = {
@@ -21,16 +22,6 @@ type Data = {
   gatewayReady: boolean;
   telegramLinked: boolean;
   ledger: Ledger[];
-};
-
-/** برچسب فارسی هر نوع تراکنش در دفترکل */
-const KIND: Record<string, { label: string; tone: "in" | "out" }> = {
-  deposit: { label: "واریز", tone: "in" },
-  withdraw_hold: { label: "برداشت", tone: "out" },
-  withdraw_refund: { label: "بازگشت برداشت", tone: "in" },
-  ir_bet: { label: "ثبت پیش‌بینی (بازار ایران)", tone: "out" },
-  ir_payout: { label: "پاداش پیش‌بینی موفق", tone: "in" },
-  ir_refund: { label: "بازگشت مبلغ پیش‌بینی", tone: "in" },
 };
 
 const ERR: Record<string, string> = {
@@ -342,7 +333,7 @@ export default function WalletPanel() {
               </thead>
               <tbody>
                 {d.ledger.map((l, i) => {
-                  const meta = KIND[l.kind] ?? { label: l.kind, tone: "in" as const };
+                  const meta = { label: ledgerLabel(l.kind), tone: l.amount >= 0 ? ("in" as const) : ("out" as const) };
                   const pos = l.amount >= 0;
                   return (
                     <tr key={i} className={i % 2 ? "bg-ink/20" : ""}>

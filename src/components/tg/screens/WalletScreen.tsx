@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { ledgerLabel } from "@/lib/ledger-labels";
 import { useResource } from "@/components/tg/useResource";
 import { ErrorState, ScreenTitle, Skeleton } from "@/components/tg/ui";
 import { IconArrow } from "@/components/tg/icons";
@@ -32,18 +33,6 @@ type Wallet = {
   telegramLinked?: boolean;
 };
 
-const KIND: Record<string, string> = {
-  deposit: "واریز",
-  withdraw_hold: "برداشت",
-  withdraw_refund: "برگشت برداشت",
-  ir_bet: "ثبت پیش‌بینی (بازار ایران)",
-  ir_payout: "پاداش پیش‌بینی موفق",
-  ir_refund: "بازگشت مبلغ پیش‌بینی",
-  ir_propose_fee: "کارمزد ایجاد بازار",
-  ir_propose_refund: "برگشت هزینه‌ی ساخت",
-  credit_purchase: "خرید MOON",
-  admin_adjust: "تنظیم دستی",
-};
 
 function when(iso: string): string {
   const d = new Date(iso);
@@ -192,7 +181,7 @@ export default function WalletScreen() {
 
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-[11.5px] font-bold text-cream">
-                    {KIND[l.kind] ?? l.kind}
+                    {ledgerLabel(l.kind)}
                   </div>
                   <div className="mt-0.5 text-[10px] text-muted">{when(l.at)}</div>
                 </div>
