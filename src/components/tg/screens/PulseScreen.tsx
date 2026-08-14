@@ -6,6 +6,7 @@ import { ErrorState, ScreenTitle, Skeleton } from "@/components/tg/ui";
 import { haptic } from "@/components/tg/telegram";
 import PulseDetail, { type PulseMarket } from "@/components/tg/screens/PulseDetail";
 import { CATEGORIES } from "@/lib/assets";
+import { TIMEFRAMES } from "@/lib/game";
 
 // نبض بازار در مینی‌اپ — همان بازی سایت، روی همان روت‌ها.
 //
@@ -24,6 +25,10 @@ export type Me = {
 export default function PulseScreen() {
   const [cat, setCat] = useState<string>("crypto");
   const [openId, setOpenId] = useState<string | null>(null);
+  // بازه پیش از دارایی انتخاب می‌شود — همان ترتیبی که در ذهن کاربر اتفاق
+  // می‌افتد. قبلا تایم‌فریم فقط *بعد* از باز کردن دارایی دیده می‌شد، پس
+  // برای عوض کردن بازه باید هر بار به عقب برمی‌گشت.
+  const [timeframe, setTimeframe] = useState<string>("24h");
 
   const markets = useResource<{ markets: PulseMarket[] }>(
     `/api/predict/market?category=${cat}`
@@ -38,6 +43,7 @@ export default function PulseScreen() {
       <PulseDetail
         market={open}
         me={me.data}
+        initialTf={timeframe as Parameters<typeof PulseDetail>[0]["initialTf"]}
         onBack={() => setOpenId(null)}
         onDone={() => {
           me.reload();
@@ -54,17 +60,57 @@ export default function PulseScreen() {
         subtitle="قیمت آینده را پیش‌بینی کنید؛ امتیاز بر اساس دقت تحلیل محاسبه می‌شود، نه شانس"
       />
 
-      {me.data && (
-        <div className="mb-4 flex items-center justify-between rounded-2xl border border-line bg-surface/40 px-4 py-3">
-          <span className="text-[11px] text-muted">
-            رایگان امروز (۲۴ ساعته):{" "}
-            <b className="text-gold">{me.data.freeRemaining?.["24h"] ?? 0}</b>
-          </span>
-          <span className="font-mono text-[11px] text-muted" dir="ltr">
-            {me.data.player.credits} MOON
-          </span>
+      {/* ── بازه‌ی پیش‌بینی ────────────────────────────────────
+          هزینه‌ی هر بازه روی خودِ دکمه است. قبلا کاربر تا وارد دارایی
+          نمی‌شد نمی‌فهمید بازه‌ی یک‌ساعته چهار MOON می‌گیرد. */}
+      <div className="mb-3">
+        <div className="mb-1.5 flex items-center justify-between">
+          <span className="text-[10px] text-muted">بازه‌ی پیش‌بینی</span>
+          {/* ⚠️ player جدا از data بررسی می‌شود: روت برای نشستِ نامعتبر
+              `{ok:true, player:null}` برمی‌گرداند، پس `me.data` صادق است و
+              خواندن `player.credits` کل صفحه را سفید می‌کند. */}
+          {me.data?.player && (
+            <span className="font-mono text-[10px] text-muted" dir="ltr">
+              {me.data.player.credits} MOON
+            </span>
+          )}
         </div>
-      )}
+        <div className="no-scrollbar flex gap-1.5 overflow-x-auto">
+          {TIMEFRAMES.map((t) => {
+            const on = t.id === timeframe;
+            const free = me.data?.freeRemaining?.[t.id] ?? 0;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => {
+                  haptic.tap();
+                  setTimeframe(t.id);
+                }}
+                className={`flex-1 shrink-0 rounded-xl border px-2 py-1.5 text-center transition ${
+                  on
+                    ? "border-gold bg-gold/10 text-gold"
+                    : "border-line bg-surface/40 text-muted"
+                }`}
+              >
+                <span className={`block text-[11px] ${on ? "font-bold" : ""}`}>
+                  {t.label}
+                </span>
+                {/* «MOON ۱» به‌جای «۱ MOON» در می‌آمد: عدد و واژه‌ی لاتین
+                    داخل ظرف rtl دو اجرای جدا می‌شوند و جایشان عوض می‌شود.
+                    فقط همین بخش ltr می‌شود، نه کل دکمه — برچسب فارسی بالای
+                    آن باید rtl بماند. */}
+                <span
+                  dir={free > 0 ? undefined : "ltr"}
+                  className="mt-0.5 block text-[8.5px] opacity-80"
+                >
+                  {free > 0 ? `${free} رایگان` : `${t.cost} MOON`}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
         {CATEGORIES.map((c) => {
@@ -105,8 +151,13 @@ export default function PulseScreen() {
         <div className="space-y-2">
           {list.map((m) => {
             const up = (m.changePct ?? 0) >= 0;
+            // «ثبت‌شده» حالا مخصوص همین بازه است، نه هر بازه‌ای.
+            //
+            // قبلا کاربری که ۲۴ ساعته را ثبت کرده بود، روی بازه‌ی یک‌ساعته
+            // هم «ثبت‌شده» می‌دید و فکر می‌کرد کاری از دستش برنمی‌آید —
+            // در حالی که هر بازه پیش‌بینی جداگانه‌ی خودش را دارد.
             const done = (me.data?.predicted ?? []).some(
-              (p) => p.asset === m.asset
+              (p) => p.asset === m.asset && p.timeframe === timeframe
             );
             return (
               <button
@@ -123,13 +174,20 @@ export default function PulseScreen() {
                   <span className="block truncate text-[13px] font-bold text-cream">
                     {m.label}
                   </span>
-                  <span
-                    className="block truncate font-mono text-[10px] text-muted"
-                    dir="ltr"
-                  >
-                    {m.asset} / USD
-                  </span>
+                  {done ? (
+                    <span className="mt-0.5 inline-block rounded-full border border-gold/30 bg-gold/10 px-1.5 text-[8.5px] text-gold">
+                      پیش‌بینی ثبت شده
+                    </span>
+                  ) : (
+                    <span
+                      className="block truncate font-mono text-[10px] text-muted"
+                      dir="ltr"
+                    >
+                      {m.asset} / USD
+                    </span>
+                  )}
                 </span>
+                <Spark series={m.series} up={up} />
                 <span className="shrink-0 text-end">
                   <span className="block font-mono text-[13px] text-cream" dir="ltr">
                     {m.price == null
@@ -147,17 +205,58 @@ export default function PulseScreen() {
                       : `${up ? "+" : ""}${m.changePct.toFixed(2)}%`}
                   </span>
                 </span>
-                {done && (
-                  <span className="shrink-0 rounded-full bg-gold/15 px-2 py-0.5 text-[9px] text-gold">
-                    ثبت‌شده
-                  </span>
-                )}
               </button>
             );
           })}
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * نمودار روند — شکل حرکت، نه عدد.
+ *
+ * «۲.۱٪ منفی» یک عدد است؛ اینکه قیمت آرام پایین آمده یا سقوط کرده و
+ * برگشته، یک قضاوت. برای بازی‌ای که تمامش درباره‌ی جهت قیمت است، این
+ * مهم‌ترین چیزی بود که در فهرست جا افتاده بود.
+ *
+ * از ۲۸۸ نقطه فقط ۲۴ تا نمونه‌برداری می‌شود: در ۴۶ پیکسل عرض، بیشترش
+ * نه دیده می‌شود و نه ارزش پردازش دارد.
+ */
+function Spark({ series, up }: { series?: { p: number }[]; up: boolean }) {
+  if (!series || series.length < 4) return <span className="w-[46px] shrink-0" />;
+
+  const step = Math.max(1, Math.floor(series.length / 24));
+  const pts = series.filter((_, i) => i % step === 0).map((s) => s.p);
+  const min = Math.min(...pts);
+  const max = Math.max(...pts);
+  const span = max - min || 1;
+  const d = pts
+    .map((p, i) => {
+      const x = (i / (pts.length - 1)) * 46;
+      const y = 18 - ((p - min) / span) * 16;
+      return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+
+  return (
+    <svg
+      width="46"
+      height="20"
+      viewBox="0 0 46 20"
+      className="shrink-0"
+      aria-hidden="true"
+    >
+      <path
+        d={d}
+        fill="none"
+        stroke={up ? "var(--color-gain)" : "var(--color-loss)"}
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }
 

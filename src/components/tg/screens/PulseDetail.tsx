@@ -33,6 +33,13 @@ export type PulseMarket = {
   price: number | null;
   changePct: number | null;
   dailyVolPct: number | null;
+  /**
+   * تاریخچه‌ی قیمت — از قبل همراه همین پاسخ می‌آمد و دور ریخته می‌شد.
+   *
+   * سرور برای محاسبه‌ی درصد تغییر به‌هرحال کندل‌ها را می‌گیرد و کش می‌کند،
+   * پس رسم نمودار روند هیچ درخواست تازه‌ای به یاهو اضافه نمی‌کند.
+   */
+  series?: { t: number; p: number }[];
 };
 
 const ERR: Record<string, string> = {
@@ -61,15 +68,18 @@ function fa(d: Date): string {
 export default function PulseDetail({
   market,
   me,
+  initialTf,
   onBack,
   onDone,
 }: {
   market: PulseMarket;
   me: Me | null;
+  /** بازه‌ای که کاربر در فهرست انتخاب کرده — وگرنه انتخابش تزئینی است. */
+  initialTf?: TimeframeId;
   onBack: () => void;
   onDone: () => void;
 }) {
-  const [tfId, setTfId] = useState<TimeframeId>("24h");
+  const [tfId, setTfId] = useState<TimeframeId>(initialTf ?? "24h");
   const [guess, setGuess] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
