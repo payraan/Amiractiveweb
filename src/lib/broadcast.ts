@@ -55,6 +55,14 @@ export async function ensureBroadcastTables(): Promise<void> {
            finished_at TIMESTAMPTZ
          )`
       );
+      // کارت پیشرفتِ ادمین: هر تیک همین پیام را به‌روز می‌کند تا ادمین
+      // مجبور نباشد نیم‌ساعت دکمه بزند.
+      await pool.query(
+        "ALTER TABLE broadcast_jobs ADD COLUMN IF NOT EXISTS chat_id BIGINT"
+      );
+      await pool.query(
+        "ALTER TABLE broadcast_jobs ADD COLUMN IF NOT EXISTS message_id INTEGER"
+      );
       await pool.query(
         `CREATE TABLE IF NOT EXISTS broadcast_targets (
            job_id     BIGINT NOT NULL REFERENCES broadcast_jobs(id) ON DELETE CASCADE,
@@ -84,36 +92,90 @@ export type JobStats = {
   hasPhoto: boolean;
   total: number;
   sent: number;
+  /** ربات را بلاک کرده‌اند — پیام به آن‌ها نرسید و هرگز نمی‌رسد. */
+  blocked: number;
+  /** ناموفق به دلایل دیگر: حساب پاک‌شده، خطای شبکه، سقف تلگرام. */
   failed: number;
   pending: number;
+  /** ثانیه‌ی باقی‌مانده بر اساس سرعت واقعی همین پخش. */
+  etaSec: number | null;
+  chatId: number | null;
+  messageId: number | null;
 };
 
 export async function jobStats(jobId: number): Promise<JobStats | null> {
   await ensureBroadcastTables();
   const pool = await db();
-  const j = await pool.query<{ status: string; photo_id: string | null }>(
-    "SELECT status, photo_id FROM broadcast_jobs WHERE id=$1",
+  const j = await pool.query<{
+    status: string;
+    photo_id: string | null;
+    chat_id: string | null;
+    message_id: number | null;
+    elapsed: string | null;
+  }>(
+    `SELECT status, photo_id, chat_id, message_id,
+            EXTRACT(EPOCH FROM (now() - started_at))::text AS elapsed
+       FROM broadcast_jobs WHERE id=$1`,
     [jobId]
   );
   if (!j.rowCount) return null;
-  const c = await pool.query<{ total: string; sent: string; failed: string; pending: string }>(
+  const c = await pool.query<{
+    total: string;
+    sent: string;
+    blocked: string;
+    failed: string;
+    pending: string;
+  }>(
     `SELECT COUNT(*)::text AS total,
-            COUNT(*) FILTER (WHERE status='sent')::text    AS sent,
-            COUNT(*) FILTER (WHERE status='failed')::text  AS failed,
+            COUNT(*) FILTER (WHERE status='sent')::text AS sent,
+            COUNT(*) FILTER (WHERE status='failed'
+                             AND error ILIKE '%bot was blocked by the user%')::text AS blocked,
+            COUNT(*) FILTER (WHERE status='failed'
+                             AND error NOT ILIKE '%bot was blocked by the user%')::text AS failed,
             COUNT(*) FILTER (WHERE status<>'sent' AND status<>'failed')::text AS pending
        FROM broadcast_targets WHERE job_id=$1`,
     [jobId]
   );
   const r = c.rows[0];
+  const total = Number(r.total);
+  const pending = Number(r.pending);
+  const done = total - pending;
+  const elapsed = Number(j.rows[0].elapsed ?? 0);
+
+  // سرعت واقعی همین پخش، نه یک عدد فرضی — تأخیر تلگرام و وقفه‌ها را
+  // خودش در خود دارد.
+  const etaSec =
+    pending > 0 && done > 0 && elapsed > 0
+      ? Math.round(pending / (done / elapsed))
+      : null;
+
   return {
     id: jobId,
     status: j.rows[0].status,
     hasPhoto: Boolean(j.rows[0].photo_id),
-    total: Number(r.total),
+    total,
     sent: Number(r.sent),
+    blocked: Number(r.blocked),
     failed: Number(r.failed),
-    pending: Number(r.pending),
+    pending,
+    etaSec,
+    chatId: j.rows[0].chat_id === null ? null : Number(j.rows[0].chat_id),
+    messageId: j.rows[0].message_id,
   };
+}
+
+/** کارت پیشرفت را به کار می‌چسباند تا تیک‌ها بتوانند به‌روزش کنند. */
+export async function attachCard(
+  jobId: number,
+  chatId: number,
+  messageId: number
+): Promise<void> {
+  await ensureBroadcastTables();
+  const pool = await db();
+  await pool.query(
+    "UPDATE broadcast_jobs SET chat_id=$2, message_id=$3 WHERE id=$1",
+    [jobId, chatId, messageId]
+  );
 }
 
 /**
@@ -294,35 +356,87 @@ export async function runBroadcastTick(budgetMs = 45_000): Promise<TickResult> {
     await sleep(GAP_MS);
   }
 
-  const stats = await jobStats(jobId);
-  const remaining = stats?.pending ?? 0;
+  const mid = await jobStats(jobId);
+  const remaining = mid?.pending ?? 0;
   if (remaining === 0) {
     await pool.query(
       "UPDATE broadcast_jobs SET status='done', finished_at=now() WHERE id=$1 AND status='running'",
       [jobId]
     );
   }
+
+  // کارت ادمین را تازه می‌کنیم. پخش نیم‌ساعته‌ای که فقط با فشردن دکمه خبر
+  // بدهد، عملا خبری نمی‌دهد. خطایش بلعیده می‌شود: ناتوانی در ویرایش یک
+  // پیام نباید پخش را متوقف کند.
+  const s = await jobStats(jobId);
+  if (s?.chatId && s.messageId && (sent > 0 || failed > 0 || remaining === 0)) {
+    await tgCall("editMessageText", {
+      chat_id: s.chatId,
+      message_id: s.messageId,
+      text: progressText(s),
+      parse_mode: "HTML",
+      reply_markup: { inline_keyboard: jobKeyboard(s) },
+    }).catch(() => {});
+  }
+
   return { jobId, sent, failed, remaining, done: remaining === 0, throttled };
+}
+
+const fa = (n: number) => n.toLocaleString("fa-IR");
+
+/** «۴ دقیقه» / «۱ ساعت و ۱۲ دقیقه» */
+function duration(sec: number): string {
+  if (sec < 60) return `کمتر از یک دقیقه`;
+  const m = Math.round(sec / 60);
+  if (m < 60) return `حدود ${fa(m)} دقیقه`;
+  const h = Math.floor(m / 60);
+  const rest = m % 60;
+  return rest ? `حدود ${fa(h)} ساعت و ${fa(rest)} دقیقه` : `حدود ${fa(h)} ساعت`;
+}
+
+/** نوار پیشرفت متنی — چون تلگرام نمودار ندارد. */
+function bar(pct: number): string {
+  const filled = Math.round((pct / 100) * 10);
+  return "▓".repeat(filled) + "░".repeat(10 - filled);
 }
 
 /** خلاصه‌ی وضعیت برای کارت ادمین. */
 export function progressText(s: JobStats): string {
-  const pct = s.total ? Math.round(((s.sent + s.failed) / s.total) * 100) : 0;
+  const done = s.sent + s.blocked + s.failed;
+  const pct = s.total ? Math.round((done / s.total) * 100) : 0;
   const label: Record<string, string> = {
     draft: "پیش‌نویس — هنوز ارسال نشده",
-    running: "در حال ارسال",
-    done: "تمام شد",
-    cancelled: "لغو شد",
+    running: "⏳ در حال ارسال",
+    done: "✅ تمام شد",
+    cancelled: "⏹ متوقف شد",
   };
-  return (
-    `📣 <b>پخش سراسری #${s.id}</b>\n\n` +
-    `وضعیت: <b>${label[s.status] ?? s.status}</b>\n` +
-    `مخاطب: <b>${s.total.toLocaleString("fa-IR")}</b>\n` +
-    `ارسال‌شده: <b>${s.sent.toLocaleString("fa-IR")}</b>\n` +
-    `ناموفق: <b>${s.failed.toLocaleString("fa-IR")}</b>\n` +
-    `باقی‌مانده: <b>${s.pending.toLocaleString("fa-IR")}</b>\n` +
-    `پیشرفت: <b>${pct}٪</b>`
-  );
+
+  let out =
+    `📣 <b>پخش سراسری #${s.id}</b>\n` +
+    `${label[s.status] ?? s.status}\n\n` +
+    `👥 مخاطب: <b>${fa(s.total)}</b> نفر\n`;
+
+  if (s.status !== "draft") {
+    out +=
+      `\n<code>${bar(pct)}</code>  <b>${fa(pct)}٪</b>\n\n` +
+      `✅ دریافت کردند: <b>${fa(s.sent)}</b>\n` +
+      `🚫 ربات را بلاک کرده‌اند: <b>${fa(s.blocked)}</b>\n` +
+      (s.failed > 0 ? `⚠️ ناموفق (سایر): <b>${fa(s.failed)}</b>\n` : "") +
+      `⏳ باقی‌مانده: <b>${fa(s.pending)}</b>\n`;
+
+    if (s.status === "running" && s.etaSec !== null) {
+      out += `\n⏱ زمان تخمینی تا پایان: <b>${duration(s.etaSec)}</b>`;
+    }
+    if (s.status === "done" && s.blocked > 0) {
+      out +=
+        `\n<i>کسانی که ربات را بلاک کرده‌اند پیام را دریافت نکردند و ` +
+        `تا آنبلاک نکنند هیچ پیامی نمی‌گیرند.</i>`;
+    }
+  } else {
+    out += `\nپیش از ارسال، پیام بالا را یک بار دیگر بخوانید. پخش برگشت‌ناپذیر است.`;
+  }
+
+  return out;
 }
 
 export function jobKeyboard(s: JobStats): InlineButton[][] {

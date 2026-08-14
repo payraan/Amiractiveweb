@@ -47,6 +47,7 @@ import {
   jobStats,
   progressText,
   jobKeyboard,
+  attachCard,
 } from "@/lib/broadcast";
 import { getFlow, setFlow, clearFlow } from "@/lib/bot-flow";
 import { requestWithdrawal } from "@/lib/withdrawal";
@@ -344,7 +345,16 @@ async function handleBroadcast(
   } else {
     await sendTelegram(chatId, body);
   }
-  await sendTelegram(chatId, progressText(s), jobKeyboard(s));
+  // کارت پیشرفت را نگه می‌داریم تا تیک‌ها خودشان به‌روزش کنند.
+  const card = await tgCall<{ message_id: number }>("sendMessage", {
+    chat_id: chatId,
+    text: progressText(s),
+    parse_mode: "HTML",
+    reply_markup: { inline_keyboard: jobKeyboard(s) },
+  });
+  if (card.ok && card.result?.message_id) {
+    await attachCard(s.id, chatId, card.result.message_id);
+  }
 }
 
 /** دکمه‌های پخش: `b:<go|no|st>:<id>` */
