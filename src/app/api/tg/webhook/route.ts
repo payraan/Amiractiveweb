@@ -6,10 +6,24 @@ import {
   grantGroupBonus,
   clearTelegramBlocked,
   sendTelegram,
+  editTelegram,
   answerCallback,
   escapeHtml,
-  type InlineButton,
 } from "@/lib/telegram";
+import {
+  MENU,
+  mainKeyboard,
+  homeText,
+  guestText,
+  guestKeyboard,
+  supportText,
+  supportKeyboard,
+  helpText,
+  helpKeyboard,
+  profileScreen,
+  appUrl,
+  backRow,
+} from "@/lib/bot-menu";
 
 export const dynamic = "force-dynamic";
 
@@ -32,45 +46,26 @@ const SITE_URL = (process.env.SITE_URL ?? "").replace(/\/+$/, "");
 type TgUser = { id: number; username?: string; first_name?: string };
 type TgUpdate = {
   message?: { chat: { id: number }; from?: TgUser; text?: string };
-  callback_query?: { id: string; from: TgUser; data?: string };
+  callback_query?: {
+    id: string;
+    from: TgUser;
+    data?: string;
+    /** برای پیام‌های خیلی قدیمی نمی‌آید؛ ناوبری منو بدون آن ممکن نیست. */
+    message?: { message_id: number; chat: { id: number } };
+  };
 };
-
-function siteButtons(): InlineButton[][] {
-  if (!SITE_URL) return [];
-  return [
-    [{ text: "🇮🇷 بازار ایران", url: `${SITE_URL}/iran` }],
-    [
-      { text: "📈 ترید", url: `${SITE_URL}/trade` },
-      { text: "👛 کیف پول", url: `${SITE_URL}/wallet` },
-    ],
-  ];
-}
 
 type Player = { id: number; displayName: string };
 
 /** `/start` بدون کد: کاربر شناخته‌شده یا تازه‌وارد. */
 async function handleStart(chatId: number, player: Player | null) {
   if (player) {
-    await sendTelegram(
-      chatId,
-      `👋 <b>${escapeHtml(player.displayName)}</b> عزیز، خوش برگشتید!\n\n` +
-        `حساب کاربری شما با موفقیت به تلگرام متصل شده است. برای دسترسی ` +
-        `سریع به پلتفرم، از منوی زیر استفاده کنید:`,
-      siteButtons()
-    );
+    await sendTelegram(chatId, homeText(player.displayName), mainKeyboard());
     return;
   }
-  await sendTelegram(
-    chatId,
-    `🔹 <b>نارمون؛ اولین پلتفرم فارسی پیش‌بینی و تحلیل رویدادها</b>\n\n` +
-      `اینجا می‌توانید روی نتایج رویدادهای واقعی پیش‌بینی ثبت کنید، ` +
-      `بازارهای اختصاصی خود را بسازید و مهارت تحلیلی خود را بسنجید. ` +
-      `در نارمون، امتیازات تنها بر پایه مهارت شما محاسبه می‌شوند؛ نه با ` +
-      `پول قابل خریدند و نه با شانس به دست می‌آیند.\n\n` +
-      `هنوز حسابی به این تلگرام متصل نیست. از سایت وارد شوید و در صفحه‌ی ` +
-      `دعوت دوستان، تلگرام خود را متصل کنید.`,
-    SITE_URL ? [[{ text: "ورود به نارمون", url: `${SITE_URL}/login` }]] : []
-  );
+  // تازه‌وارد به سایت فرستاده نمی‌شود: حساب داخل خود مینی‌اپ با همین تلگرام
+  // ساخته می‌شود، پس هر قدم اضافه فقط ریزش است.
+  await sendTelegram(chatId, guestText(), guestKeyboard());
 }
 
 /** `/start link_<code>` — اتصال حساب سایت به این آیدی تلگرام. */
@@ -81,7 +76,7 @@ async function handleLink(tg: TgUser, chatId: number, code: string) {
       chatId,
       `✅ حساب <b>${escapeHtml(r.displayName)}</b> با موفقیت به تلگرام وصل شد.\n\n` +
         `از این پس نتیجه‌ی بازارها و وضعیت حسابتان را همین‌جا دریافت می‌کنید.`,
-      siteButtons()
+      mainKeyboard()
     );
     return;
   }
@@ -130,32 +125,102 @@ async function handleMessage(tg: TgUser, chatId: number, text: string) {
     return handleStart(chatId, player);
   }
   if (head === "/app") {
-    await sendTelegram(chatId, "بازارهای نارمون:", siteButtons());
+    await sendTelegram(
+      chatId,
+      "🚀 <b>اپلیکیشن نارمون</b>\n\nهمه‌ی بازارها، کیف پول و کارنامه‌تان — داخل تلگرام.",
+      SITE_URL
+        ? [
+            [{ text: "باز کردن اپلیکیشن", web_app: { url: appUrl() } }],
+            backRow(),
+          ]
+        : [backRow()]
+    );
     return;
   }
   if (head === "/wallet") {
+    if (!player) return needAccount(chatId);
     await sendTelegram(
       chatId,
       "کیف پول و موجودی تتر:",
-      SITE_URL ? [[{ text: "👛 کیف پول", url: `${SITE_URL}/wallet` }]] : []
+      SITE_URL ? [[{ text: "👛 کیف پول", web_app: { url: appUrl("wallet") } }]] : []
     );
+    return;
+  }
+  if (head === "/profile") {
+    if (!player) return needAccount(chatId);
+    const s = await profileScreen(player.id);
+    await sendTelegram(chatId, s.text, s.buttons);
+    return;
+  }
+  if (head === "/support") {
+    await sendTelegram(chatId, supportText(), supportKeyboard());
     return;
   }
   if (head === "/bonus") return handleBonus(tg, chatId, player);
   if (head === "/help") {
-    await sendTelegram(
-      chatId,
-      `<b>راهنما</b>\n\n` +
-        `/start · شروع و اتصال حساب\n` +
-        `/app · بازارهای پیش‌بینی\n` +
-        `/wallet · کیف پول\n` +
-        `/bonus · هدیه‌ی عضویت گروه\n\n` +
-        `نارمون سود تضمین نمی‌کند. امتیاز از مهارت می‌آید، نه شانس.`
-    );
+    await sendTelegram(chatId, helpText(), helpKeyboard());
     return;
   }
 
   // هر چیز دیگر: بی‌سروصدا رد می‌شود. ربات نباید به هر پیام گروه جواب بدهد.
+}
+
+/** دستوری که حساب لازم دارد، ولی کاربر هنوز وصل نیست. */
+async function needAccount(chatId: number) {
+  await sendTelegram(chatId, guestText(), guestKeyboard());
+}
+
+/**
+ * لمس دکمه‌های منو.
+ *
+ * همان پیام ویرایش می‌شود تا چت کاربر بعد از ده کلیک پر از کارت مرده نشود.
+ * `answerCallback` همیشه و زودتر از هر کار سنگینی زده می‌شود، وگرنه تلگرام
+ * تا ۳۰ ثانیه ساعت شنی روی دکمه نگه می‌دارد و کاربر فکر می‌کند گیر کرده.
+ */
+async function handleMenu(
+  cbId: string,
+  tg: TgUser,
+  chatId: number,
+  messageId: number,
+  action: string
+) {
+  await answerCallback(cbId, "");
+
+  if (action === MENU.support) {
+    await editTelegram(chatId, messageId, supportText(), supportKeyboard());
+    return;
+  }
+  if (action === MENU.help) {
+    await editTelegram(chatId, messageId, helpText(), helpKeyboard());
+    return;
+  }
+
+  const player = await playerByTgUserId(tg.id, tg.username);
+  if (!player) {
+    await editTelegram(chatId, messageId, guestText(), guestKeyboard());
+    return;
+  }
+
+  if (action === MENU.home) {
+    await editTelegram(chatId, messageId, homeText(player.displayName), mainKeyboard());
+    return;
+  }
+  if (action === MENU.profile) {
+    const s = await profileScreen(player.id);
+    await editTelegram(chatId, messageId, s.text, s.buttons);
+    return;
+  }
+  if (action === MENU.wallet) {
+    await editTelegram(
+      chatId,
+      messageId,
+      "کیف پول و موجودی تتر:",
+      SITE_URL
+        ? [[{ text: "👛 باز کردن کیف پول", web_app: { url: appUrl("wallet") } }], backRow()]
+        : [backRow()]
+    );
+    return;
+  }
 }
 
 /**
@@ -224,6 +289,10 @@ export async function POST(req: Request) {
 
     const cb = update.callback_query;
     if (cb?.data) {
+      if (cb.data.startsWith("m:") && cb.message) {
+        await handleMenu(cb.id, cb.from, cb.message.chat.id, cb.message.message_id, cb.data);
+        return NextResponse.json({ ok: true });
+      }
       const m = /^v:([yn]):(\d+)$/.exec(cb.data);
       if (m) {
         await handleVote(

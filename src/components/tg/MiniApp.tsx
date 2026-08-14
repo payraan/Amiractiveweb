@@ -37,6 +37,22 @@ function parseStartParam(
   return { marketId: Number(m[1]), side: (m[2] as "yes" | "no") ?? null };
 }
 
+const TAB_IDS: TabId[] = ["markets", "trade", "pulse", "challenge", "wallet", "profile"];
+
+/**
+ * تب آغازین از کوئری آدرس.
+ *
+ * دکمه‌های `web_app` ربات آدرس را با `?tab=` می‌فرستند (مثلا `/app?tab=trade`)
+ * و تلگرام همان را عینا باز می‌کند. عمدا از `startapp` استفاده نشده: آن فقط
+ * از لینک‌های `t.me` می‌آید و به یک مینی‌اپِ نام‌گذاری‌شده در BotFather وابسته
+ * است، در حالی که این هیچ پیکربندی‌ای لازم ندارد.
+ */
+function tabFromUrl(): TabId | null {
+  if (typeof window === "undefined") return null;
+  const t = new URLSearchParams(window.location.search).get("tab");
+  return TAB_IDS.includes(t as TabId) ? (t as TabId) : null;
+}
+
 const AUTH_ERRORS: Record<string, string> = {
   not_configured: "ربات روی سرور پیکربندی نشده است.",
   malformed: "داده‌ی ورود تلگرام ناقص است. اپ را ببندید و دوباره باز کنید.",
@@ -95,6 +111,11 @@ export default function MiniApp({ siteUrl }: { siteUrl: string }) {
       if (target) {
         setDeepLink(target);
         setTab("markets");
+      } else {
+        // لینک بازار مقدم است: کسی که روی یک بازار مشخص کلیک کرده باید
+        // همان‌جا بیفتد، نه در تبی که آدرس می‌گوید.
+        const t = tabFromUrl();
+        if (t) setTab(t);
       }
       setErr(null);
     } catch {

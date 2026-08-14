@@ -429,8 +429,19 @@ export function escapeHtml(s: string): string {
     .replace(/>/g, "&gt;");
 }
 
-/** دکمه‌های شیشه‌ای زیر پیام — همان چیزی که هویت رأی‌دهنده را می‌دهد. */
-export type InlineButton = { text: string; url?: string; callback_data?: string };
+/**
+ * دکمه‌های شیشه‌ای زیر پیام — همان چیزی که هویت رأی‌دهنده را می‌دهد.
+ *
+ * `web_app` مینی‌اپ را همان‌جا داخل تلگرام باز می‌کند، بدون بیرون‌رفتن به
+ * مرورگر. **فقط در چت خصوصی کار می‌کند**؛ برای کانال باید `url` با
+ * `t.me/<bot>/<app>?startapp=` استفاده شود.
+ */
+export type InlineButton = {
+  text: string;
+  url?: string;
+  callback_data?: string;
+  web_app?: { url: string };
+};
 
 /** ارسال پیام مستقیم از سایت به کاربر — بدون نیاز به دخالت ربات. */
 export async function sendTelegram(
@@ -734,6 +745,45 @@ export async function editMarketPoll(
 }
 
 /** پاسخ فوری به لمس دکمه — توست کوچک بالای صفحه‌ی کاربر. */
+/**
+ * جای‌گزینی متن و دکمه‌های همان پیام.
+ *
+ * ناوبری منو با ویرایش انجام می‌شود نه با پیام تازه: با هر لمس یک پیام
+ * جدید، چت کاربر بعد از چند کلیک پر از کارت‌های مرده می‌شود و پیدا کردن
+ * منوی فعلی سخت. اینجا کاربر همیشه یک کارت دارد که عوض می‌شود.
+ */
+export async function editTelegram(
+  chatId: number,
+  messageId: number,
+  text: string,
+  buttons?: InlineButton[][]
+): Promise<boolean> {
+  const r = await tgCall("editMessageText", {
+    chat_id: chatId,
+    message_id: messageId,
+    text,
+    parse_mode: "HTML",
+    link_preview_options: { is_disabled: true },
+    reply_markup: { inline_keyboard: buttons ?? [] },
+  });
+  // «message is not modified» یعنی کاربر همان دکمه را دوباره زده — خطا نیست.
+  if (!r.ok && /message is not modified/i.test(r.error)) return true;
+  if (!r.ok) await noteSendFailure(chatId, r.error);
+  return r.ok;
+}
+
+/** فهرست دستورها در منوی کنار فیلد تایپ. */
+export async function setBotCommands(
+  commands: { command: string; description: string }[]
+): Promise<{ ok: boolean; error?: string }> {
+  const r = await tgCall("setMyCommands", {
+    commands,
+    scope: { type: "all_private_chats" },
+    language_code: "fa",
+  });
+  return r.ok ? { ok: true } : { ok: false, error: r.error };
+}
+
 export async function answerCallback(
   callbackId: string,
   text: string,

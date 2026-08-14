@@ -4,10 +4,25 @@ import { verifyAdmin, ADMIN_COOKIE } from "@/lib/admin";
 import {
   botReady,
   registerWebhook,
+  setBotCommands,
   tgCall,
   webhookConfigError,
   webhookUrl,
 } from "@/lib/telegram";
+
+// فهرست دستورها — همان چیزی که کنار فیلد تایپ دیده می‌شود.
+//
+// با همان دکمه‌ی ثبت وبهوک ثبت می‌شود، نه جدا: دو دکمه یعنی روزی یکی زده
+// می‌شود و دیگری نه، و بعد فهرست دستورها با ربات نمی‌خواند.
+const COMMANDS = [
+  { command: "start", description: "منوی اصلی" },
+  { command: "app", description: "باز کردن اپلیکیشن نارمون" },
+  { command: "wallet", description: "کیف پول و موجودی" },
+  { command: "profile", description: "کارنامه و آمار من" },
+  { command: "support", description: "پشتیبانی" },
+  { command: "bonus", description: "هدیه‌ی عضویت کانال" },
+  { command: "help", description: "راهنما" },
+];
 
 export const dynamic = "force-dynamic";
 
@@ -68,5 +83,12 @@ export async function POST() {
   if (!r.ok) {
     return NextResponse.json({ ok: false, error: r.error }, { status: 400 });
   }
-  return NextResponse.json({ ok: true, url: webhookUrl() });
+  // شکست ثبت دستورها نباید ثبت موفق وبهوک را «ناموفق» نشان دهد — وبهوک
+  // چیزی است که ربات بدون آن اصلا کار نمی‌کند، فهرست دستورها فقط آرایش است.
+  const cmds = await setBotCommands(COMMANDS);
+  return NextResponse.json({
+    ok: true,
+    url: webhookUrl(),
+    commands: cmds.ok ? COMMANDS.length : { error: cmds.error },
+  });
 }
