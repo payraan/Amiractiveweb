@@ -173,7 +173,7 @@ export async function requestWithdrawal(
     playerId,
     `🔔 درخواست برداشت <b>${amount}</b> تتر از حساب نارمون ثبت شد.\n\n` +
       `مقصد: <code>${toAddress.slice(0, 6)}…${toAddress.slice(-6)}</code>\n\n` +
-      `اگر این کار را تو نکرده‌ای، همین حالا به پشتیبانی خبر بده.`
+      `اگر این درخواست کار شما نبوده، همین حالا به پشتیبانی خبر بدهید.`
   ).catch(() => {});
 
   return { ok: true, uuid: r.data.uuid, amount };

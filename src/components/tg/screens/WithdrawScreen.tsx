@@ -144,7 +144,7 @@ export default function WithdrawScreen({
 
       <div className="mt-4 rounded-xl border border-gold/30 bg-gold/5 p-4">
         <p className="text-[11px] leading-6 text-gold">
-          آدرس را با دقت بررسی کن. انتقال روی بلاکچین برگشت‌ناپذیر است و آدرس
+          آدرس را با دقت بررسی کنید. انتقال روی بلاکچین برگشت‌ناپذیر است و آدرس
           اشتباه یعنی پول از بین رفته.
         </p>
       </div>
@@ -171,7 +171,7 @@ export default function WithdrawScreen({
 
       {nativeButton ? (
         <p className="mt-4 text-center text-[10px] text-muted">
-          برای ثبت، دکمه‌ی پایین صفحه‌ی تلگرام را بزن
+          برای ثبت، دکمه‌ی پایین صفحه‌ی تلگرام را بزنید
         </p>
       ) : (
         <button

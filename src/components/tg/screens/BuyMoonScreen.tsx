@@ -132,7 +132,7 @@ export default function BuyMoonScreen({
       </div>
 
       <p className="mt-4 text-center text-[10px] text-muted">
-        بسته‌های خاکستری از موجودی فعلی‌ات بیشترند
+        بسته‌های خاکستری از موجودی فعلی‌تان بیشترند
       </p>
     </div>
   );

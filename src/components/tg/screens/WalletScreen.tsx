@@ -212,7 +212,7 @@ export default function WalletScreen() {
 
       {ledger.length === 0 ? (
         <p className="rounded-xl border border-line bg-surface/30 p-4 text-center text-[11px] text-muted">
-          هنوز تراکنشی نداری.
+          هنوز تراکنشی ندارید.
         </p>
       ) : (
         <div className="flex flex-col gap-1.5">

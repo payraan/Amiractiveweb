@@ -46,10 +46,10 @@ export default function DepositScreen({
 
       {!telegramLinked ? (
         <div className="rounded-2xl border border-gold/40 bg-gold/5 p-5 text-center">
-          <p className="text-sm font-bold text-gold">اول تلگرامت را وصل کن</p>
+          <p className="text-sm font-bold text-gold">اول تلگرامتان را وصل کنید</p>
           <p className="mt-2 text-[11px] leading-6 text-muted">
-            هر عملیات مالی به حساب تلگرام وصل‌شده نیاز دارد. اگر از مینی‌اپ آمده‌ای
-            این خودکار انجام شده؛ وگرنه از صفحه‌ی دعوت در سایت وصلش کن.
+            هر عملیات مالی به حساب تلگرام وصل‌شده نیاز دارد. اگر از مینی‌اپ آمده‌اید
+            این خودکار انجام شده؛ وگرنه از صفحه‌ی دعوت در سایت وصلش کنید.
           </p>
         </div>
       ) : !gatewayReady ? (
@@ -104,7 +104,7 @@ export default function DepositScreen({
           </div>
 
           <ul className="mt-4 flex flex-col gap-2 rounded-xl border border-line bg-surface/30 p-4 text-[11px] leading-6 text-muted">
-            <li>• این آدرس مخصوص حساب توست و همیشه ثابت می‌ماند.</li>
+            <li>• این آدرس مخصوص حساب شماست و همیشه ثابت می‌ماند.</li>
             <li>• شارژ پس از تأیید شبکه خودکار انجام می‌شود؛ نیازی به خبر دادن نیست.</li>
             <li>• بسته به شلوغی شبکه، تأیید چند دقیقه طول می‌کشد.</li>
           </ul>
