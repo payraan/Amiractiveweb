@@ -6,27 +6,61 @@
  * CSS، بدون کتابخانه و بدون هزینه‌ی جاوااسکریپت — امن برای مخاطب کندِ ایران.
  */
 
+type Tone = "cream" | "gold" | "gain" | "loss" | "sky" | "violet";
+
 type Ray = {
   dx: number;
   dy: number;
   w: number;
   o: number;
   delay: string;
-  tone: "gold" | "gain";
+  tone: Tone;
+};
+
+/**
+ * رنگ هر پرتو.
+ *
+ * آبی و بنفش در پالت سایت نیستند و عمدا هم اضافه نشدند: اینجا تزئین یک
+ * کامپوننت‌اند، نه توکن طراحی. اگر به globals.css می‌رفتند، بقیه‌ی رابط هم
+ * کم‌کم از آن‌ها استفاده می‌کرد و پالت برند دو رنگ سرد اضافه می‌گرفت.
+ *
+ * روشناییِ هر دو با طلایی هم‌تراز انتخاب شده، وگرنه در کنارش کدر می‌زدند.
+ */
+const TONE: Record<Tone, string> = {
+  cream: "var(--color-cream)",
+  gold: "var(--color-gold)",
+  gain: "var(--color-gain)",
+  loss: "var(--color-loss)",
+  sky: "#6aa9e8",
+  violet: "#a98ae8",
 };
 
 // پرتوها یا به بالای کادر می‌رسند یا از لبه‌ی کناری خارج می‌شوند —
 // هیچ‌کدام وسطِ صفحه معلق تمام نمی‌شوند.
+//
+// ── چیدمان رنگ ──
+// رنگ‌ها **جفتِ آینه‌ای** گذاشته شده‌اند: هر رنگ دقیقا یک بار چپ و یک بار
+// راست. تعادل بصری از همین می‌آید؛ رنگِ پراکنده‌ی نامتقارن، نویز به نظر
+// می‌رسد نه طراحی.
+//
+// پرتوی وسط سفید است چون پهن‌ترین و روشن‌ترین است — «محتمل‌ترین آینده».
+// طلایی دو طرفش می‌نشیند تا امضای برند نزدیک مرکز بماند، و رنگ‌های سردتر
+// هرچه به لبه نزدیک‌تر، کم‌رنگ‌تر می‌شوند.
+//
+// یک جفت پرتوی تازه (±۱۴۲۰) اضافه شد تا شش رنگ، شش جایگاهِ متقارن داشته
+// باشند؛ بدون آن یکی از رنگ‌ها تقارن را می‌شکست.
 const RAYS: Ray[] = [
-  { dx: -1160, dy: -770, w: 1.0, o: 0.1, delay: "0s", tone: "gold" },
-  { dx: -840, dy: -840, w: 1.3, o: 0.14, delay: "-1.9s", tone: "gold" },
-  { dx: -540, dy: -965, w: 1.1, o: 0.12, delay: "-3.6s", tone: "gain" },
+  { dx: -1420, dy: -700, w: 0.9, o: 0.09, delay: "-5.7s", tone: "violet" },
+  { dx: -1160, dy: -770, w: 1.0, o: 0.11, delay: "0s", tone: "sky" },
+  { dx: -840, dy: -840, w: 1.3, o: 0.13, delay: "-1.9s", tone: "loss" },
+  { dx: -540, dy: -965, w: 1.1, o: 0.14, delay: "-3.6s", tone: "gain" },
   { dx: -260, dy: -965, w: 1.7, o: 0.2, delay: "-1.0s", tone: "gold" },
-  { dx: 0, dy: -985, w: 2.1, o: 0.28, delay: "-2.6s", tone: "gold" },
+  { dx: 0, dy: -985, w: 2.1, o: 0.26, delay: "-2.6s", tone: "cream" },
   { dx: 260, dy: -965, w: 1.7, o: 0.2, delay: "-4.1s", tone: "gold" },
-  { dx: 540, dy: -965, w: 1.1, o: 0.12, delay: "-1.4s", tone: "gain" },
-  { dx: 840, dy: -840, w: 1.3, o: 0.14, delay: "-3.1s", tone: "gold" },
-  { dx: 1160, dy: -770, w: 1.0, o: 0.1, delay: "-4.8s", tone: "gold" },
+  { dx: 540, dy: -965, w: 1.1, o: 0.14, delay: "-1.4s", tone: "gain" },
+  { dx: 840, dy: -840, w: 1.3, o: 0.13, delay: "-3.1s", tone: "loss" },
+  { dx: 1160, dy: -770, w: 1.0, o: 0.11, delay: "-4.8s", tone: "sky" },
+  { dx: 1420, dy: -700, w: 0.9, o: 0.09, delay: "-7.2s", tone: "violet" },
 ];
 
 const OX = 600;
@@ -79,7 +113,7 @@ export default function ProbabilityHorizon() {
       >
         {RAYS.map((r, i) => {
           const d = pathFor(r);
-          const color = r.tone === "gain" ? "var(--color-gain)" : "var(--color-gold)";
+          const color = TONE[r.tone];
           return (
             <g key={i}>
               <path
