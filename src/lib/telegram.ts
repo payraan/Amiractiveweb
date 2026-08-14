@@ -772,6 +772,81 @@ export async function editTelegram(
   return r.ok;
 }
 
+// ═══ صفحه‌های رسانه‌دار ══════════════════════════════════════
+//
+// هر صفحه‌ی منو یک کارت است: یک تصویر (یا ویدیوی لوپ) با متن زیرش و
+// دکمه‌ها. ناوبری همان کارت را عوض می‌کند، نه اینکه کارت تازه بفرستد.
+//
+// ⚠️ سقف کپشن تلگرام **۱۰۲۴ کاراکتر** است، در حالی که پیام متنی ۴۰۹۶.
+// همه‌ی متن‌های منو زیر این سقف نگه داشته شده‌اند؛ اگر روزی یکی بلندتر شد،
+// تلگرام کل پیام را رد می‌کند و کارت بی‌سروصدا نمایش داده نمی‌شود.
+
+export type ScreenMedia = { kind: "photo" | "animation"; url: string };
+
+export type Screen = {
+  media: ScreenMedia | null;
+  text: string;
+  buttons: InlineButton[][];
+};
+
+/** ارسال یک کارت تازه. */
+export async function sendScreen(chatId: number, s: Screen): Promise<boolean> {
+  if (!s.media) return sendTelegram(chatId, s.text, s.buttons);
+
+  const method = s.media.kind === "animation" ? "sendAnimation" : "sendPhoto";
+  const key = s.media.kind === "animation" ? "animation" : "photo";
+  const r = await tgCall(method, {
+    chat_id: chatId,
+    [key]: s.media.url,
+    caption: s.text,
+    parse_mode: "HTML",
+    reply_markup: { inline_keyboard: s.buttons },
+  });
+  if (r.ok) return true;
+
+  // رسانه نرسید (فایل هنوز دیپلوی نشده، یا تلگرام نتوانست بگیردش). پیام
+  // بی‌تصویر بهتر از هیچ پیام است — کاربر نباید روی دکمه بزند و سکوت ببیند.
+  await noteSendFailure(chatId, r.error);
+  return sendTelegram(chatId, s.text, s.buttons);
+}
+
+/**
+ * جای‌گزینی کارت — تصویر، متن و دکمه‌ها با هم.
+ *
+ * اگر پیام قبلی رسانه نداشته باشد (کارت‌های قدیمی که پیش از این تغییر
+ * فرستاده شده‌اند) `editMessageMedia` شکست می‌خورد؛ آن‌وقت پیام قدیمی حذف و
+ * کارت تازه فرستاده می‌شود تا کاربر گیر نکند.
+ */
+export async function editScreen(
+  chatId: number,
+  messageId: number,
+  s: Screen
+): Promise<boolean> {
+  if (!s.media) {
+    const ok = await editTelegram(chatId, messageId, s.text, s.buttons);
+    if (ok) return true;
+    await tgCall("deleteMessage", { chat_id: chatId, message_id: messageId });
+    return sendScreen(chatId, s);
+  }
+
+  const r = await tgCall("editMessageMedia", {
+    chat_id: chatId,
+    message_id: messageId,
+    media: {
+      type: s.media.kind,
+      media: s.media.url,
+      caption: s.text,
+      parse_mode: "HTML",
+    },
+    reply_markup: { inline_keyboard: s.buttons },
+  });
+  if (r.ok) return true;
+  if (/message is not modified/i.test(r.error)) return true;
+
+  await tgCall("deleteMessage", { chat_id: chatId, message_id: messageId });
+  return sendScreen(chatId, s);
+}
+
 /** فهرست دستورها در منوی کنار فیلد تایپ. */
 export async function setBotCommands(
   commands: { command: string; description: string }[]

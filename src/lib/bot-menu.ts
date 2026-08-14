@@ -1,4 +1,10 @@
-import { escapeHtml, GROUP_BONUS_CREDITS, type InlineButton } from "@/lib/telegram";
+import {
+  escapeHtml,
+  GROUP_BONUS_CREDITS,
+  type InlineButton,
+  type Screen,
+  type ScreenMedia,
+} from "@/lib/telegram";
 import { loadProfile } from "@/lib/profile";
 import { LINKS } from "@/config/site";
 import {
@@ -39,6 +45,17 @@ const SITE_URL = (process.env.SITE_URL ?? "").replace(/\/+$/, "");
 export function appUrl(tab?: string): string {
   if (!SITE_URL) return "";
   return tab ? `${SITE_URL}/app?tab=${tab}` : `${SITE_URL}/app`;
+}
+
+/**
+ * تصویر هر صفحه — از `public/tg/` خود سایت.
+ *
+ * تلگرام فایل را یک بار از این آدرس می‌گیرد و بعد کش می‌کند، پس حجم فقط
+ * روی همان بار اول اثر دارد. اگر `SITE_URL` ست نباشد رسانه `null` می‌شود و
+ * کارت‌ها بی‌تصویر ولی سالم کار می‌کنند.
+ */
+function media(file: string, kind: "photo" | "animation" = "photo"): ScreenMedia | null {
+  return SITE_URL ? { kind, url: `${SITE_URL}/tg/${file}` } : null;
 }
 
 /** شناسه‌های `callback_data` منو. کوتاه، چون تلگرام ۶۴ بایت سقف دارد. */
@@ -414,6 +431,42 @@ export function helpTopicKeyboard(): InlineButton[][] {
   ];
 }
 
+// ── کارت‌ها ──────────────────────────────────────────────────
+//
+// هر صفحه یک تصویر ثابت دارد؛ فقط منوی اصلی ویدیوی لوپ است. همه‌ی متن‌ها
+// عمدا زیر ۱۰۲۴ کاراکتر می‌مانند، وگرنه تلگرام کارت را رد می‌کند.
+
+export function homeScreen(displayName: string | null): Screen {
+  return {
+    media: media("welcome.mp4", "animation"),
+    text: homeText(displayName),
+    buttons: mainKeyboard(),
+  };
+}
+
+export function guestScreen(): Screen {
+  return {
+    media: media("welcome.mp4", "animation"),
+    text: guestText(),
+    buttons: guestKeyboard(),
+  };
+}
+
+export function supportScreen(): Screen {
+  return { media: media("support.jpg"), text: supportText(), buttons: supportKeyboard() };
+}
+
+export function helpScreen(): Screen {
+  return { media: media("help.jpg"), text: helpText(), buttons: helpKeyboard() };
+}
+
+/** `null` یعنی موضوع ناشناخته — دکمه‌ی قدیمی در چتی قدیمی. */
+export function helpTopicScreen(key: string): Screen | null {
+  const body = helpTopic(key);
+  if (!body) return null;
+  return { media: media("help.jpg"), text: body, buttons: helpTopicKeyboard() };
+}
+
 // ── پروفایل ──────────────────────────────────────────────────
 
 /**
@@ -423,12 +476,11 @@ export function helpTopicKeyboard(): InlineButton[][] {
  * یکی‌اند. نشان‌ها و کارنامه‌ی قابل اشتراک اینجا نمی‌آیند — آن‌ها تصویری‌اند
  * و جایشان مینی‌اپ است؛ دکمه‌اش پایین همین کارت هست.
  */
-export async function profileScreen(
-  playerId: number
-): Promise<{ text: string; buttons: InlineButton[][] }> {
+export async function profileScreen(playerId: number): Promise<Screen> {
   const p = await loadProfile(playerId);
   if (!p) {
     return {
+      media: media("profile.jpg"),
       text: "پروفایل پیدا نشد. لطفاً /start را بزنید.",
       buttons: [backRow()],
     };
@@ -472,5 +524,29 @@ export async function profileScreen(
   }
   buttons.push([{ text: "👛 کیف پول", callback_data: MENU.wallet }]);
   buttons.push(backRow());
-  return { text, buttons };
+  return { media: media("profile.jpg"), text, buttons };
+}
+
+/**
+ * کیف پول — فعلا کارت معرفی با تصویر.
+ *
+ * ⚠️ ناتمام: موجودی، تاریخچه، واریز و برداشت باید همین‌جا در چت انجام شوند،
+ * نه با فرستادن کاربر به مینی‌اپ. برداشت به یک گفت‌وگوی چندمرحله‌ای و نگه
+ * داشتن حالت بین پیام‌ها نیاز دارد که ربات هنوز ندارد.
+ */
+export function walletScreen(): Screen {
+  const buttons: InlineButton[][] = [];
+  if (SITE_URL) {
+    buttons.push([{ text: "👛 باز کردن کیف پول", web_app: { url: appUrl("wallet") } }]);
+  }
+  buttons.push(backRow());
+  return {
+    media: media("wallet.jpg"),
+    text:
+      `👛 <b>کیف پول</b>\n\n` +
+      `موجودی تتر، تاریخچه‌ی تراکنش‌ها، واریز و برداشت.\n\n` +
+      `حداقل برداشت <b>${num(MIN_WITHDRAW)} تتر</b> است و هر برداشت یک ` +
+      `اعلان تلگرام دارد. آدرس مقصد پیش از ارسال بررسی می‌شود.`,
+    buttons,
+  };
 }

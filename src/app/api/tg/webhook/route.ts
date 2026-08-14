@@ -6,23 +6,21 @@ import {
   grantGroupBonus,
   clearTelegramBlocked,
   sendTelegram,
-  editTelegram,
+  sendScreen,
+  editScreen,
   answerCallback,
   escapeHtml,
 } from "@/lib/telegram";
 import {
   MENU,
   mainKeyboard,
-  homeText,
-  guestText,
-  guestKeyboard,
-  supportText,
-  supportKeyboard,
-  helpText,
-  helpKeyboard,
-  helpTopic,
-  helpTopicKeyboard,
+  homeScreen,
+  guestScreen,
+  supportScreen,
+  helpScreen,
+  helpTopicScreen,
   profileScreen,
+  walletScreen,
   appUrl,
   backRow,
 } from "@/lib/bot-menu";
@@ -61,13 +59,9 @@ type Player = { id: number; displayName: string };
 
 /** `/start` بدون کد: کاربر شناخته‌شده یا تازه‌وارد. */
 async function handleStart(chatId: number, player: Player | null) {
-  if (player) {
-    await sendTelegram(chatId, homeText(player.displayName), mainKeyboard());
-    return;
-  }
   // تازه‌وارد به سایت فرستاده نمی‌شود: حساب داخل خود مینی‌اپ با همین تلگرام
   // ساخته می‌شود، پس هر قدم اضافه فقط ریزش است.
-  await sendTelegram(chatId, guestText(), guestKeyboard());
+  await sendScreen(chatId, player ? homeScreen(player.displayName) : guestScreen());
 }
 
 /** `/start link_<code>` — اتصال حساب سایت به این آیدی تلگرام. */
@@ -141,26 +135,21 @@ async function handleMessage(tg: TgUser, chatId: number, text: string) {
   }
   if (head === "/wallet") {
     if (!player) return needAccount(chatId);
-    await sendTelegram(
-      chatId,
-      "کیف پول و موجودی تتر:",
-      SITE_URL ? [[{ text: "👛 کیف پول", web_app: { url: appUrl("wallet") } }]] : []
-    );
+    await sendScreen(chatId, walletScreen());
     return;
   }
   if (head === "/profile") {
     if (!player) return needAccount(chatId);
-    const s = await profileScreen(player.id);
-    await sendTelegram(chatId, s.text, s.buttons);
+    await sendScreen(chatId, await profileScreen(player.id));
     return;
   }
   if (head === "/support") {
-    await sendTelegram(chatId, supportText(), supportKeyboard());
+    await sendScreen(chatId, supportScreen());
     return;
   }
   if (head === "/bonus") return handleBonus(tg, chatId, player);
   if (head === "/help") {
-    await sendTelegram(chatId, helpText(), helpKeyboard());
+    await sendScreen(chatId, helpScreen());
     return;
   }
 
@@ -169,7 +158,7 @@ async function handleMessage(tg: TgUser, chatId: number, text: string) {
 
 /** دستوری که حساب لازم دارد، ولی کاربر هنوز وصل نیست. */
 async function needAccount(chatId: number) {
-  await sendTelegram(chatId, guestText(), guestKeyboard());
+  await sendScreen(chatId, guestScreen());
 }
 
 /**
@@ -191,44 +180,36 @@ async function handleMenu(
   // موضوع‌های راهنما: `h:<key>`. حساب لازم ندارند — کسی که هنوز ثبت‌نام
   // نکرده هم باید بتواند بخواند که اینجا چه خبر است.
   if (action.startsWith("h:")) {
-    const body = helpTopic(action.slice(2));
-    if (body) await editTelegram(chatId, messageId, body, helpTopicKeyboard());
+    const s = helpTopicScreen(action.slice(2));
+    if (s) await editScreen(chatId, messageId, s);
     return;
   }
 
   if (action === MENU.support) {
-    await editTelegram(chatId, messageId, supportText(), supportKeyboard());
+    await editScreen(chatId, messageId, supportScreen());
     return;
   }
   if (action === MENU.help) {
-    await editTelegram(chatId, messageId, helpText(), helpKeyboard());
+    await editScreen(chatId, messageId, helpScreen());
     return;
   }
 
   const player = await playerByTgUserId(tg.id, tg.username);
   if (!player) {
-    await editTelegram(chatId, messageId, guestText(), guestKeyboard());
+    await editScreen(chatId, messageId, guestScreen());
     return;
   }
 
   if (action === MENU.home) {
-    await editTelegram(chatId, messageId, homeText(player.displayName), mainKeyboard());
+    await editScreen(chatId, messageId, homeScreen(player.displayName));
     return;
   }
   if (action === MENU.profile) {
-    const s = await profileScreen(player.id);
-    await editTelegram(chatId, messageId, s.text, s.buttons);
+    await editScreen(chatId, messageId, await profileScreen(player.id));
     return;
   }
   if (action === MENU.wallet) {
-    await editTelegram(
-      chatId,
-      messageId,
-      "کیف پول و موجودی تتر:",
-      SITE_URL
-        ? [[{ text: "👛 باز کردن کیف پول", web_app: { url: appUrl("wallet") } }], backRow()]
-        : [backRow()]
-    );
+    await editScreen(chatId, messageId, walletScreen());
     return;
   }
 }
