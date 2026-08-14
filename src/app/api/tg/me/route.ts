@@ -27,13 +27,14 @@ export async function GET() {
     tg_handle: string | null;
     credits: number;
     usdt_balance: string;
+    demo_balance: string;
     total_points: number;
   }>(
     // ⚠️ `ROUND(...)::int` اجباری است. `total_points` از نوع NUMERIC(14,4)
     // است و بدون cast، درایور pg آن را **رشته** برمی‌گرداند ("0.0000")؛
     // اولین محاسبه‌ی کلاینت روی آن به‌جای جمع، الحاق رشته می‌شود. همه‌ی
     // روت‌های دیگر این cast را دارند و این یکی جا مانده بود.
-    `SELECT display_name, tg_handle, credits, usdt_balance,
+    `SELECT display_name, tg_handle, credits, usdt_balance, demo_balance,
             ROUND(total_points)::int AS total_points
        FROM players WHERE id=$1`,
     [playerId]
@@ -50,7 +51,9 @@ export async function GET() {
       displayName: p.display_name,
       handle: p.tg_handle,
       credits: p.credits,
-      usdtBalance: Number(p.usdt_balance),
+      usdtBalance: Number(p.usdt_balance) + Number(p.demo_balance ?? 0),
+      withdrawable: Number(p.usdt_balance),
+      demoBalance: Number(p.demo_balance ?? 0),
       totalPoints: p.total_points,
     },
   });

@@ -15,7 +15,11 @@ type Ledger = {
 };
 
 type Data = {
+  /** مجموع قابل خرج: واقعی + دمو. */
   balance: number;
+  /** فقط پول واقعی — تنها چیزی که می‌شود برداشت کرد. */
+  withdrawable?: number;
+  demoBalance?: number;
   network: string;
   address: string | null;
   addressError: string | null;
@@ -132,7 +136,9 @@ export default function WalletPanel() {
   const addressOk = withdrawAddressShapeValid(toAddress, network);
   const withdrawOk =
     Number(amount) >= MIN_WITHDRAW &&
-    Number(amount) <= (d?.balance ?? 0) &&
+    // سقف برداشت، موجودی **واقعی** است نه کل. با `balance` کاربر مبلغی
+    // می‌زد که سرور ردش می‌کرد و دلیلش را هم نمی‌فهمید.
+    Number(amount) <= (d?.withdrawable ?? d?.balance ?? 0) &&
     addressOk;
 
   return (
@@ -147,6 +153,21 @@ export default function WalletPanel() {
           <div className="mt-1 font-mono text-[10px] text-muted" dir="ltr">
             USDT · {d?.network ?? "TRON"}
           </div>
+          {/* اگر بخشی هدیه است، همین‌جا گفته می‌شود نه در لحظه‌ی برداشت. */}
+          {(d?.demoBalance ?? 0) > 0 && (
+            <div className="mt-2 text-[10px] leading-5 text-muted">
+              شامل{" "}
+              <span dir="ltr" className="font-mono text-gold/80">
+                ${(d?.demoBalance ?? 0).toFixed(2)}
+              </span>{" "}
+              هدیه — با آن پیش‌بینی می‌کنید، ولی فقط سودش قابل برداشت است.
+              <br />
+              قابل برداشت:{" "}
+              <span dir="ltr" className="font-mono text-cream">
+                ${(d?.withdrawable ?? 0).toFixed(2)}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="mt-4 flex gap-2 rounded-xl border border-line bg-raised/40 p-1">
@@ -269,7 +290,9 @@ export default function WalletPanel() {
                   key={p}
                   type="button"
                   onClick={() =>
-                    setAmount((((d?.balance ?? 0) * p) / 100).toFixed(2))
+                    setAmount(
+                      (((d?.withdrawable ?? d?.balance ?? 0) * p) / 100).toFixed(2)
+                    )
                   }
                   className="flex-1 rounded-lg border border-line py-1.5 font-mono text-[10px] text-muted transition hover:border-gold/40 hover:text-cream"
                 >

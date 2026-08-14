@@ -311,6 +311,13 @@ async function handleWithdrawInput(
   return true;
 }
 
+/**
+ * موجودی **قابل برداشت**، نه کل موجودی.
+ *
+ * عمدا `demo_balance` را جمع نمی‌کند: این عدد فقط در گفت‌وگوی برداشت به کار
+ * می‌رود و اگر پول دمو را هم می‌شمرد، کاربر مبلغی می‌زد که سرور ردش می‌کند
+ * و دلیلش را هم نمی‌فهمید.
+ */
 async function playerBalance(playerId: number): Promise<number> {
   const pool = await db();
   const r = await pool.query<{ usdt_balance: string }>(

@@ -18,7 +18,7 @@ export async function GET() {
   const pool = await db();
 
   const [bal, ledger] = await Promise.all([
-    pool.query("SELECT usdt_balance FROM players WHERE id=$1", [playerId]),
+    pool.query("SELECT usdt_balance, demo_balance FROM players WHERE id=$1", [playerId]),
     pool.query(
       `SELECT amount, kind, ref, balance_after, created_at
          FROM wallet_ledger WHERE player_id=$1
@@ -43,7 +43,15 @@ export async function GET() {
 
   return NextResponse.json({
     ok: true,
-    balance: Number(bal.rows[0]?.usdt_balance ?? 0),
+    // `balance` مجموع قابل خرج است (واقعی + دمو) — همان چیزی که کاربر
+    // به‌عنوان «موجودی» می‌شناسد و می‌تواند با آن پیش‌بینی کند.
+    // `withdrawable` فقط پول واقعی است؛ فرم برداشت باید از این استفاده کند،
+    // نه از balance، وگرنه کاربر مبلغی را می‌زند که سرور ردش می‌کند.
+    balance:
+      Number(bal.rows[0]?.usdt_balance ?? 0) +
+      Number(bal.rows[0]?.demo_balance ?? 0),
+    withdrawable: Number(bal.rows[0]?.usdt_balance ?? 0),
+    demoBalance: Number(bal.rows[0]?.demo_balance ?? 0),
     network: USDT_NETWORK,
     address,
     addressError,

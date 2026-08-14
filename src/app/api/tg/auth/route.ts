@@ -60,10 +60,11 @@ export async function POST(req: Request) {
   const me = await pool.query<{
     credits: number;
     usdt_balance: string;
+    demo_balance: string;
     terms_version: number | null;
     tour_at: string | null;
   }>(
-    "SELECT credits, usdt_balance, terms_version, tour_at FROM players WHERE id=$1",
+    "SELECT credits, usdt_balance, demo_balance, terms_version, tour_at FROM players WHERE id=$1",
     [player.id]
   );
 
@@ -76,7 +77,9 @@ export async function POST(req: Request) {
       id: player.id,
       displayName: player.displayName,
       credits: me.rows[0]?.credits ?? 0,
-      usdtBalance: Number(me.rows[0]?.usdt_balance ?? 0),
+      usdtBalance:
+        Number(me.rows[0]?.usdt_balance ?? 0) +
+        Number(me.rows[0]?.demo_balance ?? 0),
     },
     // دروازه‌های اولین ورود.
     //

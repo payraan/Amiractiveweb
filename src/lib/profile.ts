@@ -25,7 +25,7 @@ export async function loadProfile(playerId: number) {
       pool.query(
         `SELECT id, tg_username, display_name,
                 ROUND(total_points)::int AS total_points, streak, credits,
-                usdt_balance, created_at, tg_user_id, showcase
+                usdt_balance, demo_balance, created_at, tg_user_id, showcase
            FROM players WHERE id=$1`,
         [playerId]
       ),
@@ -143,12 +143,16 @@ export async function loadProfile(playerId: number) {
       credits: p.credits,
       totalPoints: p.total_points,
       streak: p.streak,
-      usdtBalance: Number(p.usdt_balance),
+      usdtBalance: Number(p.usdt_balance) + Number(p.demo_balance ?? 0),
+      withdrawable: Number(p.usdt_balance),
+      demoBalance: Number(p.demo_balance ?? 0),
       createdAt: p.created_at,
       telegramLinked: Boolean(p.tg_user_id),
     },
     wallet: {
-      balance: Number(p.usdt_balance),
+      balance: Number(p.usdt_balance) + Number(p.demo_balance ?? 0),
+      withdrawable: Number(p.usdt_balance),
+      demoBalance: Number(p.demo_balance ?? 0),
       deposited: Number(w.deposited),
       withdrawn: Number(w.withdrawn),
       adjusted: Number(w.adjusted),

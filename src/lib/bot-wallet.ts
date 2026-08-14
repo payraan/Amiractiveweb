@@ -45,8 +45,8 @@ async function walletData(playerId: number, limit: number) {
   await ensureIrTables();
   const pool = await db();
   const [me, ledger, open] = await Promise.all([
-    pool.query<{ usdt_balance: string }>(
-      "SELECT usdt_balance FROM players WHERE id=$1",
+    pool.query<{ usdt_balance: string; demo_balance: string }>(
+      "SELECT usdt_balance, demo_balance FROM players WHERE id=$1",
       [playerId]
     ),
     pool.query<{ amount: string; kind: string; created_at: string }>(
@@ -61,7 +61,11 @@ async function walletData(playerId: number, limit: number) {
     ),
   ]);
   return {
-    balance: Number(me.rows[0]?.usdt_balance ?? 0),
+    balance:
+      Number(me.rows[0]?.usdt_balance ?? 0) +
+      Number(me.rows[0]?.demo_balance ?? 0),
+    withdrawable: Number(me.rows[0]?.usdt_balance ?? 0),
+    demoBalance: Number(me.rows[0]?.demo_balance ?? 0),
     locked: Number(open.rows[0]?.locked ?? 0),
     openBets: Number(open.rows[0]?.n ?? 0),
     rows: ledger.rows.map<Row>((r) => ({
@@ -102,6 +106,13 @@ export async function walletHomeScreen(playerId: number): Promise<Screen> {
     text:
       `👛 <b>کیف پول</b>\n\n` +
       `موجودی قابل استفاده\n<b>${money(d.balance)} تتر</b>  <i>(USDT)</i>\n` +
+      // اگر بخشی هدیه است، همین‌جا گفته می‌شود نه در لحظه‌ی برداشت. کاربری
+      // که عدد بزرگ می‌بیند و بعد «موجودی کافی نیست» می‌گیرد، فکر می‌کند
+      // پولش را خورده‌ایم.
+      (d.demoBalance > 0
+        ? `شامل <b>${money(d.demoBalance)}</b> هدیه — قابل برداشت: ` +
+          `<b>${money(d.withdrawable)}</b>\n`
+        : "") +
       `شبکه: <b>${USDT_NETWORK}</b>\n` +
       (d.openBets > 0
         ? `\n🔒 درگیر در ${d.openBets} پیش‌بینی باز: $${money(d.locked)}\n`

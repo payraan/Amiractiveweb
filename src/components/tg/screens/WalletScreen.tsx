@@ -30,7 +30,11 @@ type Ledger = {
 };
 
 type Wallet = {
+  /** مجموع قابل خرج: واقعی + دمو. */
   balance: number;
+  /** فقط پول واقعی — تنها چیزی که می‌شود برداشت کرد. */
+  withdrawable?: number;
+  demoBalance?: number;
   ledger?: Ledger[];
   address?: string | null;
   network?: string;
@@ -108,7 +112,7 @@ export default function WalletScreen() {
   if (w && view === "withdraw") {
     return (
       <WithdrawScreen
-        balance={w.balance}
+        balance={w.withdrawable ?? w.balance}
         network={w.network ?? "TRON"}
         onBack={back}
         onDone={done}
@@ -154,6 +158,23 @@ export default function WalletScreen() {
         >
           ${money(w.balance)}
         </div>
+        {/* اگر بخشی از موجودی بونوس است، همین‌جا گفته می‌شود — نه در لحظه‌ی
+            برداشت. کاربری که عدد بزرگ می‌بیند و بعد «موجودی کافی نیست»
+            می‌گیرد، فکر می‌کند سیستم خراب است یا پولش را خورده‌ایم. */}
+        {(w.demoBalance ?? 0) > 0 && (
+          <div className="mt-2 text-[10px] leading-5 text-muted">
+            شامل{" "}
+            <span dir="ltr" className="font-mono text-gold/80">
+              ${money(w.demoBalance ?? 0)}
+            </span>{" "}
+            هدیه — با آن پیش‌بینی می‌کنید، ولی فقط سودش قابل برداشت است.
+            <br />
+            قابل برداشت:{" "}
+            <span dir="ltr" className="font-mono text-cream">
+              ${money(w.withdrawable ?? 0)}
+            </span>
+          </div>
+        )}
         <div className="mt-2.5 text-[10px] text-muted">شبکه‌ی {w.network ?? "TRON"}</div>
         {/* درخشش ملایم گوشه — عمق می‌دهد بدون اینکه تصویر لازم باشد */}
         <div className="pointer-events-none absolute -left-10 -top-10 h-32 w-32 rounded-full bg-gold/10 blur-2xl" />
