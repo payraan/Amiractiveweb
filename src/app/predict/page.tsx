@@ -61,7 +61,7 @@ export default async function PredictPage() {
 
 
         <div className="mt-8 rounded-2xl border border-line bg-surface/40 p-6">
-          <h2 className="text-sm font-bold">قوانین بازی به زبان ساده</h2>
+          <h2 className="text-sm font-bold">قوانین، به زبان ساده</h2>
           <ol className="mt-4 flex flex-col gap-3">
             {RULES_TEXT.map((t, i) => (
               <li key={i} className="flex gap-3 text-xs leading-7 text-muted">

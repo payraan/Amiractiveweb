@@ -9,6 +9,15 @@ export const POLY_FREE_PER_DAY = 5; // پیش‌بینی رایگان روزان
 export const POLY_EXTRA_COST = 1; // هزینه‌ی هر پیش‌بینی اضافه (MOON)
 
 const UA = { "User-Agent": "Mozilla/5.0" };
+
+/**
+ * عنوان‌های قالبیِ پر‌نشده‌ی پالی‌مارکت.
+ *
+ * دو یا چند زیرخط پشت‌سرهم (`__`, `___`) و برچسب‌های ژنریک مثل `Company A`
+ * یا `Team B` نشانه‌ی قالبی‌اند که مقدارش جا نیفتاده.
+ */
+const PLACEHOLDER = /__|\b(Company|Team|Player|Candidate|Option) [A-Z]\b/;
+
 const GAMMA = "https://gamma-api.polymarket.com";
 
 export type PolyMarket = {
@@ -188,6 +197,14 @@ export async function getCuratedMarkets(): Promise<PolyMarket[]> {
 
         const q = String(m.question ?? "").trim();
         if (!q || seen.has(q)) continue;
+        // بازارهای قالبیِ پالی‌مارکت که جای‌نگهدارشان پر نشده.
+        //
+        // نمونه‌های واقعی که به کاربر رسیده بودند: «آیا ارزش‌گذاری Anthropic
+        // تا ۳۱ دسامبر به __ خواهد رسید؟» و «آیا Company A بزرگ‌ترین شرکت
+        // جهان می‌شود؟». اینها ایرادِ ترجمه نیستند — خودِ عنوان مبدأ ناقص
+        // است و ترجمه فقط وفادارانه ناقص بودنش را منتقل می‌کند. بازاری که
+        // پرسشش معلوم نیست، پیش‌بینی‌شدنی هم نیست.
+        if (PLACEHOLDER.test(q)) continue;
         seen.add(q);
         const slugs: string[] = Array.isArray(ev.tags)
           ? ev.tags.map((t: { slug?: string }) => String(t?.slug ?? "").toLowerCase())

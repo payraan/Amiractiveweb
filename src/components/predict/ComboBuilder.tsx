@@ -87,7 +87,7 @@ const STEPS = [
   {
     n: "۳",
     title: "برد فقط با درست‌بودن همه",
-    body: "اگر همه‌ی انتخاب‌ها درست باشند، امتیاز بزرگی می‌گیرید. حتی یک اشتباه یعنی باخت کل تیکت.",
+    body: "اگر همه‌ی انتخاب‌ها درست باشند، امتیاز بزرگی می‌گیرید. حتی یک اشتباه، کل تیکت را از بین می‌برد.",
   },
 ];
 
@@ -229,8 +229,8 @@ export default function ComboBuilder() {
           <b className="font-mono text-cream" dir="ltr">
             50% × 50% × 50% = 12.5%
           </b>{" "}
-          — سخت‌تر، ولی به همان نسبت پرامتیازتر: برد یعنی{" "}
-          <b className="font-mono text-gain" dir="ltr">+263</b> و باخت یعنی{" "}
+          — سخت‌تر، ولی به همان نسبت پرامتیازتر: درست دربیاید{" "}
+          <b className="font-mono text-gain" dir="ltr">+263</b> می‌گیرید و اگر نه{" "}
           <b className="font-mono text-loss" dir="ltr">−38</b>. هرچه ترکیب
           سخت‌تر باشد، پاداشش بزرگ‌تر است.
         </p>
@@ -464,8 +464,8 @@ export default function ComboBuilder() {
                       {t.status === "open"
                         ? "باز"
                         : (t.points ?? 0) >= 0
-                          ? "برنده"
-                          : "بازنده"}
+                          ? "درست"
+                          : "نادرست"}
                     </span>
                     {t.status !== "open" && (
                       <b
