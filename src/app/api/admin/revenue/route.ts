@@ -9,9 +9,17 @@ export const dynamic = "force-dynamic";
 /**
  * دفترکل درآمد پلتفرم — تفکیک‌شده بر اساس نوع، دوره و بازار.
  *
- * ⚠️ تفکیک واقعی از دمو: پول واقعی فقط از وبهوک درگاه وارد می‌شود؛ هر شارژ
- * دستیِ ادمین یعنی حساب تستی. پس همه‌ی اعداد دو نسخه دارند و پیش‌فرض گزارش،
- * «واقعی» است تا آمار تست هرگز با درآمد واقعی قاطی نشود.
+ * ⚠️ **تفکیک بر اساس مبلغ است، نه بر اساس ردیف.**
+ *
+ * نسخه‌ی قبلی ردیف‌ها را با بولین `is_demo` فیلتر می‌کرد و آن بولین هم از
+ * روی *حسابِ* پرداخت‌کننده می‌آمد. نتیجه‌اش این شد که کمیسیون بازارهای
+ * کاملا دمو «درآمد واقعی» شمرده شد — چون کمیسیون تسویه پرداخت‌کننده‌ی
+ * مشخصی ندارد و به سازنده‌ی بازار سقوط می‌کرد.
+ *
+ * در استخر parimutuel پول واقعی و دمو با هم مخلوط می‌شوند، پس یک ردیف
+ * کمیسیون می‌تواند هم‌زمان هر دو باشد. «این ردیف واقعی است یا دمو؟» پرسش
+ * غلطی است؛ پرسش درست «چقدرش؟» است. هر عدد از ستون متناظرش جمع می‌شود:
+ * واقعی = `amount − demo_amount`، دمو = `demo_amount`.
  *
  * نکته‌ی حسابداری: «تتر در گردش» مجموع موجودی کاربران است، نه درآمد ما.
  */
@@ -26,32 +34,54 @@ export async function GET(req: Request) {
 
   // scope=demo | real | all — پیش‌فرض واقعی
   const scope = new URL(req.url).searchParams.get("scope") ?? "real";
-  const where =
+
+  // عبارتِ مبلغ برای این نما. هیچ ردیفی کنار گذاشته نمی‌شود؛ فقط سهمِ
+  // مربوط به این نما جمع می‌شود.
+  const amt =
     scope === "demo"
-      ? "WHERE r.is_demo"
+      ? "r.demo_amount"
       : scope === "all"
-        ? ""
-        : "WHERE NOT r.is_demo";
-  const plWhere =
-    scope === "demo" ? "WHERE is_demo" : scope === "all" ? "" : "WHERE NOT is_demo";
+        ? "r.amount"
+        : "(r.amount - r.demo_amount)";
+  // ردیفی که سهمش در این نما صفر است، در فهرست ریز تراکنش‌ها فقط نویز است.
+  const nonZero = `${amt} <> 0`;
+  const where = `WHERE ${nonZero}`;
+
+  // موجودی کاربران: پول واقعی در `usdt_balance` است و بونوس در
+  // `demo_balance` — همان ستون‌هایی که خودِ سیستم با آن‌ها کار می‌کند.
+  const balCol =
+    scope === "demo"
+      ? "demo_balance"
+      : scope === "all"
+        ? "(usdt_balance + demo_balance)"
+        : "usdt_balance";
+  // پول قفل‌شده در بازارهای باز، به همان تفکیک.
+  const stakeCol =
+    scope === "demo"
+      ? "b.demo_stake"
+      : scope === "all"
+        ? "b.stake"
+        : "(b.stake - b.demo_stake)";
 
   const [byKind, totals, recent, topMarkets, liabilities, split, daily] =
     await Promise.all([
       pool.query(
-        `SELECT r.kind, COALESCE(SUM(r.amount),0)::float AS total, COUNT(*)::int AS n
+        `SELECT r.kind, COALESCE(SUM(${amt}),0)::float AS total, COUNT(*)::int AS n
            FROM platform_revenue r ${where}
           GROUP BY r.kind ORDER BY total DESC`
       ),
       pool.query(
         `SELECT
-           COALESCE(SUM(r.amount),0)::float AS all_time,
-           COALESCE(SUM(r.amount) FILTER (WHERE r.created_at >= now() - interval '30 days'),0)::float AS d30,
-           COALESCE(SUM(r.amount) FILTER (WHERE r.created_at >= now() - interval '7 days'),0)::float AS d7,
-           COALESCE(SUM(r.amount) FILTER (WHERE r.created_at >= date_trunc('day', now())),0)::float AS today
+           COALESCE(SUM(${amt}),0)::float AS all_time,
+           COALESCE(SUM(${amt}) FILTER (WHERE r.created_at >= now() - interval '30 days'),0)::float AS d30,
+           COALESCE(SUM(${amt}) FILTER (WHERE r.created_at >= now() - interval '7 days'),0)::float AS d7,
+           COALESCE(SUM(${amt}) FILTER (WHERE r.created_at >= date_trunc('day', now())),0)::float AS today
          FROM platform_revenue r ${where}`
       ),
       pool.query(
-        `SELECT r.id, r.kind, r.amount::float AS amount, r.note, r.created_at,
+        `SELECT r.id, r.kind, ${amt}::float AS amount,
+                r.amount::float AS gross, r.demo_amount::float AS demo_amount,
+                r.note, r.created_at,
                 r.market_id, r.is_demo, m.question, p.tg_username AS username
            FROM platform_revenue r
            LEFT JOIN ir_markets m ON m.id = r.market_id
@@ -60,31 +90,31 @@ export async function GET(req: Request) {
           ORDER BY r.created_at DESC LIMIT 100`
       ),
       pool.query(
-        `SELECT r.market_id, m.question, COALESCE(SUM(r.amount),0)::float AS total
+        `SELECT r.market_id, m.question, COALESCE(SUM(${amt}),0)::float AS total
            FROM platform_revenue r
            LEFT JOIN ir_markets m ON m.id = r.market_id
-           ${where ? where + " AND" : "WHERE"} r.market_id IS NOT NULL
+           ${where} AND r.market_id IS NOT NULL
           GROUP BY r.market_id, m.question ORDER BY total DESC LIMIT 10`
       ),
       pool.query(
         `SELECT
-           (SELECT COALESCE(SUM(usdt_balance),0)::float FROM players ${plWhere}) AS user_balances,
-           (SELECT COALESCE(SUM(b.stake),0)::float FROM ir_bets b JOIN players p ON p.id=b.player_id
-             WHERE b.status='open'${scope === "demo" ? " AND p.is_demo" : scope === "all" ? "" : " AND NOT p.is_demo"}) AS locked_in_markets`
+           (SELECT COALESCE(SUM(${balCol}),0)::float FROM players) AS user_balances,
+           (SELECT COALESCE(SUM(${stakeCol}),0)::float FROM ir_bets b
+             WHERE b.status='open') AS locked_in_markets`
       ),
       // همیشه هر دو طرف را برگردان تا ادمین بداند چقدرش تست است
       pool.query(
         `SELECT
-           COALESCE(SUM(amount) FILTER (WHERE NOT is_demo),0)::float AS real_total,
-           COALESCE(SUM(amount) FILTER (WHERE is_demo),0)::float AS demo_total,
-           (SELECT COUNT(*)::int FROM players WHERE is_demo) AS demo_players,
-           (SELECT COUNT(*)::int FROM players WHERE NOT is_demo) AS real_players
+           COALESCE(SUM(amount - demo_amount),0)::float AS real_total,
+           COALESCE(SUM(demo_amount),0)::float AS demo_total,
+           (SELECT COUNT(*)::int FROM players WHERE demo_balance > 0) AS demo_players,
+           (SELECT COUNT(*)::int FROM players WHERE usdt_balance > 0) AS real_players
          FROM platform_revenue`
       ),
       // سری زمانی روزانه برای نمودار
       pool.query(
         `SELECT (r.created_at AT TIME ZONE 'Asia/Tehran')::date AS day,
-                COALESCE(SUM(r.amount),0)::float AS total
+                COALESCE(SUM(${amt}),0)::float AS total
            FROM platform_revenue r ${where}
           GROUP BY day ORDER BY day ASC LIMIT 90`
       ),

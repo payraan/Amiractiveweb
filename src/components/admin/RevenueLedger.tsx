@@ -6,7 +6,11 @@ type Kind = { kind: string; total: number; n: number };
 type Row = {
   id: number;
   kind: string;
+  /** سهم این ردیف در نمای انتخاب‌شده (واقعی / هدیه / همه). */
   amount: number;
+  /** کل مبلغ ردیف، بدون تفکیک — برای وقتی که سهم با کل فرق دارد. */
+  gross?: number;
+  demo_amount?: number;
   note: string | null;
   created_at: string;
   market_id: number | null;
@@ -97,13 +101,18 @@ export default function RevenueLedger() {
             </button>
           ))}
         </div>
+        {/* متن قبلی می‌گفت «حساب دمو»، چون تفکیک روی حساب بود. حالا تفکیک روی
+            خودِ پول است: یک ردیف کمیسیون می‌تواند هم‌زمان واقعی و دمو باشد،
+            چون در استخر پول همه با هم مخلوط می‌شود. */}
         <p className="text-[10px] leading-5 text-muted">
-          پول واقعی فقط از درگاه می‌آید؛ هر شارژ دستی ادمین «دمو» علامت می‌خورد.
-          {" "}
+          پول واقعی فقط از درگاه می‌آید؛ شارژ دستی ادمین «هدیه» است. تفکیک روی
+          مبلغ انجام می‌شود نه روی حساب، پس یک ردیف می‌تواند سهمی از هر دو
+          داشته باشد.{" "}
           <b className="text-cream">
-            واقعی {usd(d.split.real_total)} · دمو {usd(d.split.demo_total)}
+            واقعی {usd(d.split.real_total)} · هدیه {usd(d.split.demo_total)}
           </b>{" "}
-          • {d.split.real_players} حساب واقعی، {d.split.demo_players} حساب تستی.
+          • {d.split.real_players} حساب با پول واقعی، {d.split.demo_players} حساب
+          با موجودی هدیه.
         </p>
       </div>
 
@@ -267,6 +276,15 @@ export default function RevenueLedger() {
                     >
                       {r.amount >= 0 ? "+" : ""}
                       {usd(r.amount).replace("$-", "-$")}
+                      {/* اگر این ردیف سهمی از هر دو دارد، کل مبلغش هم نشان
+                          داده می‌شود — وگرنه ادمین عددی می‌بیند که با هیچ
+                          کمیسیونی نمی‌خواند و فکر می‌کند اشتباه است. */}
+                      {r.gross !== undefined &&
+                        Math.abs(r.gross - r.amount) > 0.000001 && (
+                          <div className="mt-0.5 text-[9.5px] font-normal text-muted">
+                            از {usd(r.gross).replace("$-", "-$")}
+                          </div>
+                        )}
                     </td>
                   </tr>
                 ))
