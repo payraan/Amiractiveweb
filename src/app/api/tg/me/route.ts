@@ -1,18 +1,21 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { ensureIrTables } from "@/lib/iran";
-import { verifyTgSession, TG_AUTH_HEADER } from "@/lib/tg-auth";
+import { currentPlayerId } from "@/lib/current-player";
 
 export const dynamic = "force-dynamic";
 
 /**
  * وضعیت حساب برای مینی‌اپ.
  *
- * هویت از هدر x-tg-auth می‌آید، نه از کوکی — مینی‌اپ داخل iframe شخص‌ثالث
- * اجرا می‌شود و کوکی SameSite=Lax آنجا فرستاده نمی‌شود.
+ * هویت از `currentPlayerId` می‌آید مثل هر روت دیگر، نه مستقیم از هدر.
+ * پیش‌تر فقط `x-tg-auth` را می‌خواند و همین یک استثنا بود در قاعده‌ی «همه‌ی
+ * روت‌ها از یک مسیر هویت می‌گیرند» — و استثنای هویتی، همان چیزی است که دیر
+ * یا زود از بقیه جدا می‌شود. `currentPlayerId` هم هدر را اول می‌سنجد، پس
+ * رفتار مینی‌اپ دقیقا همان است و سایت هم می‌تواند بخواندش.
  */
-export async function GET(req: Request) {
-  const playerId = verifyTgSession(req.headers.get(TG_AUTH_HEADER));
+export async function GET() {
+  const playerId = await currentPlayerId();
   if (!playerId) {
     return NextResponse.json({ ok: false, error: "not_authed" }, { status: 401 });
   }
@@ -26,7 +29,12 @@ export async function GET(req: Request) {
     usdt_balance: string;
     total_points: number;
   }>(
-    `SELECT display_name, tg_handle, credits, usdt_balance, total_points
+    // ⚠️ `ROUND(...)::int` اجباری است. `total_points` از نوع NUMERIC(14,4)
+    // است و بدون cast، درایور pg آن را **رشته** برمی‌گرداند ("0.0000")؛
+    // اولین محاسبه‌ی کلاینت روی آن به‌جای جمع، الحاق رشته می‌شود. همه‌ی
+    // روت‌های دیگر این cast را دارند و این یکی جا مانده بود.
+    `SELECT display_name, tg_handle, credits, usdt_balance,
+            ROUND(total_points)::int AS total_points
        FROM players WHERE id=$1`,
     [playerId]
   );
