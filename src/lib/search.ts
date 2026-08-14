@@ -51,3 +51,13 @@ export function matchesQuery(query: string, ...fields: (string | undefined)[]): 
     .filter(Boolean)
     .every((w) => hay.includes(w) || flat.includes(w.replace(/ /g, "")));
 }
+
+/**
+ * عنوان قابل نمایش یک بازار خارجی.
+ *
+ * ⚠️ اگر ترجمه نبود، **عنوان انگلیسی** برمی‌گردد نه رشته‌ی خالی. عنوان
+ * ترجمه‌نشده ناخوشایند است؛ کارتِ بی‌عنوان خراب است.
+ */
+export function displayTitle(en: string, fa?: string | null): string {
+  return (fa ?? "").trim() || en;
+}

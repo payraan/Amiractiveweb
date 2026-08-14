@@ -5,6 +5,7 @@ import { api, ApiError } from "@/components/tg/api";
 import { winPoints, losePoints } from "@/lib/poly-scoring";
 import { haptic, hasMainButton, showBackButton } from "@/components/tg/telegram";
 import { useMainButton } from "@/components/tg/useMainButton";
+import { displayTitle } from "@/lib/search";
 
 // یک بازار ترید و ثبت پیش‌بینی — روی همان /api/predict/poly-submit سایت.
 //
@@ -17,6 +18,9 @@ export type PolyMarket = {
   id: string;
   question: string;
   eventTitle?: string;
+  /** عنوان فارسی، اگر ترجمه‌اش آماده باشد. تهی یعنی هنوز در صف است. */
+  questionFa?: string | null;
+  eventTitleFa?: string | null;
   endDate?: string;
   yesPct: number;
   volume: number;
@@ -98,7 +102,12 @@ export default function TradeDetail({
       {market.eventTitle && (
         <div className="mb-1.5 text-[10px] text-muted">{market.eventTitle}</div>
       )}
-      <p className="text-[15px] font-bold leading-[2] text-cream">{market.question}</p>
+      <p
+        dir="auto"
+        className="text-start text-[15px] font-bold leading-[2] text-cream"
+      >
+        {displayTitle(market.question, market.questionFa)}
+      </p>
 
       <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px] text-muted">
         <span className="rounded-full border border-line bg-raised px-2 py-0.5">

@@ -1,5 +1,7 @@
 "use client";
 
+import { matchesQuery, displayTitle } from "@/lib/search";
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePlayer } from "@/components/predict/usePlayer";
@@ -11,6 +13,8 @@ import { dualDate } from "@/lib/dates";
 type Market = {
   id: string;
   question: string;
+  /** عنوان فارسی، اگر ترجمه‌اش آماده باشد. */
+  questionFa?: string | null;
   eventTitle: string;
   endDate: string;
   yesPct: number;
@@ -304,14 +308,12 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
   }, [markets]);
 
   const list = useMemo(() => {
-    const needle = q.trim().toLowerCase();
     return markets
       .filter((m) => (cat === "all" ? true : m.category === cat))
+      // جست‌وجو روی هر دو زبان و با نرمال‌سازی فارسی — کاربر ممکن است
+      // عنوان ترجمه‌شده را ببیند و همان را تایپ کند.
       .filter((m) =>
-        needle
-          ? m.question.toLowerCase().includes(needle) ||
-            m.eventTitle.toLowerCase().includes(needle)
-          : true
+        matchesQuery(q, m.question, m.eventTitle, m.questionFa ?? undefined)
       )
       .sort((a, b) => new Date(a.endDate).getTime() - new Date(b.endDate).getTime());
   }, [markets, q, cat]);
@@ -485,8 +487,11 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
                     className="absolute inset-y-0 start-0 bg-gain/10"
                     style={{ width: `${m.yesPct}%` }}
                   />
-                  <span className="relative line-clamp-1 flex-1 text-[10px]" dir="ltr">
-                    {m.question.replace(/^Will (the price of )?/i, "")}
+                  <span className="relative line-clamp-1 flex-1 text-[10px]" dir="auto">
+                    {displayTitle(m.question, m.questionFa).replace(
+                      /^Will (the price of )?/i,
+                      ""
+                    )}
                   </span>
                   <span
                     className={`relative shrink-0 font-mono text-[11px] font-bold ${
@@ -723,8 +728,8 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
                         : "hover:bg-raised/40"
                   }`}
                 >
-                  <span className="line-clamp-1 flex-1 text-[11px]" dir="ltr">
-                    {m.question}
+                  <span className="line-clamp-1 flex-1 text-[11px]" dir="auto">
+                    {displayTitle(m.question, m.questionFa)}
                   </span>
                   <span className="shrink-0 text-[9px] text-muted">{m.categoryLabel}</span>
                   <span className="w-16 shrink-0 text-end font-mono text-[10px] text-muted" dir="ltr">

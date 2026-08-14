@@ -5,6 +5,7 @@ import IrMarkets from "@/components/admin/IrMarkets";
 import UsersTable from "@/components/admin/UsersTable";
 import RevenueLedger from "@/components/admin/RevenueLedger";
 import BotStatus from "@/components/admin/BotStatus";
+import Translations from "@/components/admin/Translations";
 
 type Found = {
   username: string;
@@ -77,7 +78,7 @@ export default function AdminPanel() {
 
 /** پوسته‌ی تب‌دار — بخش‌های موجود حفظ شده‌اند و دو بخش تازه اضافه شده. */
 function AdminShell() {
-  const [tab, setTab] = useState<"home" | "ir" | "revenue" | "users" | "bot">(
+  const [tab, setTab] = useState<"home" | "ir" | "revenue" | "users" | "bot" | "tr">(
     "home"
   );
   const TABS = [
@@ -86,6 +87,7 @@ function AdminShell() {
     { id: "revenue" as const, label: "دفترکل درآمد" },
     { id: "users" as const, label: "کاربران" },
     { id: "bot" as const, label: "ربات تلگرام" },
+    { id: "tr" as const, label: "ترجمه‌ها" },
   ];
   return (
     <div className="mx-auto max-w-7xl px-5 py-8">
@@ -114,6 +116,7 @@ function AdminShell() {
       {tab === "revenue" && <RevenueLedger />}
       {tab === "users" && <UsersTable />}
       {tab === "bot" && <BotStatus />}
+      {tab === "tr" && <Translations />}
     </div>
   );
 }

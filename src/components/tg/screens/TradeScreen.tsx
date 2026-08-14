@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useResource } from "@/components/tg/useResource";
 import { ErrorState, EmptyState, ScreenTitle, Skeleton, SearchBar } from "@/components/tg/ui";
-import { matchesQuery } from "@/lib/search";
+import { matchesQuery, displayTitle } from "@/lib/search";
 import { haptic } from "@/components/tg/telegram";
 import TradeDetail, { type PolyMarket } from "@/components/tg/screens/TradeDetail";
 import { remaining, closingSoon } from "@/lib/dates";
@@ -91,7 +91,9 @@ export default function TradeScreen() {
     if (hideDone) out = out.filter((m) => !doneIds.has(m.id));
     // عنوان رویداد هم جست‌وجو می‌شود: کاربر «F1» را از عنوان رویداد به یاد
     // می‌آورد، نه از متن کامل پرسش.
-    out = out.filter((m) => matchesQuery(q, m.question, m.eventTitle));
+    out = out.filter((m) =>
+      matchesQuery(q, m.question, m.eventTitle, m.questionFa ?? undefined)
+    );
     return out.sort((a, b) => {
       if (sort === "closing") {
         return (
@@ -215,7 +217,7 @@ export default function TradeScreen() {
                   dir="auto"
                   className="line-clamp-2 text-start text-[10.5px] font-bold leading-[1.6] text-cream"
                 >
-                  {m.question}
+                  {displayTitle(m.question, m.questionFa)}
                 </p>
                 <div className="mt-2 h-[3px] overflow-hidden rounded-full bg-loss/30">
                   <div

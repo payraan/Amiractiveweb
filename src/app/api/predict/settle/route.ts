@@ -5,6 +5,7 @@ import { settleCombosDue } from "@/lib/combos";
 import { refreshMarketPosts } from "@/lib/ir-posts";
 import { settleDueIrMarkets } from "@/lib/iran";
 import { runBroadcastTick } from "@/lib/broadcast";
+import { translatePending } from "@/lib/translate";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +52,13 @@ export async function POST(req: Request) {
     out.posts = await refreshMarketPosts();
   } catch (err) {
     out.postsError = err instanceof Error ? err.message : "error";
+  }
+
+  // صف ترجمه‌ی عنوان بازارهای خارجی. بدون کلید بی‌هزینه رد می‌شود.
+  try {
+    out.translate = await translatePending(2);
+  } catch (err) {
+    out.translateError = err instanceof Error ? err.message : "error";
   }
 
   // تور ایمنی پخش سراسری. پخش خودش را زنجیر می‌کند و به این کرون وابسته
