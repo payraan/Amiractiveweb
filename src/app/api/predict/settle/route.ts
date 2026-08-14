@@ -4,6 +4,7 @@ import { settlePolyDue } from "@/lib/poly";
 import { settleCombosDue } from "@/lib/combos";
 import { refreshMarketPosts } from "@/lib/ir-posts";
 import { refreshTradePosts } from "@/lib/trade-posts";
+import { reconcileWithdrawals } from "@/lib/withdrawal-sync";
 import { settleDueIrMarkets } from "@/lib/iran";
 import { runBroadcastTick } from "@/lib/broadcast";
 import { translatePending } from "@/lib/translate";
@@ -58,6 +59,14 @@ export async function POST(req: Request) {
     out.tradePosts = await refreshTradePosts();
   } catch (err) {
     out.tradePostsError = err instanceof Error ? err.message : "error";
+  }
+
+  // آشتی برداشت‌ها با درگاه. بدون این، برداشتی که درگاه بعدا ردش کند پول
+  // کاربر را برای همیشه کسرشده نگه می‌دارد — هیچ‌جای دیگری دوباره نمی‌پرسد.
+  try {
+    out.withdrawals = await reconcileWithdrawals();
+  } catch (err) {
+    out.withdrawalsError = err instanceof Error ? err.message : "error";
   }
 
   // صف ترجمه‌ی عنوان بازارهای خارجی. بدون کلید بی‌هزینه رد می‌شود.

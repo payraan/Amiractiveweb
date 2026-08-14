@@ -1,0 +1,200 @@
+import { db } from "@/lib/db";
+import { moveFunds } from "@/lib/iran";
+import { getWithdrawal, gatewayReady } from "@/lib/zovix";
+import { notifyPlayer } from "@/lib/telegram";
+
+// ═══ آشتی‌دادن برداشت‌ها با درگاه ════════════════════════════
+//
+// `requestWithdrawal` پول را *پیش از* تماس با درگاه کسر می‌کند — که درست
+// است، وگرنه با درخواست هم‌زمان می‌شد بیشتر از موجودی برداشت کرد. ولی
+// نتیجه‌اش این است که هر برداشتی که به نتیجه‌ی قطعی نرسد، پول کاربر را
+// نگه می‌دارد. دو حالت گیرکردن وجود دارد:
+//
+//   • `submitted` — درگاه پذیرفته و uuid داده، ولی بعدا ممکن است شکست
+//     بخورد (موجودی درگاه، آدرس بلاک‌شده، رد دستی). هیچ‌جای کد دوباره از
+//     درگاه نمی‌پرسد، پس پول برای همیشه کسرشده می‌ماند.
+//
+//   • `requested` — پول کسر و ردیف ثبت شده، ولی پروسه پیش از رسیدن پاسخِ
+//     درگاه مرده (دیپلوی، ری‌استارت، تایم‌اوت). اینجا اصلا نمی‌دانیم درگاه
+//     درخواست را دیده یا نه.
+//
+// ⚠️ **حالت دوم عمدا خودکار برگشت داده نمی‌شود.** اگر درگاه درخواست را
+// گرفته و پول را فرستاده باشد و ما هم برگردانیم، دو بار پرداخت کرده‌ایم و
+// این پول واقعی است. پس فقط علامت `stuck` می‌خورد تا آدم ببیندش. تصمیم
+// اشتباهِ خودکار روی پول، از تصمیم دیرِ انسانی بدتر است.
+
+/**
+ * وضعیت‌هایی که از سمت درگاه **قطعی** شمرده می‌شوند.
+ *
+ * عمدا فهرست بسته است و نه «هر چیزی که success نیست». نام وضعیت‌های Zovix
+ * در مستندات کامل نیامده؛ اگر روزی رشته‌ی تازه‌ای برگرداند، این کد باید
+ * دست نگه دارد نه اینکه حدس بزند — و حدسِ اشتباه اینجا یعنی یا پول دوبار
+ * می‌رود یا پول کاربر بی‌دلیل قفل می‌ماند.
+ */
+const DONE = new Set(["SUCCESS", "COMPLETED", "DONE", "CONFIRMED"]);
+const FAILED = new Set([
+  "FAILED",
+  "REJECTED",
+  "CANCELED",
+  "CANCELLED",
+  "EXPIRED",
+  "DECLINED",
+]);
+
+/** پس از این مدت، ردیف `requested` بی‌سرانجام شمرده می‌شود. */
+const STUCK_AFTER_MIN = 15;
+
+export type SyncResult = {
+  checked: number;
+  completed: number;
+  refunded: number;
+  stuck: number;
+  /** وضعیت‌هایی که نمی‌شناسیم — برای دیدن در خروجی کرون. */
+  unknown: string[];
+};
+
+export async function reconcileWithdrawals(): Promise<SyncResult> {
+  const out: SyncResult = {
+    checked: 0,
+    completed: 0,
+    refunded: 0,
+    stuck: 0,
+    unknown: [],
+  };
+  if (!gatewayReady()) return out;
+
+  const pool = await db();
+
+  // جدول ممکن است هنوز ساخته نشده باشد (هیچ برداشتی رخ نداده). این کرون
+  // نباید همان‌جا بترکد.
+  const exists = await pool.query<{ ok: boolean }>(
+    "SELECT to_regclass('public.withdrawals') IS NOT NULL AS ok"
+  );
+  if (!exists.rows[0]?.ok) return out;
+
+  // ── ۱. ردیف‌های submitted: از درگاه بپرس ──────────────────
+  const open = await pool.query<{
+    id: string;
+    player_id: number;
+    amount: string;
+    unique_param: string;
+    gateway_uuid: string;
+  }>(
+    `SELECT id, player_id, amount, unique_param, gateway_uuid
+       FROM withdrawals
+      WHERE status='submitted' AND gateway_uuid IS NOT NULL
+      ORDER BY id LIMIT 50`
+  );
+
+  for (const w of open.rows) {
+    out.checked++;
+    const r = await getWithdrawal(w.gateway_uuid);
+    if (!r.ok) continue; // درگاه در دسترس نیست — دور بعد
+
+    const row = Array.isArray(r.data)
+      ? r.data.find((x) => x.id === w.gateway_uuid) ?? r.data[0]
+      : null;
+    if (!row) continue;
+
+    const status = String(row.status ?? "").toUpperCase();
+
+    if (DONE.has(status)) {
+      await pool.query(
+        "UPDATE withdrawals SET status='completed' WHERE id=$1 AND status='submitted'",
+        [w.id]
+      );
+      out.completed++;
+      continue;
+    }
+
+    if (FAILED.has(status)) {
+      if (await refundWithdrawal(w.id, `gateway:${status}`)) out.refunded++;
+      continue;
+    }
+
+    // در جریان است (PENDING، PROCESSING…) یا رشته‌ای که نمی‌شناسیم.
+    if (!out.unknown.includes(status)) out.unknown.push(status);
+  }
+
+  // ── ۲. ردیف‌های requested که جا مانده‌اند ──────────────────
+  //
+  // فقط علامت می‌خورند. برگشت خودکار اینجا ممنوع است — بالا توضیح داده شد.
+  const stuck = await pool.query(
+    `UPDATE withdrawals
+        SET status='stuck',
+            error=COALESCE(error, 'no gateway response; needs manual review')
+      WHERE status='requested'
+        AND created_at < now() - ($1 || ' minutes')::interval
+      RETURNING id`,
+    [String(STUCK_AFTER_MIN)]
+  );
+  out.stuck = stuck.rowCount ?? 0;
+
+  return out;
+}
+
+/**
+ * برگرداندن پول یک برداشتِ ناموفق. `true` یعنی همین فراخوانی پول را برگرداند.
+ *
+ * صادرشده است چون علامت `stuck` بدون راهِ اقدام بی‌فایده است: کسی که پس از
+ * بررسی با درگاه مطمئن شد پول نرفته، باید بتواند برگردش بزند.
+ *
+ * ⚠️ **ادعای مالکیت و تغییر وضعیت، خودِ UPDATE است** نه یک چک جدا. اگر دو
+ * اجرای هم‌زمان (دو تیک کرون، یا کرون و ادمین) به یک ردیف برسند، فقط یکی
+ * سطری می‌گیرد و دومی هیچ — پس پول هرگز دوبار برنمی‌گردد. با «اول بخوان،
+ * بعد بنویس» این تضمین وجود نداشت.
+ */
+export async function refundWithdrawal(
+  withdrawalId: string | number,
+  reason: string
+): Promise<boolean> {
+  const pool = await db();
+  const client = await pool.connect();
+  let refunded: { player_id: number; amount: string } | null = null;
+
+  try {
+    await client.query("BEGIN");
+
+    const claim = await client.query<{
+      player_id: number;
+      amount: string;
+      unique_param: string;
+    }>(
+      `UPDATE withdrawals SET status='failed', error=$2
+        WHERE id=$1 AND status IN ('submitted','stuck')
+        RETURNING player_id, amount, unique_param`,
+      [withdrawalId, reason]
+    );
+    if (!claim.rowCount) {
+      await client.query("ROLLBACK");
+      return false;
+    }
+    const w = claim.rows[0];
+
+    await client.query("SELECT id FROM players WHERE id=$1 FOR UPDATE", [w.player_id]);
+    await moveFunds(
+      client,
+      w.player_id,
+      Number(w.amount),
+      "withdraw_refund",
+      w.unique_param
+    );
+    await client.query("COMMIT");
+    refunded = { player_id: w.player_id, amount: w.amount };
+  } catch {
+    await client.query("ROLLBACK").catch(() => {});
+    return false;
+  } finally {
+    client.release();
+  }
+
+  // خطایش بلعیده می‌شود: نرسیدن پیام نباید برگشت پولی را که انجام شده
+  // خراب کند. همان قاعده‌ای که خودِ requestWithdrawal دارد.
+  notifyPlayer(
+    refunded.player_id,
+    `↩️ درخواست برداشت <b>${Number(refunded.amount)}</b> تتر انجام نشد و مبلغ ` +
+      `به موجودی شما برگشت.\n\nمی‌توانید دوباره تلاش کنید.`
+  ).catch(() => {});
+
+  return true;
+}
