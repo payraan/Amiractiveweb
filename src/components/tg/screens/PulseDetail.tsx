@@ -43,14 +43,14 @@ export type PulseMarket = {
 };
 
 const ERR: Record<string, string> = {
-  rate_limited: "درخواست‌های پیاپی بیش از حد بود. کمی صبر کنید و دوباره تلاش کنید.",
+  rate_limited: "درخواست‌های پیاپی بیش از حد بود. کمی صبر کن و دوباره تلاش کن.",
   not_authed: "ابتدا وارد شوید.",
   bad_asset: "این دارایی معتبر نیست.",
   bad_timeframe: "تایم‌فریم معتبر نیست.",
   bad_guess: "عدد واردشده معتبر نیست.",
   // کد واقعی سرور already_predicted است، نه already — با تست زنده تأیید شد.
   already_predicted: "برای این دارایی و تایم‌فریم قبلا پیش‌بینی ثبت کرده‌اید.",
-  insufficient_credits: "MOON کافی ندارید. از کیف پول MOON بخرید.",
+  insufficient_credits: "MOON کافی نداری. از کیف پول MOON بخر.",
   market_closed: "بازار این دارایی الان بسته است.",
   no_price: "قیمت این دارایی در دسترس نیست.",
 };
@@ -131,7 +131,7 @@ export default function PulseDetail({
       ? "در حال ثبت…"
       : valid
         ? `ثبت پیش‌بینی${cost > 0 ? ` (${cost} MOON)` : " (رایگان)"}`
-        : "قیمت پیش‌بینی را وارد کنید",
+        : "قیمت پیش‌بینی را وارد کن",
     enabled: valid,
     busy,
     onClick: submit,

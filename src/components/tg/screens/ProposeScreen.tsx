@@ -17,7 +17,7 @@ import { useMainButton } from "@/components/tg/useMainButton";
 const ERR: Record<string, string> = {
   telegram_blocked:
     "ربات نارمون را در تلگرام بلاک کرده‌اید. اعلان‌های امنیتی حساب از همان ربات می‌آید، پس تا آنبلاک نکنید این عملیات انجام نمی‌شود. برداشت وجه بسته نیست.",
-  rate_limited: "درخواست‌های پیاپی بیش از حد بود. کمی صبر کنید و دوباره تلاش کنید.",
+  rate_limited: "درخواست‌های پیاپی بیش از حد بود. کمی صبر کن و دوباره تلاش کن.",
   not_authed: "برای پیشنهاد بازار وارد شوید.",
   bad_question: "سؤال باید بین ۱۵ تا ۲۰۰ کاراکتر باشد.",
   source_required: "منبع تسویه اجباری است و باید دقیق باشد.",
@@ -57,7 +57,7 @@ export default function ProposeScreen({
   if (sourceNote.trim().length < 10) {
     issues.push(`منبع تسویه حداقل ۱۰ کاراکتر (الان ${sourceNote.trim().length})`);
   }
-  if (!closesAt) issues.push("زمان بسته‌شدن را انتخاب کنید");
+  if (!closesAt) issues.push("زمان بسته‌شدن را انتخاب کن");
   const valid = issues.length === 0;
 
   useEffect(() => showBackButton(onBack), [onBack]);

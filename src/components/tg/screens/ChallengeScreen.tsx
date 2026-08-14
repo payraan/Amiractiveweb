@@ -60,9 +60,9 @@ type Data = { authed: boolean; tiers: Tier[]; state: State | null };
 const ERR: Record<string, string> = {
   telegram_blocked:
     "ربات نارمون را در تلگرام بلاک کرده‌اید. اعلان‌های امنیتی حساب از همان ربات می‌آید، پس تا آنبلاک نکنید این عملیات انجام نمی‌شود. برداشت وجه بسته نیست.",
-  rate_limited: "درخواست‌های پیاپی بیش از حد بود. کمی صبر کنید و دوباره تلاش کنید.",
+  rate_limited: "درخواست‌های پیاپی بیش از حد بود. کمی صبر کن و دوباره تلاش کن.",
   not_authed: "ابتدا وارد شوید.",
-  telegram_required: "برای ورود به چالش باید حساب شما به تلگرام وصل باشد.",
+  telegram_required: "برای ورود به چالش باید حسابت به تلگرام وصل باشد.",
   active_exists: "همین حالا یک چالش فعال داری.",
   entry_limit: "سقف ورود در ۳۰ روز گذشته پر شده است.",
   insufficient_credits: "MOON کافی نداری. از کیف پول MOON بخرید.",
@@ -415,7 +415,7 @@ export default function ChallengeScreen() {
             <p className="mt-1 text-[11px] leading-6 text-muted">
               این تیر دیگر در فهرست نیست، پس آستانه‌های هدف و افت نامعلوم‌اند و
               وضعیت خودکار به‌روز نمی‌شود. کارنامه‌ی پیش‌بینی‌ها درست است. برای
-              تعیین تکلیف با پشتیبانی تماس بگیرید.
+              تعیین تکلیف با پشتیبانی تماس بگیر.
             </p>
           </div>
         )}
@@ -448,7 +448,7 @@ export default function ChallengeScreen() {
         {counted === 0 && !failed && (
           <div className="rounded-2xl border border-gold/30 bg-gold/5 p-4">
             <p className="text-[12px] font-bold text-gold">
-              هنوز پیش‌بینی شمرده‌شده‌ای ندارید
+              هنوز پیش‌بینی شمرده‌شده‌ای نداری
             </p>
             <ul className="mt-2 space-y-1 text-[11px] leading-6 text-muted">
               <li>

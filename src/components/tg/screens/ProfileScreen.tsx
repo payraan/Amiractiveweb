@@ -265,7 +265,7 @@ export default function ProfileScreen({ siteUrl }: { siteUrl: string }) {
 
       {picking && (
         <p className="mb-2 rounded-xl border border-gold/25 bg-gold/5 px-3.5 py-2.5 text-[10.5px] leading-6 text-gold">
-          تا {MAX_SHOWCASE} نشانِ کسب‌شده انتخاب کنید تا کنار نامت بنشیند.
+          تا {MAX_SHOWCASE} نشانِ کسب‌شده انتخاب کن تا کنار نامت بنشیند.
         </p>
       )}
 

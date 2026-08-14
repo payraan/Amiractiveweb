@@ -292,7 +292,7 @@ export default function TradeScreen({
       )}
 
       {view === "markets" && !markets.error && shown?.length === 0 && (
-        <EmptyState title="بازاری در این دسته نیست" hint="دسته‌ی دیگری را ببینید." />
+        <EmptyState title="بازاری در این دسته نیست" hint="دسته‌ی دیگری را ببین." />
       )}
 
       {view === "markets" && !markets.error && shown && shown.length > 0 && (
@@ -384,7 +384,7 @@ export default function TradeScreen({
           {mine.length === 0 ? (
             <EmptyState
               title="هنوز پیش‌بینی‌ای ثبت نکرده‌اید"
-              hint="از تب بازارها یکی را انتخاب کنید."
+              hint="از تب بازارها یکی را انتخاب کن."
             />
           ) : (
             <>

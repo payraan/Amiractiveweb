@@ -42,7 +42,7 @@ export function TermsGate({ onAccept }: { onAccept: () => void }) {
         پیش از شروع، این پنج بند
       </h1>
       <p className="mt-2 text-[11.5px] leading-6 text-muted">
-        کوتاه است و به کارتان می‌آید. یک بار پرسیده می‌شود.
+        کوتاه است و به کارت می‌آید. یک بار پرسیده می‌شود.
       </p>
 
       <div className="mt-5 flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto">
