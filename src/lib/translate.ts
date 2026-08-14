@@ -334,8 +334,11 @@ export async function translatePending(maxBatches = 12): Promise<TranslateResult
       break; // دسته شکست خورد؛ دسته‌ی بعدی هم احتمالا می‌شکند.
     }
 
+    // شمارنده‌ی شکست هم صفر می‌شود: ردیفی که حالا ترجمه دارد، «۱ بار شکست»
+    // نباید نشان بدهد. تاریخچه‌ی تلاش‌های قبلی بعد از موفقیت فقط گمراه‌کننده
+    // است — به نظر می‌رسد چیزی خراب است در حالی که نیست.
     await pool.query(
-      `UPDATE translations AS t SET fa = v.fa, updated_at = now()
+      `UPDATE translations AS t SET fa = v.fa, failures = 0, updated_at = now()
          FROM (SELECT * FROM UNNEST($1::text[], $2::text[]) AS x(hash, fa)) AS v
         WHERE t.hash = v.hash AND t.edited = false`,
       [rows.map((r) => r.hash), out.map((s) => s.trim())]
@@ -361,8 +364,9 @@ export async function translatePending(maxBatches = 12): Promise<TranslateResult
 export async function resetFailures(): Promise<number> {
   await ensureTranslationTable();
   const pool = await db();
-  const r = await pool.query(
-    "UPDATE translations SET failures=0 WHERE fa IS NULL AND failures > 0"
-  );
+  // شرط `fa IS NULL` عمدا برداشته شد: ردیف‌هایی که پیش از رفعِ علت شکست
+  // خورده و بعد موفق شده‌اند، شمارنده‌ی کهنه‌شان را نگه داشته بودند و در
+  // پنل «۱ بار شکست» نشان می‌دادند در حالی که ترجمه‌شان سالم بود.
+  const r = await pool.query("UPDATE translations SET failures=0 WHERE failures > 0");
   return r.rowCount ?? 0;
 }
