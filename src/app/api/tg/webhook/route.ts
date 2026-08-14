@@ -20,6 +20,8 @@ import {
   supportKeyboard,
   helpText,
   helpKeyboard,
+  helpTopic,
+  helpTopicKeyboard,
   profileScreen,
   appUrl,
   backRow,
@@ -186,6 +188,14 @@ async function handleMenu(
 ) {
   await answerCallback(cbId, "");
 
+  // موضوع‌های راهنما: `h:<key>`. حساب لازم ندارند — کسی که هنوز ثبت‌نام
+  // نکرده هم باید بتواند بخواند که اینجا چه خبر است.
+  if (action.startsWith("h:")) {
+    const body = helpTopic(action.slice(2));
+    if (body) await editTelegram(chatId, messageId, body, helpTopicKeyboard());
+    return;
+  }
+
   if (action === MENU.support) {
     await editTelegram(chatId, messageId, supportText(), supportKeyboard());
     return;
@@ -289,7 +299,7 @@ export async function POST(req: Request) {
 
     const cb = update.callback_query;
     if (cb?.data) {
-      if (cb.data.startsWith("m:") && cb.message) {
+      if ((cb.data.startsWith("m:") || cb.data.startsWith("h:")) && cb.message) {
         await handleMenu(cb.id, cb.from, cb.message.chat.id, cb.message.message_id, cb.data);
         return NextResponse.json({ ok: true });
       }
