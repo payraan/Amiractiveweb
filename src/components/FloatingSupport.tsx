@@ -1,6 +1,8 @@
 "use client";
 
-const SUPPORT = "https://t.me/Amiractive_support";
+import { LINKS } from "@/config/site";
+
+const SUPPORT = LINKS.telegramSupport;
 
 /** دکمه‌ی شناور پشتیبانی — همیشه یک کلیک فاصله. */
 export default function FloatingSupport() {

@@ -1,5 +1,6 @@
 "use client";
 
+import { LINKS } from "@/config/site";
 import { useState } from "react";
 import Link from "next/link";
 import { usePlayer } from "@/components/predict/usePlayer";
@@ -46,7 +47,11 @@ export default function ProposeForm() {
       }
       setMsg({
         ok: true,
-        text: `پیشنهاد ثبت شد و در صف بررسی است. ${j.cost} تتر از کیف پول کسر شد.`,
+        // با معافیت ادمین، cost صفر می‌شود و «۰ تتر کسر شد» بی‌معنی است.
+        text:
+          j.cost > 0
+            ? `پیشنهاد ثبت شد و در صف بررسی است. ${j.cost} تتر از کیف پول کسر شد.`
+            : "پیشنهاد ثبت شد و در صف بررسی است.",
       });
       setQuestion("");
       setSourceNote("");
@@ -187,9 +192,24 @@ export default function ProposeForm() {
           </button>
 
           {msg && (
-            <p className={`mt-3 text-xs ${msg.ok ? "text-gain" : "text-loss"}`}>
-              {msg.text}
-            </p>
+            <div className="mt-3">
+              <p className={`text-xs ${msg.ok ? "text-gain" : "text-loss"}`}>
+                {msg.text}
+              </p>
+              {/* بازار تازه دست ادمین است و کاربر هیچ راهی برای پیگیری
+                  نداشت. انتظارِ بی‌مخاطب، همان‌جایی است که کاربر فکر
+                  می‌کند پولش را گرفته‌اند و خبری نیست. */}
+              {msg.ok && (
+                <a
+                  href={LINKS.telegramSupport}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 inline-block text-[11px] text-muted underline decoration-line underline-offset-4 transition hover:text-cream"
+                >
+                  سؤالی درباره‌ی بازارت داری یا پیگیری می‌خواهی؟ پشتیبانی
+                </a>
+              )}
+            </div>
           )}
         </div>
       )}

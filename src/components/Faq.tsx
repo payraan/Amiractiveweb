@@ -1,5 +1,6 @@
 "use client";
 
+import { LINKS } from "@/config/site";
 import { useState } from "react";
 
 type Item = { q: string; a: string };
@@ -234,7 +235,7 @@ export default function Faq() {
       <p className="mt-8 text-[11px] text-muted">
         پاسخ سوال‌تان را پیدا نکردید؟{" "}
         <a
-          href="https://t.me/Amiractive_support"
+          href={LINKS.telegramSupport}
           target="_blank"
           rel="noopener noreferrer"
           className="text-gold transition hover:text-gold-deep"

@@ -1,5 +1,6 @@
 "use client";
 
+import { LINKS } from "@/config/site";
 import ChallengeDashboard, {
   type ChallengeStateView,
 } from "@/components/predict/ChallengeDashboard";
@@ -143,7 +144,7 @@ export default function ChallengePanel() {
               جایزه‌ی شما: <b className="text-gold">{state.prize}</b>
             </p>
             <a
-              href={`https://t.me/Amiractive_support?text=${encodeURIComponent(
+              href={`${LINKS.telegramSupport}?text=${encodeURIComponent(
                 `سلام، چالش ${state.label} پراپ پیش‌بینی را پاس کردم و برای دریافت جایزه پیام می‌دهم.`
               )}`}
               target="_blank"

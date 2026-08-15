@@ -1,7 +1,8 @@
+import { LINKS } from "@/config/site";
 import Link from "next/link";
 import PredictCycle from "@/components/predict/PredictCycle";
 
-const SUPPORT = "https://t.me/Amiractive_support";
+const SUPPORT = LINKS.telegramSupport;
 const CHANNEL = "https://t.me/CashflowFactorys";
 
 const POINTS = [

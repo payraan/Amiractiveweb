@@ -1,8 +1,9 @@
 "use client";
 
+import { LINKS } from "@/config/site";
 import { useState } from "react";
 
-const SUPPORT = "https://t.me/Amiractive_support";
+const SUPPORT = LINKS.telegramSupport;
 
 const TERMS: { title: string; body: string }[] = [
   {

@@ -1,5 +1,6 @@
 "use client";
 
+import { LINKS } from "@/config/site";
 import { matchesQuery, displayTitle } from "@/lib/search";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -852,7 +853,7 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
           چالش پراپ
         </Link>
         <a
-          href="https://t.me/Amiractive_support"
+          href={LINKS.telegramSupport}
           target="_blank"
           rel="noopener noreferrer"
           className="transition hover:text-gold"

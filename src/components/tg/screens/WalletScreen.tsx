@@ -1,5 +1,6 @@
 "use client";
 
+import { LINKS } from "@/config/site";
 import { useCallback, useState } from "react";
 import { ledgerLabel } from "@/lib/ledger-labels";
 import { floorUsdt } from "@/lib/wallet-rules";
@@ -257,6 +258,18 @@ export default function WalletScreen() {
           })}
         </div>
       )}
+
+      {/* پشتیبانی همیشه در دید، نه چند منو آن‌طرف‌تر: هر جا پول هست سؤال
+          هم هست، و کاربری که نمی‌داند پولش کجاست نباید دنبال راه ارتباط
+          بگردد. */}
+      <a
+        href={LINKS.telegramSupport}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-4 block rounded-2xl border border-line bg-surface/40 py-3.5 text-center text-[11.5px] text-muted transition active:border-gold/40"
+      >
+        سؤالی درباره‌ی واریز یا برداشت داری؟ پشتیبانی
+      </a>
     </div>
   );
 }

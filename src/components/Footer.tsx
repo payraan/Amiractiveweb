@@ -1,7 +1,8 @@
+import { LINKS } from "@/config/site";
 import Link from "next/link";
 import Logo from "@/components/Logo";
 
-const SUPPORT = "https://t.me/Amiractive_support";
+const SUPPORT = LINKS.telegramSupport;
 const CHANNEL = "https://t.me/CashflowFactorys";
 const INSTAGRAM = "https://www.instagram.com/amiractive";
 const X_URL = "https://x.com/amiractive4";

@@ -1,5 +1,6 @@
 "use client";
 
+import { LINKS } from "@/config/site";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePlayer } from "@/components/predict/usePlayer";
@@ -365,6 +366,18 @@ export default function WalletPanel() {
             </p>
           </div>
         )}
+
+        {/* پشتیبانی همیشه در دید، نه چند منو آن‌طرف‌تر: هر جا پول هست
+            سؤال هم هست، و کاربری که نمی‌داند پولش کجاست نباید دنبال راه
+            ارتباط بگردد. */}
+        <a
+          href={LINKS.telegramSupport}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-4 flex items-center justify-center gap-2 rounded-xl border border-line bg-surface/40 py-3 text-[11.5px] text-muted transition hover:border-gold/40 hover:text-cream"
+        >
+          سؤالی درباره‌ی واریز یا برداشت داری؟ پشتیبانی
+        </a>
       </div>
 
       {/* ── ستون چپ: تاریخچه ── */}

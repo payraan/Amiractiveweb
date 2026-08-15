@@ -1,3 +1,4 @@
+import { LINKS } from "@/config/site";
 import type { Metadata } from "next";
 import Link from "next/link";
 import CandleField from "@/components/CandleField";
@@ -75,7 +76,7 @@ export default async function PredictPage() {
           <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line pt-4 text-[11px] text-muted">
             <span>سوالی دارید؟</span>
             <a
-              href="https://t.me/Amiractive_support"
+              href={LINKS.telegramSupport}
               target="_blank"
               rel="noopener noreferrer"
               className="text-gold transition hover:text-gold-deep"

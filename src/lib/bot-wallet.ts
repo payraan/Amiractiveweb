@@ -1,3 +1,4 @@
+import { LINKS } from "@/config/site";
 import { db } from "@/lib/db";
 import { escapeHtml, type InlineButton, type Screen } from "@/lib/telegram";
 import { ensureIrTables } from "@/lib/iran";
@@ -105,6 +106,10 @@ export async function walletHomeScreen(playerId: number): Promise<Screen> {
       { text: "⬆️ برداشت", callback_data: WALLET.withdrawStart },
     ],
     [{ text: "🧾 تاریخچه", callback_data: WALLET.history }],
+    // پشتیبانی روی خودِ کارت کیف پول، نه چند منو آن‌طرف‌تر: هر جا پول
+    // هست، سؤال هم هست — و کاربری که نمی‌داند پولش کجاست، نباید دنبال
+    // راه ارتباط بگردد.
+    [{ text: "💬 پشتیبانی", url: LINKS.telegramSupport }],
     [{ text: "‹ منوی اصلی", callback_data: "m:home" }],
   ];
 

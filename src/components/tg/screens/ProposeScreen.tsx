@@ -1,5 +1,6 @@
 "use client";
 
+import { LINKS } from "@/config/site";
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/components/tg/api";
 import { IR_CATEGORIES } from "@/lib/ir-categories";
@@ -74,7 +75,11 @@ export default function ProposeScreen({
       haptic.success();
       setMsg({
         ok: true,
-        text: `پیشنهاد ثبت شد و در صف بررسی است. ${j.cost} تتر از کیف پول کسر شد.`,
+        // با معافیت ادمین، cost صفر می‌شود و «۰ تتر کسر شد» بی‌معنی است.
+        text:
+          j.cost > 0
+            ? `پیشنهاد ثبت شد و در صف بررسی است. ${j.cost} تتر از کیف پول کسر شد.`
+            : "پیشنهاد ثبت شد و در صف بررسی است.",
       });
       setQuestion("");
       setSourceNote("");
@@ -196,15 +201,28 @@ export default function ProposeScreen({
       )}
 
       {msg && (
-        <p
+        <div
           className={`mt-3 rounded-xl border px-4 py-3 text-[11.5px] leading-6 ${
             msg.ok
               ? "border-gain/40 bg-gain/5 text-gain"
               : "border-loss/40 bg-loss/5 text-loss"
           }`}
         >
-          {msg.text}
-        </p>
+          <p>{msg.text}</p>
+          {/* بازار تازه دست ادمین است و کاربر هیچ راهی برای پیگیری نداشت.
+              انتظارِ بی‌مخاطب، همان‌جایی است که کاربر فکر می‌کند پولش را
+              گرفته‌اند و خبری نیست. */}
+          {msg.ok && (
+            <a
+              href={LINKS.telegramSupport}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-block text-[11px] text-muted underline decoration-line underline-offset-4"
+            >
+              سؤالی درباره‌ی بازارت داری یا پیگیری می‌خواهی؟ پشتیبانی
+            </a>
+          )}
+        </div>
       )}
 
       {/* اگر کلاینت MainButton نداشته باشد، فرم بدون راه ثبت می‌ماند — پس

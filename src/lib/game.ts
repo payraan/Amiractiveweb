@@ -1,3 +1,4 @@
+import { LINKS } from "@/config/site";
 import { assetById, isLikelyOpen } from "@/lib/assets";
 
 // ── اقتصاد و قواعد بازی پیش‌بینی ──────────────────────────────
@@ -229,4 +230,7 @@ export function creditPack(id: string): CreditPack | undefined {
   return CREDIT_PACKS.find((p) => p.id === id);
 }
 
-export const SUPPORT_TG = "https://t.me/Amiractive_support";
+// خانه‌ی لینک‌ها config/site.ts است؛ اینجا فقط دوباره صادر می‌شود تا
+// مصرف‌کننده‌های اقتصاد امتیازی مجبور به ایمپورت دوم نباشند. رشته‌ی
+// هاردکد یازده نسخه شده بود.
+export const SUPPORT_TG = LINKS.telegramSupport;
