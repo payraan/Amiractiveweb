@@ -10,7 +10,8 @@
 // ⚠️ هر `kind` تازه‌ای که به `moveFunds` داده می‌شود باید همین‌جا هم اضافه
 // شود. فهرست فعلی از خود کد درآمده است:
 //   deposit · withdraw_hold · withdraw_refund · ir_bet · ir_payout ·
-//   ir_refund · ir_propose_fee · ir_propose_refund · credit_purchase ·
+//   ir_refund · ir_propose_fee · ir_propose_refund · ir_boost ·
+//   credit_purchase ·
 //   admin_adjust
 
 export const LEDGER_LABEL: Record<string, string> = {
@@ -21,6 +22,7 @@ export const LEDGER_LABEL: Record<string, string> = {
   ir_payout: "پاداش پیش‌بینی موفق",
   ir_refund: "بازگشت مبلغ پیش‌بینی",
   ir_propose_fee: "کارمزد ایجاد بازار",
+  ir_boost: "بوست بازار",
   ir_propose_refund: "برگشت هزینه‌ی ساخت بازار",
   credit_purchase: "خرید MOON",
   admin_adjust: "اصلاح سیستمی",

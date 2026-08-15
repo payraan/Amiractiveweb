@@ -1,5 +1,6 @@
 "use client";
 
+import { REVENUE_LABEL } from "@/lib/revenue-kinds";
 import { useEffect, useState } from "react";
 
 type Kind = { kind: string; total: number; n: number };
@@ -18,13 +19,9 @@ type Row = {
   username: string | null;
 };
 
-const LABEL: Record<string, string> = {
-  ir_propose_fee: "کارمزد ایجاد بازار",
-  ir_propose_refund: "برگشت هزینه‌ی ساخت",
-  ir_commission: "کمیسیون تسویه",
-  ir_commission_void: "کمیسیون بازار بدون برنده",
-  credit_sale: "فروش MOON",
-};
+// ⚠️ نگاشت محلی حذف شد. کپی بود و با اضافه‌شدن هر نوع تازه، پنل ادمین
+// کلید خام انگلیسی نشان می‌داد.
+const LABEL: Record<string, string> = REVENUE_LABEL;
 
 const usd = (n: number) => `$${(Math.round(n * 100) / 100).toFixed(2)}`;
 

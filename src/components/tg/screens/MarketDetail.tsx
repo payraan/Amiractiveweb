@@ -27,7 +27,15 @@ export type Market = {
   noTotal: number;
   volume: number;
   bettors: number;
+  /** تاریخ انقضای بوست، یا null — کلاینت با زمان جاری می‌سنجد. */
+  boostedUntil?: string | null;
+  hasCover?: boolean;
 };
+
+/** بوست فعال؟ از تاریخ انقضا، نه از یک پرچم ذخیره‌شده. */
+export function isBoosted(m: Market): boolean {
+  return Boolean(m.boostedUntil && new Date(m.boostedUntil).getTime() > Date.now());
+}
 
 const ERR: Record<string, string> = {
   telegram_blocked:

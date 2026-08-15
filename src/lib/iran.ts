@@ -1,3 +1,4 @@
+import type { RevenueKind } from "@/lib/revenue-kinds";
 import { db } from "@/lib/db";
 
 // ═══ بازار ایران — اقتصاد پولی ═══════════════════════════════
@@ -31,6 +32,23 @@ export const MIN_ODDS = 1.05; // زیر این، بازار باطل می‌شو
 export const DISPUTE_HOURS = 24; // پنجره‌ی اعتراض پس از تسویه
 /** کارمزد ایجاد بازار — از کیف پول تتر. اگر بازار رد شود کامل برمی‌گردد. */
 export const PROPOSE_FEE_USDT = 1;
+
+/**
+ * بوست بازار — دیده‌شدن، نه شانس بیشتر.
+ *
+ * ⚠️ **فقط با پول واقعی** (`realOnly`). قاعده‌ی عمومی خرج این است که اول از
+ * بونوس برداشته شود، ولی اینجا عمدا برعکس است: بوست قرار است **درآمد**
+ * باشد. اگر با پول هدیه خریده شود، پلتفرم دارد از جیب خودش به خودش پول
+ * می‌دهد و دفترکل درآمد عددی نشان می‌دهد که وجود ندارد.
+ *
+ * بوست هیچ اثری بر ضریب، تسویه یا شانس برد ندارد — فقط بازار را بالاتر
+ * می‌آورد و یک بار به کاربران اطلاع می‌دهد. این مرز را نگه دار: لحظه‌ای که
+ * پول بتواند نتیجه را عوض کند، تز محصول شکسته است.
+ */
+export const BOOST_PRICE_USDT = 5;
+
+/** چند ساعت در پنل طلایی بماند. */
+export const BOOST_HOURS = 24;
 
 export type IrMarketStatus =
   | "pending" // منتظر تأیید انسانی
@@ -114,6 +132,24 @@ export async function ensureIrTables(): Promise<void> {
       // بازارهای قدیمی که با MOON ساخته شده‌اند صفر می‌مانند و برگشتی ندارند.
       await pool.query(
         "ALTER TABLE ir_markets ADD COLUMN IF NOT EXISTS fee_usdt NUMERIC(18,6) NOT NULL DEFAULT 0"
+      );
+      // ── بوست ──────────────────────────────────────────────
+      // `boosted_until` تاریخ انقضاست نه یک پرچم: پرچم لازم دارد کسی
+      // خاموشش کند، و آن «کسی» روزی اجرا نمی‌شود. تاریخ خودش منقضی می‌شود.
+      await pool.query(
+        "ALTER TABLE ir_markets ADD COLUMN IF NOT EXISTS boosted_until TIMESTAMPTZ"
+      );
+      await pool.query(
+        "ALTER TABLE ir_markets ADD COLUMN IF NOT EXISTS boost_paid NUMERIC(18,6) NOT NULL DEFAULT 0"
+      );
+      // کاور ۱۶:۹ — `file_id` تلگرام، نه آدرس. تلگرام فایلِ خودش را بدون
+      // آپلود دوباره می‌فرستد، پس پخش سراسری هیچ باری روی سرور ما نمی‌گذارد.
+      await pool.query(
+        "ALTER TABLE ir_markets ADD COLUMN IF NOT EXISTS cover_file_id TEXT"
+      );
+      await pool.query(
+        `CREATE INDEX IF NOT EXISTS ir_markets_boosted
+           ON ir_markets (boosted_until DESC) WHERE boosted_until IS NOT NULL`
       );
 
       await pool.query(
@@ -465,20 +501,11 @@ export async function recordRevenue(
   );
 }
 
-export type RevenueKind =
-  | "ir_propose_fee" // کارمزد ایجاد بازار
-  | "ir_propose_refund" // برگشت هزینه‌ی ساخت (بازار رد شد) — منفی
-  | "ir_commission" // کمیسیون تسویه‌ی عادی
-  | "ir_commission_void" // کمیسیون بازار بدون برنده
-  | "credit_sale"; // فروش MOON از موجودی کیف پول
-
-export const REVENUE_LABEL: Record<RevenueKind, string> = {
-  ir_propose_fee: "کارمزد ایجاد بازار",
-  ir_propose_refund: "برگشت هزینه‌ی ساخت",
-  ir_commission: "کمیسیون تسویه",
-  ir_commission_void: "کمیسیون بازار بدون برنده",
-  credit_sale: "فروش MOON",
-};
+// خانه‌ی این دو، `revenue-kinds.ts` است (بدون ایمپورت، تا پنل ادمین هم
+// بتواند بخواندش). اینجا فقط دوباره صادر می‌شوند تا مصرف‌کننده‌های سمت
+// سرور مجبور به ایمپورت دوم نباشند.
+export { REVENUE_LABEL } from "@/lib/revenue-kinds";
+export type { RevenueKind } from "@/lib/revenue-kinds";
 
 /**
  * تسویه‌ی یک بازار پس از پایان پنجره‌ی اعتراض.

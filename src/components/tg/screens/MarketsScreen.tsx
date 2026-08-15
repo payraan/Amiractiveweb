@@ -8,7 +8,7 @@ import { matchesQuery } from "@/lib/search";
 import { haptic } from "@/components/tg/telegram";
 import ProposeScreen from "@/components/tg/screens/ProposeScreen";
 import MyBetsScreen from "@/components/tg/screens/MyBetsScreen";
-import MarketDetail, { type Market } from "@/components/tg/screens/MarketDetail";
+import MarketDetail, { isBoosted, type Market } from "@/components/tg/screens/MarketDetail";
 import { remaining, closingSoon } from "@/lib/dates";
 
 // فهرست بازارهای ایران — از همان /api/ir/markets که سایت استفاده می‌کند.
@@ -156,6 +156,12 @@ export default function MarketsScreen({
   // «ورزش» است، داغ‌ترینِ ورزش را می‌خواهد نه داغ‌ترینِ کل پلتفرم.
   const hot = filtered && filtered.length >= HOT_MIN_MARKETS ? hotMarkets(filtered) : [];
 
+  // از همان فهرستِ بارگذاری‌شده، نه یک درخواست دوم. فیلتر دسته را هم
+  // احترام می‌گذارد: کاربری که روی «ورزش» است، ویژه‌های ورزش را می‌خواهد.
+  const boosted = (filtered ?? [])
+    .filter((m) => isBoosted(m) && m.status === "open")
+    .sort((a, b) => b.volume - a.volume);
+
   const open = markets?.find((m) => m.id === openId) ?? null;
   if (open && data) {
     return (
@@ -283,6 +289,51 @@ export default function MarketsScreen({
           فقط باز
         </button>
       </div>
+
+      {/* ── بازارهای ویژه (بوست‌شده) ─────────────────────────
+          بالای همه‌چیز، چون سازنده بابت همین دیده‌شدن پول داده.
+          ⚠️ بوست فقط ترتیب را عوض می‌کند — نه ضریب، نه تسویه، نه شانس
+          برد. اگر روزی پول بتواند نتیجه را عوض کند، تز محصول شکسته است. */}
+      {!error && boosted.length > 0 && (
+        <div className="mb-4 rounded-2xl border border-gold/30 bg-gold/[0.05] p-3">
+          <div className="mb-2 flex items-center gap-2">
+            <span className="text-[10px] font-bold text-gold">⭐ بازارهای ویژه</span>
+            <span className="h-px flex-1 bg-gold/20" />
+          </div>
+          <div className="flex flex-col gap-2">
+            {boosted.map((m) => (
+              <article
+                key={m.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  haptic.press();
+                  setOpenId(m.id);
+                }}
+                className="cursor-pointer rounded-xl border border-gold/25 bg-surface/50 p-3 transition active:border-gold/60"
+              >
+                <p className="line-clamp-2 text-[11.5px] font-bold leading-[1.9] text-cream">
+                  {m.question}
+                </p>
+                <div className="mt-2 h-[3px] overflow-hidden rounded-full bg-loss/30">
+                  <div
+                    className="h-full rounded-full bg-gain"
+                    style={{ width: `${m.yesPct}%` }}
+                  />
+                </div>
+                <div
+                  dir="ltr"
+                  className="mt-2 flex items-center gap-3 font-mono text-[9.5px] text-muted"
+                >
+                  <span className="font-bold text-gain">{Math.round(m.yesPct)}%</span>
+                  <span>${m.volume.toFixed(0)}</span>
+                  <span>{m.bettors} نفر</span>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── داغ‌ترین‌ها ──────────────────────────────────────────
           پیمایش افقی، جدا از فهرست عمودی. کاربری که نمی‌داند دنبال چه

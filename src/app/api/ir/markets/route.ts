@@ -21,6 +21,7 @@ export async function GET(req: Request) {
   const { rows } = await pool.query(
     `SELECT m.id, m.question, m.category, m.source_note, m.closes_at,
             m.status, m.outcome, m.yes_total, m.no_total, m.bettors,
+            m.boosted_until, m.cover_file_id,
             p.display_name AS creator
        FROM ir_markets m
        LEFT JOIN players p ON p.id = m.creator_id
@@ -47,6 +48,11 @@ export async function GET(req: Request) {
       noTotal: no,
       volume: yes + no,
       bettors: r.bettors,
+      // بوست فقط دیده‌شدن است. عمدا **تاریخ انقضا** بیرون می‌رود و نه یک
+      // بولین: کلاینت خودش با زمان جاری می‌سنجد، پس بازارِ منقضی‌شده حتی
+      // بدون یک درخواست تازه هم از پنل طلایی می‌افتد.
+      boostedUntil: r.boosted_until,
+      hasCover: Boolean(r.cover_file_id),
       yesPct: impliedPct(yes, no),
       yesOdds: Math.round(oddsFor(yes, no, "yes") * 100) / 100,
       noOdds: Math.round(oddsFor(yes, no, "no") * 100) / 100,

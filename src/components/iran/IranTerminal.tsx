@@ -25,7 +25,15 @@ type M = {
   yesOdds: number;
   noOdds: number;
   creator: string | null;
+  /** تاریخ انقضای بوست، یا null. کلاینت با زمان جاری می‌سنجد. */
+  boostedUntil: string | null;
+  hasCover: boolean;
 };
+
+/** بوست فعال؟ از تاریخ انقضا، نه از یک پرچم ذخیره‌شده. */
+function isBoosted(m: M): boolean {
+  return Boolean(m.boostedUntil && new Date(m.boostedUntil).getTime() > Date.now());
+}
 
 type Cfg = { minStake: number; commission: number };
 
@@ -180,6 +188,16 @@ export default function IranTerminal() {
   // نشان داده می‌شد و کاربری که سه بازار ساخته بود فقط یکی را می‌دید — چون
   // بقیه locked یا settling بودند. حالا همه می‌آیند و وضعیتشان روی کارت
   // برچسب می‌خورد؛ بازارِ غیرقابل‌شرط کم‌رنگ‌تر است ولی همچنان قابل دیدن.
+  // از همان فهرستِ بارگذاری‌شده ساخته می‌شود، نه یک درخواست دوم: دو منبع
+  // برای یک فهرست یعنی روزی که با هم نمی‌خوانند.
+  const boosted = useMemo(
+    () =>
+      markets
+        .filter((x) => isBoosted(x) && x.status === "open")
+        .sort((a, b) => b.volume - a.volume),
+    [markets]
+  );
+
   const explore = useMemo(() => {
     const byClose = (x: M) => new Date(x.closesAt).getTime();
     // بازارهای قابل شرط همیشه بالاتر از بسته‌ها می‌آیند
@@ -594,6 +612,45 @@ export default function IranTerminal() {
           </div>
         </div>
       </div>
+
+      {/* ── بازارهای بوست‌شده ──
+          بالای همه‌چیز و طلایی، چون سازنده بابت همین دیده‌شدن پول داده.
+          ⚠️ بوست فقط ترتیب را عوض می‌کند — نه ضریب، نه تسویه، نه شانس برد.
+          اگر روزی پول بتواند نتیجه را عوض کند، تز محصول شکسته است. */}
+      {boosted.length > 0 && (
+        <div className="border-t border-gold/30 bg-gold/[0.04]">
+          <div className="flex items-center gap-2 border-b border-gold/20 px-3 py-2">
+            <span className="text-[11px] font-bold text-gold">⭐ بازارهای ویژه</span>
+            <span className="font-mono text-[10px] text-gold/70" dir="ltr">
+              {boosted.length}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+            {boosted.map((x) => (
+              <button
+                key={x.id}
+                type="button"
+                onClick={() => setSel(x.id)}
+                className={`border-b border-e border-gold/15 p-3 text-right transition hover:bg-gold/[0.07] ${
+                  x.id === sel ? "bg-gold/10" : ""
+                }`}
+              >
+                <p className="line-clamp-2 text-[11.5px] leading-6 text-cream">
+                  {x.question}
+                </p>
+                <div
+                  dir="ltr"
+                  className="mt-2 flex items-center gap-3 font-mono text-[10px] text-muted"
+                >
+                  <span className="text-gain">{x.yesPct}%</span>
+                  <span>${x.volume.toFixed(0)}</span>
+                  <span>{x.bettors} نفر</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <MyBets reloadKey={betTick} />
 
