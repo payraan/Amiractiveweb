@@ -18,6 +18,18 @@ export type ChallengeTier = {
   minDays: number; // حداقل روزهای فعال (روزی که حداقل یک تسویه داشته)
   days: number; // مهلت
   prize: string;
+  /**
+   * سقف پرداخت نقدی (دلار) — فقط مسیر `predict`.
+   *
+   * ⚠️ **عدد است، نه متن.** پیش‌تر فقط داخل رشته‌ی `payoutNote` بود و هیچ‌جای
+   * دیگری نمی‌شد به آن ارجاع داد؛ نتیجه‌اش این شد که سقف فقط در یک صفحه‌ی
+   * سایت دیده می‌شد و ربات و مینی‌اپ و قوانین از آن بی‌خبر بودند. حالا
+   * هر چهار جا از همین یک عدد می‌خوانند.
+   *
+   * مسیر `forex` سقف ندارد چون جایزه‌اش حساب بروکر است و شرایط برداشتش با
+   * خودِ بروکر.
+   */
+  payoutCap?: number;
   payoutNote?: string; // توضیح نحوه‌ی پرداخت جایزه
   popular?: boolean;
 };
@@ -112,7 +124,8 @@ export const CHALLENGES: ChallengeTier[] = [
     minDays: 7,
     days: 30,
     prize: "حساب پیش‌بینی ۵,۰۰۰ دلاری",
-    payoutNote: "پرداخت کریپتویی پس از بررسی، تا سقف ۱۵۰ دلار",
+    payoutCap: 150,
+    payoutNote: "پرداخت کریپتویی پس از بررسی، تا سقف ۱۵۰ دلار در ماه",
   },
   {
     id: "pr10k",
@@ -127,7 +140,8 @@ export const CHALLENGES: ChallengeTier[] = [
     minDays: 7,
     days: 30,
     prize: "حساب پیش‌بینی ۱۰,۰۰۰ دلاری",
-    payoutNote: "پرداخت کریپتویی پس از بررسی، تا سقف ۳۰۰ دلار",
+    payoutCap: 300,
+    payoutNote: "پرداخت کریپتویی پس از بررسی، تا سقف ۳۰۰ دلار در ماه",
   },
   {
     id: "pr25k",
@@ -142,7 +156,8 @@ export const CHALLENGES: ChallengeTier[] = [
     minDays: 7,
     days: 30,
     prize: "حساب پیش‌بینی ۲۵,۰۰۰ دلاری",
-    payoutNote: "پرداخت کریپتویی پس از بررسی، تا سقف ۷۵۰ دلار",
+    payoutCap: 750,
+    payoutNote: "پرداخت کریپتویی پس از بررسی، تا سقف ۷۵۰ دلار در ماه",
   },
   {
     id: "pr50k",
@@ -157,7 +172,8 @@ export const CHALLENGES: ChallengeTier[] = [
     minDays: 7,
     days: 30,
     prize: "حساب پیش‌بینی ۵۰,۰۰۰ دلاری",
-    payoutNote: "پرداخت کریپتویی پس از بررسی، تا سقف ۱,۵۰۰ دلار",
+    payoutCap: 1500,
+    payoutNote: "پرداخت کریپتویی پس از بررسی، تا سقف ۱,۵۰۰ دلار در ماه",
   },
 ];
 

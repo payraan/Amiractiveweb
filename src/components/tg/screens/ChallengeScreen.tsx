@@ -48,6 +48,7 @@ type State = {
   consistencyOk: boolean;
   daysLeft: number;
   prize: string;
+  payoutNote?: string | null;
   wins: number;
   losses: number;
   winRate: number | null;
@@ -360,6 +361,9 @@ export default function ChallengeScreen() {
           <div className="rounded-2xl border border-gain/40 bg-gain/5 p-4">
             <p className="text-[12px] font-bold text-gain">چالش با موفقیت تمام شد 🎉</p>
             <p className="mt-1 text-[11px] text-muted">جایزه: {s.prize}</p>
+            {s.payoutNote && (
+              <p className="mt-0.5 text-[10px] text-gold/80">{s.payoutNote}</p>
+            )}
           </div>
         )}
 
@@ -553,6 +557,14 @@ export default function ChallengeScreen() {
               <div className="min-w-0">
                 <p className="text-[13px] font-bold text-cream">{t.label}</p>
                 <p className="mt-0.5 text-[10px] leading-5 text-muted">{t.prize}</p>
+                {/* سقف پرداخت باید **پیش از** ورود دیده شود، نه بعد از برد.
+                    کسی که «حساب ۵۰ هزار دلاری» می‌بیند و بعد بفهمد سقف
+                    برداشتش ماهی ۱۵۰۰ دلار است، حق دارد احساس فریب کند. */}
+                {t.payoutNote && (
+                  <p className="mt-0.5 text-[9.5px] leading-5 text-gold/80">
+                    {t.payoutNote}
+                  </p>
+                )}
               </div>
               <span className="shrink-0 rounded-full border border-gold/40 bg-gold/10 px-2.5 py-1 font-mono text-[11px] font-bold text-gold">
                 {t.fee} MOON

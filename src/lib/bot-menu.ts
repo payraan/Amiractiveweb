@@ -20,6 +20,7 @@ import { WELCOME_CREDITS } from "@/lib/game";
 import { POLY_FREE_PER_DAY } from "@/lib/poly";
 import { REFERRAL_PERCENT, REFERRAL_BONUS } from "@/lib/referral";
 import {
+  CHALLENGES,
   CONSISTENCY_PCT,
   ELIGIBLE_PROB_MIN,
   ELIGIBLE_PROB_MAX,
@@ -71,6 +72,18 @@ export const MENU = {
 const money = (n: number) =>
   n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const num = (n: number) => n.toLocaleString("fa-IR");
+
+/**
+ * خط سقف پرداخت تیرهای مسیر پیش‌بینی — از خودِ `CHALLENGES` ساخته می‌شود.
+ *
+ * دستی نوشتنش یعنی روزی که سقفی عوض شود، ربات عدد قدیمی را می‌گوید و
+ * کاربر با انتظار غلط وارد می‌شود.
+ */
+function predictCapsLine(): string {
+  return CHALLENGES.filter((t) => t.payoutCap)
+    .map((t) => `${t.label} → ${num(t.payoutCap!)}$`)
+    .join(" · ");
+}
 
 // ── منوی اصلی ────────────────────────────────────────────────
 
@@ -438,6 +451,12 @@ export function helpTopic(key: string): string | null {
         `این جلوی «یک شانس بزرگ» را می‌گیرد.\n\n` +
         `<b>محدودیت</b>\n` +
         `حداکثر <b>${num(MAX_ENTRIES_PER_30D)}</b> ورود در هر ۳۰ روز.\n\n` +
+        // سقف پرداخت باید **پیش از** ورود گفته شود، نه بعد از برد. اعداد از
+        // خودِ تیرها خوانده می‌شوند تا با سایت و مینی‌اپ از هم جدا نیفتند.
+        `<b>سقف برداشت جایزه</b>\n` +
+        `مسیر حساب پیش‌بینی، جایزه‌اش پرداخت نقدی است ولی <b>سقف ماهانه</b> ` +
+        `دارد: ${predictCapsLine()}.\n` +
+        `سود بیشتر از سقف قابل برداشت نیست. این را پیش از ورود بدان.\n\n` +
         `<b>نارمون سود تضمین نمی‌کند</b> و چالش هم قولی درباره‌ی درآمد ` +
         `آینده نیست. چیزی که می‌سنجد مهارت است.`
       );
