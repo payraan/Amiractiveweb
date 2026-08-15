@@ -135,6 +135,7 @@ export default function IranTerminal() {
   // با هر ثبت موفق بالا می‌رود تا کارنامه هم تازه شود.
   const [betTick, setBetTick] = useState(0);
   const [boosting, setBoosting] = useState(false);
+  const [coverBusy, setCoverBusy] = useState(false);
 
   const fetchMarkets = useCallback(async () => {
     try {
@@ -212,6 +213,46 @@ export default function IranTerminal() {
   // برچسب می‌خورد؛ بازارِ غیرقابل‌شرط کم‌رنگ‌تر است ولی همچنان قابل دیدن.
   // از همان فهرستِ بارگذاری‌شده ساخته می‌شود، نه یک درخواست دوم: دو منبع
   // برای یک فهرست یعنی روزی که با هم نمی‌خوانند.
+  /**
+   * آماده‌سازی کاور — وضعیت **سمت سرور** ست می‌شود، بعد چت ربات باز می‌شود.
+   *
+   * ⚠️ تکیه بر لینک `?start=cover_<id>` کافی نبود: تلگرام وقتی چت ربات از
+   * قبل باز باشد `/start` را دوباره نمی‌فرستد و کاربر بی‌هیچ اتفاقی در چت
+   * رها می‌شد.
+   */
+  async function startCover() {
+    if (!m || coverBusy) return;
+    setCoverBusy(true);
+    setMsg(null);
+    try {
+      const r = await fetch("/api/ir/cover-start", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ marketId: m.id }),
+      });
+      const j = await r.json();
+      if (!j.ok) {
+        setMsg({
+          ok: false,
+          text:
+            j.error === "telegram_required"
+              ? "برای گذاشتن کاور باید حساب تلگرام وصل باشد."
+              : "آماده‌سازی کاور انجام نشد.",
+        });
+        return;
+      }
+      setMsg({
+        ok: true,
+        text: "در ربات تلگرام، تصویر کاور را بفرست (نسبت ۱۶:۹).",
+      });
+      if (j.botUrl) window.open(j.botUrl, "_blank", "noopener");
+    } catch {
+      setMsg({ ok: false, text: "ارتباط با سرور برقرار نشد." });
+    } finally {
+      setCoverBusy(false);
+    }
+  }
+
   async function boostMarket() {
     if (!m || boosting) return;
     setBoosting(true);
@@ -644,14 +685,18 @@ export default function IranTerminal() {
                     ⚠️ فقط دیده‌شدن می‌خرد: ضریب، تسویه و شانس برد دست
                     نمی‌خورند. */}
                 {m?.isMine && m.status === "open" && cfg.botUsername && (
-                  <a
-                    href={`https://t.me/${cfg.botUsername}?start=cover_${m.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="no-zoom mt-2 block rounded-lg border border-line py-2 text-center text-[11px] text-muted transition hover:border-gold/40 hover:text-cream"
+                  <button
+                    type="button"
+                    disabled={coverBusy}
+                    onClick={startCover}
+                    className="no-zoom mt-2 block w-full rounded-lg border border-line py-2 text-center text-[11px] text-muted transition hover:border-gold/40 hover:text-cream disabled:opacity-40"
                   >
-                    {m.hasCover ? "🖼 تعویض کاور" : "🖼 افزودن کاور"}
-                  </a>
+                    {coverBusy
+                      ? "…"
+                      : m.hasCover
+                        ? "🖼 تعویض کاور"
+                        : "🖼 افزودن کاور"}
+                  </button>
                 )}
 
                 {m?.isMine && m.status === "open" && (

@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { marketPoll } from "@/lib/telegram";
 import { impliedPct } from "@/lib/iran";
-import { createJob, startJob } from "@/lib/broadcast";
+import { createJob, startJob, runBroadcastTick } from "@/lib/broadcast";
 
 // ── پخش سراسری بازار بوست‌شده ────────────────────────────────
 //
@@ -78,5 +78,22 @@ export async function broadcastBoostedMarket(
     buttons
   );
   await startJob(job.id);
+
+  // ⚠️ یک تیک همین‌جا زده می‌شود، نه اینکه تا کرون بعدی صبر کنیم.
+  //
+  // کرون هر ۱۵ دقیقه است، پس بوستی که درست بعد از یک تیک انجام شود تا ۱۵
+  // دقیقه معطل می‌ماند و بوستی که قبلش انجام شود تقریبا فوری می‌رود —
+  // همان بی‌نظمیِ «یکی ۵ دقیقه، یکی نیم‌ساعت» که دیده شد. برای سازنده‌ای
+  // که تازه پول داده، این تأخیرِ تصادفی یعنی «کار نکرد».
+  //
+  // بودجه کوتاه است تا پاسخ روت معطل نماند؛ با مخاطب کوچک همین یک تیک
+  // کار را تمام می‌کند و با مخاطب بزرگ، کرون از همان‌جا ادامه می‌دهد.
+  // خطایش عمدا بلعیده می‌شود: پخش صف شده و کرون به‌هرحال آن را می‌برد.
+  try {
+    await runBroadcastTick(5_000);
+  } catch {
+    /* کرون ادامه می‌دهد */
+  }
+
   return { ok: true, jobId: job.id, targets: job.total };
 }

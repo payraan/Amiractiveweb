@@ -97,6 +97,43 @@ export default function MarketDetail({
     null
   );
 
+  const [coverBusy, setCoverBusy] = useState(false);
+
+  /**
+   * آماده‌سازی کاور — وضعیت را **سمت سرور** ست می‌کند و بعد چت ربات را
+   * باز می‌کند.
+   *
+   * ⚠️ نسخه‌ی قبلی فقط لینک `?start=cover_<id>` را باز می‌کرد و به همان
+   * تکیه داشت. تلگرام وقتی چت ربات از قبل باز باشد `/start` را دوباره
+   * نمی‌فرستد، پس کاربر از مینی‌اپ بیرون می‌افتاد و هیچ اتفاقی نمی‌افتاد.
+   */
+  const startCover = useCallback(async () => {
+    if (coverBusy) return;
+    setCoverBusy(true);
+    try {
+      const j = await api<{ botUrl: string | null }>("/api/ir/cover-start", {
+        method: "POST",
+        body: JSON.stringify({ marketId: market.id }),
+      });
+      haptic.success();
+      if (j.botUrl) openTelegramChat(j.botUrl);
+    } catch (e) {
+      haptic.error();
+      const code = e instanceof ApiError ? e.code : "";
+      setBoostMsg({
+        ok: false,
+        text:
+          code === "telegram_required"
+            ? "برای گذاشتن کاور باید حساب تلگرام وصل باشد."
+            : code === "not_creator"
+              ? "فقط سازنده‌ی بازار می‌تواند کاور بگذارد."
+              : "آماده‌سازی کاور انجام نشد.",
+      });
+    } finally {
+      setCoverBusy(false);
+    }
+  }, [coverBusy, market.id]);
+
   const boost = useCallback(async () => {
     if (boosting) return;
     setBoosting(true);
@@ -478,16 +515,15 @@ export default function MarketDetail({
               {botUsername && (
                 <button
                   type="button"
-                  onClick={() =>
-                    openTelegramChat(
-                      `https://t.me/${botUsername}?start=cover_${market.id}`
-                    )
-                  }
-                  className="mt-2 w-full rounded-xl border border-line bg-surface/40 py-2.5 text-[11.5px] text-muted"
+                  disabled={coverBusy}
+                  onClick={startCover}
+                  className="mt-2 w-full rounded-xl border border-line bg-surface/40 py-2.5 text-[11.5px] text-muted disabled:opacity-40"
                 >
-                  {market.hasCover
-                    ? "🖼 تعویض کاور"
-                    : "🖼 افزودن کاور — بازارِ کاوردار بیشتر دیده می‌شود"}
+                  {coverBusy
+                    ? "…"
+                    : market.hasCover
+                      ? "🖼 تعویض کاور"
+                      : "🖼 افزودن کاور — بازارِ کاوردار بیشتر دیده می‌شود"}
                 </button>
               )}
               {boostMsg && (
