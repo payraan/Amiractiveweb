@@ -2,7 +2,6 @@ import {
   escapeHtml,
   GROUP_BONUS_CREDITS,
   type InlineButton,
-  type KeyboardButton,
   type Screen,
   type ScreenMedia,
 } from "@/lib/telegram";
@@ -88,104 +87,70 @@ function predictCapsLine(): string {
 // ── منوی اصلی ────────────────────────────────────────────────
 
 /**
- * منوی شیشه‌ای کارت خوش‌آمد.
+ * منوی شیشه‌ای کارت خوش‌آمد — **تنها منوی ربات**.
  *
- * فقط چیزهایی که در صفحه‌کلید ثابت **نیستند**. پیش‌تر هر دو منو تقریبا یک
- * فهرست را نشان می‌دادند و کاربر شش گزینه‌ی تکراری را دو بار در یک صفحه
- * می‌دید؛ حالا مکمل‌اند: پرکاربردها همیشه پایین صفحه‌اند و این کارت فقط
- * چیزهایی را می‌آورد که جای دیگری نیستند.
+ * ⚠️ صفحه‌کلید ثابتِ پایین چت حذف شد. تلگرام آن را فقط سوار یک پیام نصب
+ * می‌کند و با پاک‌شدن آن پیام، خودِ صفحه‌کلید هم می‌رود — یعنی یا باید یک
+ * پیام خدماتی برای همیشه بالای چت می‌ماند، یا منو ناپدید می‌شد. با آزمون
+ * روی خود تلگرام تأیید شد.
  *
- * ⚠️ تفاوت **محاسبه** می‌شود، نه دستی نوشته. اگر فهرست دستی بود، اولین باری
- * که کسی گزینه‌ای به `KEYS` اضافه می‌کرد، همان گزینه بی‌سروصدا دوباره اینجا
- * هم می‌ماند و تکرار برمی‌گشت.
+ * پس ساختار کلاسیک: همه‌ی مقصدها همین‌جا، به ترتیب اولویت.
+ *
+ * ── قاعده‌ی رنگ ──
+ * آبی برای مقصدهای اصلی، سبز برای کیف پول (پول)، و بی‌رنگ برای ابزارها.
+ * اگر همه رنگی باشند رنگ دیگر چیزی نمی‌گوید و منو شبیه تابلوی تبلیغات
+ * می‌شود.
  */
 export function mainKeyboard(): InlineButton[][] {
-  const inKeyboard = new Set(KEYS.map((k) => k.label));
   const rows: InlineButton[][] = [];
 
+  // ردیف اول تک‌دکمه و تمام‌عرض: مقصد اصلی باید بزرگ‌ترین هدف لمس باشد.
   if (SITE_URL) {
-    // ⚠️ نوع روی خودِ آرایه اعلام می‌شود، نه روی نتیجه‌ی filter: بدون این،
-    // TypeScript فیلد `style` را `string` استنتاج می‌کند و با نوع باریکِ
-    // ButtonStyle نمی‌خواند.
-    const allApps: InlineButton[] = [
+    rows.push([
       { text: "🚀 اپلیکیشن نارمون", web_app: { url: appUrl() }, style: "primary" },
+    ]);
+    rows.push([
       { text: "🇮🇷 بازار ایران", web_app: { url: appUrl("markets") }, style: "primary" },
+      { text: "👛 کیف پول", callback_data: MENU.wallet, style: "success" },
+    ]);
+    rows.push([
       { text: "📈 ترید", web_app: { url: appUrl("trade") }, style: "primary" },
       { text: "📊 نبض بازار", web_app: { url: appUrl("pulse") }, style: "primary" },
+    ]);
+    rows.push([
       { text: "🏆 چالش پراپ", web_app: { url: appUrl("challenge") }, style: "primary" },
-    ];
-    const apps = allApps.filter((b) => !inKeyboard.has(b.text));
-
-    for (let i = 0; i < apps.length; i += 2) rows.push(apps.slice(i, i + 2));
+      { text: "👤 پروفایل", callback_data: MENU.profile },
+    ]);
+  } else {
+    // بدون SITE_URL هیچ مینی‌اپی نیست؛ فقط مقصدهای درون‌چتی می‌مانند.
+    rows.push([
+      { text: "👛 کیف پول", callback_data: MENU.wallet, style: "success" },
+      { text: "👤 پروفایل", callback_data: MENU.profile },
+    ]);
   }
 
-  const chat: InlineButton[] = [
-    { text: "👛 کیف پول", callback_data: MENU.wallet },
-    { text: "👤 پروفایل", callback_data: MENU.profile },
-    { text: "🎧 پشتیبانی", callback_data: MENU.support },
+  rows.push([
     { text: "❓ راهنما", callback_data: MENU.help },
-  ].filter((b) => !inKeyboard.has(b.text));
+    { text: "🎧 پشتیبانی", callback_data: MENU.support },
+  ]);
 
-  for (let i = 0; i < chat.length; i += 2) rows.push(chat.slice(i, i + 2));
   return rows;
 }
 
-// ── صفحه‌کلید ثابت پایین چت ──────────────────────────────────
+// ── سازگاری با صفحه‌کلید ثابتِ حذف‌شده ──────────────────────
 //
-// کنار منوی شیشه‌ای می‌نشیند، جایگزینش نمی‌شود. منوی شیشه‌ای روی یک پیام
-// مشخص سوار است و با بالا رفتن چت گم می‌شود؛ این یکی همیشه زیر فیلد تایپ
-// می‌ماند، پس رسیدن به کیف پول همیشه یک لمس فاصله دارد.
+// صفحه‌کلید ثابت دیگر نصب نمی‌شود، ولی کاربرانی که پیش از این تغییر آن را
+// گرفته‌اند هنوز رویش دکمه دارند. تا وقتی خودشان پنهانش نکنند، لمسِ آن
+// دکمه‌ها یک پیام متنی ساده می‌فرستد. این نگاشت همان متن‌ها را به دستور
+// درست ترجمه می‌کند تا برایشان چیزی نشکند.
 //
-// ⚠️ رنگ دکمه ممکن نیست. Bot API (نسخه‌ی ۱۰.۲، جولای ۲۰۲۶) هیچ فیلدی برای
-// رنگ یا پس‌زمینه ندارد — نه برای inline و نه برای reply. آنچه در بعضی
-// ربات‌ها رنگی دیده می‌شود کارِ کلاینت غیررسمی یا تم کاربر است. تنها اهرم
-// واقعیِ ما ایموجی ابتدای متن است، و همین کار را می‌کند.
-
-/**
- * دکمه‌های صفحه‌کلید ثابت و مقصدشان.
- *
- * `command` عمدا همان دستورهای موجود است و نه یک مسیر تازه: لمس «کیف پول»
- * باید دقیقا همان کاری را بکند که `/wallet` می‌کند. اگر دو مسیر جدا
- * می‌ساختیم، روزی یکی‌شان یک بررسی کمتر داشت.
- *
- * دکمه‌های `tab` مستقیم مینی‌اپ را باز می‌کنند و اصلا پیامی نمی‌فرستند —
- * `KeyboardButton` هم `web_app` را پشتیبانی می‌کند، فقط در چت خصوصی.
- */
-const KEYS: { label: string; command?: string; tab?: string }[] = [
-  { label: "🚀 اپلیکیشن نارمون", tab: "" },
-  { label: "👛 کیف پول", command: "/wallet" },
-  { label: "🇮🇷 بازار ایران", tab: "markets" },
-  { label: "📈 ترید", tab: "trade" },
-  { label: "👤 پروفایل", command: "/profile" },
-  { label: "❓ راهنما", command: "/help" },
-];
-
-/**
- * چیدمان دو ستونی — شش گزینه در سه ردیف.
- *
- * ⚠️ هر جفت **وارونه** می‌شود. تلگرام صفحه‌کلید ثابت را چپ‌به‌راست می‌چیند
- * (خانه‌ی اول سمت چپ) ولی کیبورد شیشه‌ای را در چت فارسی راست‌به‌چپ. بدون این
- * وارونگی، دو منویی که همان گزینه‌ها را دارند آینه‌ی هم می‌شوند و کاربر
- * فارسی‌زبان «بازار ایران» را یک‌بار راست و یک‌بار چپ می‌بیند.
- */
-export function replyKeyboard(): KeyboardButton[][] {
-  // رنگ، گروه‌بندی را دیدنی می‌کند: آبی یعنی «اپ را باز می‌کند»، بی‌رنگ
-  // یعنی «در همین چت جواب می‌دهد». اگر همه رنگی بودند، رنگ هیچ نمی‌گفت.
-  const btn = (k: (typeof KEYS)[number]): KeyboardButton =>
-    k.tab !== undefined && SITE_URL
-      ? {
-          text: k.label,
-          web_app: { url: appUrl(k.tab || undefined) },
-          style: "primary",
-        }
-      : { text: k.label };
-
-  const rows: KeyboardButton[][] = [];
-  for (let i = 0; i < KEYS.length; i += 2) {
-    rows.push(KEYS.slice(i, i + 2).map(btn).reverse());
-  }
-  return rows;
-}
+// ⚠️ حذفش نکن تا وقتی مطمئن شوی هیچ کاربری صفحه‌کلید قدیمی ندارد؛ وگرنه
+// لمس دکمه‌شان به «دستور ناشناخته» می‌خورد.
+const LEGACY_KEYBOARD: Record<string, string> = {
+  "👛 کیف پول": "/wallet",
+  "👤 پروفایل": "/profile",
+  "❓ راهنما": "/help",
+};
 
 /**
  * دستورِ متناظر با متن یک دکمه‌ی صفحه‌کلید، یا `null` اگر متن دکمه نباشد.
@@ -194,8 +159,7 @@ export function replyKeyboard(): KeyboardButton[][] {
  * دکمه‌های `web_app` اینجا `null` می‌دهند چون اصلا پیامی نمی‌فرستند.
  */
 export function keyboardCommand(text: string): string | null {
-  const t = text.trim();
-  return KEYS.find((k) => k.label === t)?.command ?? null;
+  return LEGACY_KEYBOARD[text.trim()] ?? null;
 }
 
 /** دکمه‌ی بازگشت — ته هر زیرصفحه. */
@@ -254,9 +218,20 @@ export function guestText(): string {
 export function guestKeyboard(): InlineButton[][] {
   const rows: InlineButton[][] = [];
   if (SITE_URL) {
-    rows.push([{ text: "🚀 باز کردن اپلیکیشن نارمون", web_app: { url: appUrl() } }]);
+    // تازه‌وارد فقط یک کار دارد: اپ را باز کند. هر دکمه‌ی دیگری اینجا
+    // فقط تصمیم را سخت‌تر می‌کند.
+    rows.push([
+      {
+        text: "🚀 باز کردن اپلیکیشن نارمون",
+        web_app: { url: appUrl() },
+        style: "primary",
+      },
+    ]);
   }
-  rows.push([{ text: "🎧 پشتیبانی", callback_data: MENU.support }]);
+  rows.push([
+    { text: "❓ راهنما", callback_data: MENU.help },
+    { text: "🎧 پشتیبانی", callback_data: MENU.support },
+  ]);
   return rows;
 }
 
