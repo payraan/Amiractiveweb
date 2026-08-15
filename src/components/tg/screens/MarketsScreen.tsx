@@ -17,7 +17,12 @@ type MarketsResponse = {
   markets: Market[];
   balance: number;
   myBets: Record<number, { side: string; stake: number }>;
-  config: { minStake: number; commission: number };
+  config: {
+    minStake: number;
+    commission: number;
+    boostPrice: number;
+    boostHours: number;
+  };
 };
 
 const STATUS: Record<string, { label: string; cls: string }> = {
@@ -171,6 +176,7 @@ export default function MarketsScreen({
         balance={data.balance}
         minStake={data.config.minStake}
         commission={data.config.commission}
+        boostPrice={data.config.boostPrice}
         myBet={data.myBets?.[open.id]}
         initialSide={open.id === deepLink?.marketId ? deepLink.side : null}
         onBack={() => setOpenId(null)}

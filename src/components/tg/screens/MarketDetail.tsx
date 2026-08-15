@@ -30,12 +30,21 @@ export type Market = {
   /** تاریخ انقضای بوست، یا null — کلاینت با زمان جاری می‌سنجد. */
   boostedUntil?: string | null;
   hasCover?: boolean;
+  /** بازارِ خودِ این کاربر؟ فقط سازنده می‌تواند بوست کند. */
+  isMine?: boolean;
 };
 
 /** بوست فعال؟ از تاریخ انقضا، نه از یک پرچم ذخیره‌شده. */
 export function isBoosted(m: Market): boolean {
   return Boolean(m.boostedUntil && new Date(m.boostedUntil).getTime() > Date.now());
 }
+
+const BOOST_ERR: Record<string, string> = {
+  insufficient_funds: "موجودی تتر واقعی کافی نیست. بوست از پول هدیه کم نمی‌شود.",
+  not_creator: "فقط سازنده‌ی بازار می‌تواند بوستش کند.",
+  market_not_open: "بازار باز نیست.",
+  telegram_required: "برای این کار باید حساب تلگرام وصل باشد.",
+};
 
 const ERR: Record<string, string> = {
   telegram_blocked:
@@ -58,6 +67,7 @@ export default function MarketDetail({
   balance,
   minStake,
   commission,
+  boostPrice,
   myBet,
   initialSide,
   onBack,
@@ -68,6 +78,8 @@ export default function MarketDetail({
   balance: number;
   minStake: number;
   commission: number;
+  /** قیمت بوست برای همین کاربر — برای ادمین صفر. */
+  boostPrice: number;
   myBet?: { side: string; stake: number };
   /** طرفی که کاربر در کانال رویش کلیک کرده — از پیش انتخاب می‌شود. */
   initialSide?: "yes" | "no" | null;
@@ -77,6 +89,39 @@ export default function MarketDetail({
   const [side, setSide] = useState<"yes" | "no" | null>(initialSide ?? null);
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
+  const [boosting, setBoosting] = useState(false);
+  const [boostMsg, setBoostMsg] = useState<{ ok: boolean; text: string } | null>(
+    null
+  );
+
+  const boost = useCallback(async () => {
+    if (boosting) return;
+    setBoosting(true);
+    setBoostMsg(null);
+    try {
+      const j = await api<{
+        paid: number;
+        broadcast?: { queued: boolean; targets?: number };
+      }>("/api/ir/boost", {
+        method: "POST",
+        body: JSON.stringify({ marketId: market.id }),
+      });
+      haptic.success();
+      // اگر پخش صف نشد، ساکت نمان: کاربر پول داده و باید بداند چه گرفته.
+      setBoostMsg({
+        ok: true,
+        text: j.broadcast?.queued
+          ? `بوست فعال شد و بازار برای ${j.broadcast.targets} کاربر ارسال می‌شود.`
+          : "بوست فعال شد. (ارسال همگانی انجام نشد — به پشتیبانی خبر بده.)",
+      });
+    } catch (e) {
+      haptic.error();
+      const code = e instanceof ApiError ? e.code : "";
+      setBoostMsg({ ok: false, text: BOOST_ERR[code] ?? "بوست انجام نشد." });
+    } finally {
+      setBoosting(false);
+    }
+  }, [boosting, market.id]);
   const [msg, setMsg] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [sentToBot, setSentToBot] = useState(false);
@@ -402,6 +447,40 @@ export default function MarketDetail({
             >
               {busy ? "در حال ثبت…" : "ثبت پیش‌بینی"}
             </button>
+          )}
+
+          {/* بوست — فقط برای بازارِ خودِ کاربر.
+              ⚠️ فقط دیده‌شدن می‌خرد: ضریب، تسویه و شانس برد دست نمی‌خورند. */}
+          {market.isMine && market.status === "open" && (
+            <>
+              <button
+                type="button"
+                disabled={boosting}
+                onClick={boost}
+                className="mt-3 w-full rounded-xl border border-gold/40 bg-gold/10 py-3 text-[12px] font-bold text-gold disabled:opacity-40"
+              >
+                {boosting
+                  ? "…"
+                  : `${isBoosted(market) ? "⭐ تمدید بوست" : "⭐ بوست کن"}${
+                      boostPrice > 0 ? ` — ${boostPrice} تتر` : " — رایگان"
+                    }`}
+              </button>
+              <p className="mt-1.5 text-center text-[10px] leading-5 text-muted">
+                بازار در پنل ویژه بالا می‌آید و یک بار برای همه‌ی کاربران ارسال
+                می‌شود. ضریب و نتیجه تغییر نمی‌کند.
+              </p>
+              {boostMsg && (
+                <p
+                  className={`mt-2 rounded-xl border px-4 py-3 text-[11.5px] leading-6 ${
+                    boostMsg.ok
+                      ? "border-gain/40 bg-gain/5 text-gain"
+                      : "border-loss/40 bg-loss/5 text-loss"
+                  }`}
+                >
+                  {boostMsg.text}
+                </p>
+              )}
+            </>
           )}
         </>
       )}

@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentPlayerId } from "@/lib/current-player";
+import { isTgAdmin } from "@/lib/broadcast";
 import {
   ensureIrTables,
   oddsFor,
   impliedPct,
   MIN_STAKE_USDT,
   COMMISSION,
+  BOOST_PRICE_USDT,
+  BOOST_HOURS,
 } from "@/lib/iran";
 
 export const dynamic = "force-dynamic";
@@ -21,7 +24,7 @@ export async function GET(req: Request) {
   const { rows } = await pool.query(
     `SELECT m.id, m.question, m.category, m.source_note, m.closes_at,
             m.status, m.outcome, m.yes_total, m.no_total, m.bettors,
-            m.boosted_until, m.cover_file_id,
+            m.boosted_until, m.cover_file_id, m.creator_id,
             p.display_name AS creator
        FROM ir_markets m
        LEFT JOIN players p ON p.id = m.creator_id
@@ -31,6 +34,8 @@ export async function GET(req: Request) {
       LIMIT 100`,
     cat && cat !== "all" ? [cat] : []
   );
+
+  const playerIdEarly = await currentPlayerId();
 
   const markets = rows.map((r) => {
     const yes = Number(r.yes_total);
@@ -53,14 +58,18 @@ export async function GET(req: Request) {
       // بدون یک درخواست تازه هم از پنل طلایی می‌افتد.
       boostedUntil: r.boosted_until,
       hasCover: Boolean(r.cover_file_id),
+      // بوست فقط کار سازنده است، پس رابط باید بداند این بازار مال کیست.
+      // شناسه‌ی سازنده عمدا بیرون نمی‌رود — فقط همین بولین.
+      isMine: playerIdEarly !== null && r.creator_id === playerIdEarly,
       yesPct: impliedPct(yes, no),
       yesOdds: Math.round(oddsFor(yes, no, "yes") * 100) / 100,
       noOdds: Math.round(oddsFor(yes, no, "no") * 100) / 100,
     };
   });
 
-  const playerId = await currentPlayerId();
+  const playerId = playerIdEarly;
   let balance = 0;
+  let boostPriceFor = BOOST_PRICE_USDT;
   const myBets: Record<number, { side: string; stake: number }> = {};
   if (playerId) {
     const [b, mine] = await Promise.all([
@@ -76,7 +85,7 @@ export async function GET(req: Request) {
       // قاعده: فرم باید همان عددی را نشان بدهد که سرور می‌پذیرد. «قابل
       // برداشت» عدد دیگری است و جایش کیف پول است، نه فرم پیش‌بینی.
       pool.query(
-        "SELECT usdt_balance + demo_balance AS spendable FROM players WHERE id=$1",
+        "SELECT usdt_balance + demo_balance AS spendable, tg_user_id FROM players WHERE id=$1",
         [playerId]
       ),
       pool.query(
@@ -87,6 +96,11 @@ export async function GET(req: Request) {
       ),
     ]);
     balance = Number(b.rows[0]?.spendable ?? 0);
+    // ادمین پلتفرم رایگان بوست می‌کند. رابط باید همان عددی را نشان بدهد که
+    // سرور می‌گیرد، وگرنه ادمین «۵ تتر» می‌بیند و صفر پرداخت می‌کند —
+    // همان ناسازگاری فرم و سرور که یک بار در برداشت دیدیم.
+    const tgId = Number(b.rows[0]?.tg_user_id ?? 0);
+    if (tgId && isTgAdmin(tgId)) boostPriceFor = 0;
     for (const r of mine.rows) {
       myBets[r.market_id] = { side: r.side, stake: Number(r.stake) };
     }
@@ -100,6 +114,10 @@ export async function GET(req: Request) {
     config: {
       minStake: MIN_STAKE_USDT,
       commission: COMMISSION,
+      // قیمت بوستِ **همین کاربر** — برای ادمین صفر است. رابط نباید عدد
+      // ثابت نشان بدهد و بعد سرور چیز دیگری بگیرد.
+      boostPrice: boostPriceFor,
+      boostHours: BOOST_HOURS,
     },
   });
 }

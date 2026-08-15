@@ -28,6 +28,7 @@ type M = {
   /** تاریخ انقضای بوست، یا null. کلاینت با زمان جاری می‌سنجد. */
   boostedUntil: string | null;
   hasCover: boolean;
+  isMine: boolean;
 };
 
 /** بوست فعال؟ از تاریخ انقضا، نه از یک پرچم ذخیره‌شده. */
@@ -35,7 +36,20 @@ function isBoosted(m: M): boolean {
   return Boolean(m.boostedUntil && new Date(m.boostedUntil).getTime() > Date.now());
 }
 
-type Cfg = { minStake: number; commission: number };
+type Cfg = {
+  minStake: number;
+  commission: number;
+  boostPrice: number;
+  boostHours: number;
+};
+
+const BOOST_ERR: Record<string, string> = {
+  insufficient_funds: "موجودی تتر واقعی کافی نیست. بوست از پول هدیه کم نمی‌شود.",
+  not_creator: "فقط سازنده‌ی بازار می‌تواند بوستش کند.",
+  market_not_open: "بازار باز نیست.",
+  not_authed: "ابتدا وارد شوید.",
+  telegram_required: "برای این کار باید حساب تلگرام وصل باشد.",
+};
 
 const CATS = [{ id: "all", label: "همه" }, ...IR_CATEGORIES];
 
@@ -101,7 +115,7 @@ function remain(iso: string) {
 export default function IranTerminal() {
   const { player, loading, refresh } = usePlayer();
   const [markets, setMarkets] = useState<M[]>([]);
-  const [cfg, setCfg] = useState<Cfg>({ minStake: 3, commission: 0.03 });
+  const [cfg, setCfg] = useState<Cfg>({ minStake: 1, commission: 0.03, boostPrice: 5, boostHours: 24 });
   const [balance, setBalance] = useState(0);
   const [cat, setCat] = useState("all");
   const [sel, setSel] = useState<number | null>(null);
@@ -113,6 +127,7 @@ export default function IranTerminal() {
   const [sort, setSort] = useState<SortId>("hot");
   // با هر ثبت موفق بالا می‌رود تا کارنامه هم تازه شود.
   const [betTick, setBetTick] = useState(0);
+  const [boosting, setBoosting] = useState(false);
 
   const fetchMarkets = useCallback(async () => {
     try {
@@ -190,6 +205,36 @@ export default function IranTerminal() {
   // برچسب می‌خورد؛ بازارِ غیرقابل‌شرط کم‌رنگ‌تر است ولی همچنان قابل دیدن.
   // از همان فهرستِ بارگذاری‌شده ساخته می‌شود، نه یک درخواست دوم: دو منبع
   // برای یک فهرست یعنی روزی که با هم نمی‌خوانند.
+  async function boostMarket() {
+    if (!m || boosting) return;
+    setBoosting(true);
+    setMsg(null);
+    try {
+      const r = await fetch("/api/ir/boost", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ marketId: m.id }),
+      });
+      const j = await r.json();
+      if (!j.ok) {
+        setMsg({ ok: false, text: BOOST_ERR[j.error] ?? "بوست انجام نشد." });
+        return;
+      }
+      // اگر پخش صف نشد، ساکت نمان: کاربر پول داده و باید بداند چه گرفته.
+      setMsg({
+        ok: true,
+        text: j.broadcast?.queued
+          ? `بوست فعال شد و بازار برای ${j.broadcast.targets} کاربر ارسال می‌شود.`
+          : "بوست فعال شد. (ارسال همگانی انجام نشد — پشتیبانی را خبر بده.)",
+      });
+      await Promise.all([fetchMarkets(), refresh()]);
+    } catch {
+      setMsg({ ok: false, text: "ارتباط با سرور برقرار نشد." });
+    } finally {
+      setBoosting(false);
+    }
+  }
+
   const boosted = useMemo(
     () =>
       markets
@@ -587,6 +632,24 @@ export default function IranTerminal() {
                 >
                   {busy ? "…" : side === "yes" ? "ثبت بله" : "ثبت خیر"}
                 </button>
+
+                {/* بوست — فقط برای بازارِ خودِ کاربر.
+                    ⚠️ فقط دیده‌شدن می‌خرد: ضریب، تسویه و شانس برد دست
+                    نمی‌خورند. */}
+                {m?.isMine && m.status === "open" && (
+                  <button
+                    type="button"
+                    disabled={boosting}
+                    onClick={boostMarket}
+                    className="no-zoom mt-2 w-full rounded-lg border border-gold/40 bg-gold/10 py-2 text-[11px] font-bold text-gold transition hover:bg-gold hover:text-ink disabled:opacity-40"
+                  >
+                    {boosting
+                      ? "…"
+                      : isBoosted(m)
+                        ? `⭐ تمدید بوست${cfg.boostPrice > 0 ? ` — ${cfg.boostPrice} تتر` : " — رایگان"}`
+                        : `⭐ بوست کن${cfg.boostPrice > 0 ? ` — ${cfg.boostPrice} تتر` : " — رایگان"}`}
+                  </button>
+                )}
 
                 {balance <= 0 && (
                   <Link

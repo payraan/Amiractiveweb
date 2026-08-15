@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { currentPlayerId } from "@/lib/current-player";
 import { requireLinkedTelegram } from "@/lib/money-guard";
 import { broadcastBoostedMarket } from "@/lib/boost-broadcast";
+import { isTgAdmin } from "@/lib/broadcast";
 import {
   ensureIrTables,
   moveFunds,
@@ -88,43 +89,47 @@ export async function POST(req: Request) {
     const base = activeUntil > now ? activeUntil : now;
     const until = new Date(base + BOOST_HOURS * 3600_000);
 
-    await client.query("SELECT id FROM players WHERE id=$1 FOR UPDATE", [playerId]);
+    const pl = await client.query<{ tg_user_id: string | null }>(
+      "SELECT tg_user_id FROM players WHERE id=$1 FOR UPDATE",
+      [playerId]
+    );
+    const tgId = Number(pl.rows[0]?.tg_user_id ?? 0);
 
-    // realOnly: بونوس اینجا لمس نمی‌شود.
-    try {
-      await moveFunds(client, playerId, -BOOST_PRICE_USDT, "ir_boost", `m${marketId}`, {
-        realOnly: true,
+    // ادمین پلتفرم رایگان بوست می‌کند — همان قاعده‌ی کارمزد ساخت بازار.
+    // در ماه‌های اول، بازارساز و بوست‌کننده‌ی اصلی خودِ گرداننده است؛
+    // گرفتن پول از او فقط پول را از یک جیب به جیب دیگر می‌برد و دفترکل
+    // درآمد را با درآمدی که وجود ندارد آلوده می‌کند.
+    const price = tgId && isTgAdmin(tgId) ? 0 : BOOST_PRICE_USDT;
+
+    if (price > 0) {
+      // realOnly: بونوس اینجا لمس نمی‌شود.
+      try {
+        await moveFunds(client, playerId, -price, "ir_boost", `m${marketId}`, {
+          realOnly: true,
+        });
+      } catch (err) {
+        await client.query("ROLLBACK");
+        const msg = err instanceof Error ? err.message : "server_error";
+        return NextResponse.json(
+          { ok: false, error: msg === "insufficient_funds" ? msg : "server_error" },
+          { status: msg === "insufficient_funds" ? 402 : 500 }
+        );
+      }
+      // demoAmount صفر است چون realOnly بود — این تنها درآمدی است که
+      // همیشه صددرصد واقعی است.
+      await recordRevenue(client, "ir_boost", price, {
+        marketId,
+        playerId,
+        demoAmount: 0,
       });
-    } catch (err) {
-      await client.query("ROLLBACK");
-      const msg = err instanceof Error ? err.message : "server_error";
-      return NextResponse.json(
-        { ok: false, error: msg === "insufficient_funds" ? msg : "server_error" },
-        { status: msg === "insufficient_funds" ? 402 : 500 }
-      );
     }
 
     await client.query(
       `UPDATE ir_markets
           SET boosted_until=$2, boost_paid = boost_paid + $3
         WHERE id=$1`,
-      [marketId, until.toISOString(), BOOST_PRICE_USDT]
+      [marketId, until.toISOString(), price]
     );
-
-    // demoAmount صفر است چون realOnly بود — این تنها درآمدی است که
-    // همیشه صددرصد واقعی است.
-    await recordRevenue(client, "ir_boost", BOOST_PRICE_USDT, {
-      marketId,
-      playerId,
-      demoAmount: 0,
-    });
-
-    // شناسه‌ی تلگرام سازنده، برای نسبت‌دادن کارِ پخش.
-    const tg = await client.query<{ tg_user_id: string | null }>(
-      "SELECT tg_user_id FROM players WHERE id=$1",
-      [playerId]
-    );
-    const tgId = Number(tg.rows[0]?.tg_user_id ?? 0);
 
     await client.query("COMMIT");
 
@@ -155,7 +160,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       ok: true,
       boostedUntil: until.toISOString(),
-      paid: BOOST_PRICE_USDT,
+      paid: price,
       broadcast,
     });
   } catch {
