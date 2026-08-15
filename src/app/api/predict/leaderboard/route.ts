@@ -136,7 +136,8 @@ export async function GET(req: Request) {
     range,
     game,
     maxCounted: cap,
-    totalPlayers: total,
+    // ⚠️ تعداد بازیکنان عمدا فرستاده نمی‌شود — عدد تجاری ماست و هیچ
+    // کاربری برای استفاده از لیدربورد به آن نیاز ندارد.
     entries: rows.map((r, i) => ({
       rank: i + 1,
       name: r.display_name,

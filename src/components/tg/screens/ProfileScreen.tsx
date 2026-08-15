@@ -1,5 +1,6 @@
 "use client";
 
+import { LINKS } from "@/config/site";
 import { useCallback, useState } from "react";
 import { useResource } from "@/components/tg/useResource";
 import { api } from "@/components/tg/api";
@@ -41,7 +42,7 @@ type Profile = {
     staked: number;
     winRate: number | null;
   };
-  rank: { totalPlayers: number; above: number; percentile: number };
+  rank: { above: number; percentile: number };
   badgeStats: BadgeStats;
   showcase: string[];
 };
@@ -182,6 +183,19 @@ export default function ProfileScreen({ siteUrl }: { siteUrl: string }) {
         </div>
       </div>
 
+      {/* ⚠️ پشتیبانی بالای صفحه، نه پای آن: کاربری که دنبال راه ارتباط
+          می‌گردد نباید از کنار نشان‌ها و آمار و کارنامه رد شود تا پیدایش
+          کند. مینی‌اپ تا امروز هیچ ورودی عمومی پشتیبانی نداشت — نه در
+          منو، نه در پروفایل — و تنها راهش صفحه‌ی کیف پول بود. */}
+      <a
+        href={LINKS.telegramSupport}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-2.5 block rounded-2xl border border-line bg-surface/40 py-3 text-center text-[11.5px] text-muted transition active:border-gold/40"
+      >
+        🎧 گفت‌وگو با پشتیبانی
+      </a>
+
       {/* نشان‌های منتخب، کنار نام */}
       {showcase.length > 0 && (
         <div className="mt-2.5 flex gap-2">
@@ -214,10 +228,7 @@ export default function ProfileScreen({ siteUrl }: { siteUrl: string }) {
 
       <div className="mt-2.5 grid grid-cols-3 gap-2.5">
         <Metric label="روزهای متوالی (استریک)" value={`${me.streak} روز`} />
-        <Metric
-          label="رتبه"
-          value={`${p.rank.above + 1} از ${p.rank.totalPlayers}`}
-        />
+        <Metric label="رتبه" value={`${p.rank.above + 1}`} />
         <Metric label="درصد برتر" value={`${p.rank.percentile}%`} tone="gold" />
       </div>
 

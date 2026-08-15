@@ -47,7 +47,7 @@ type Profile = {
     accuracy: number | null;
     activeDays: number;
   };
-  rank: { totalPlayers: number; above: number; percentile: number };
+  rank: { above: number; percentile: number };
   badgeStats: BadgeStats;
   showcase: string[];
   ledger: {

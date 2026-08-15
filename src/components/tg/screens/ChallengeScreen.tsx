@@ -1,5 +1,6 @@
 "use client";
 
+import { LINKS } from "@/config/site";
 import { useCallback, useState } from "react";
 import { api, ApiError } from "@/components/tg/api";
 import { useResource } from "@/components/tg/useResource";
@@ -419,7 +420,17 @@ export default function ChallengeScreen() {
             <p className="mt-1 text-[11px] leading-6 text-muted">
               این تیر دیگر در فهرست نیست، پس آستانه‌های هدف و افت نامعلوم‌اند و
               وضعیت خودکار به‌روز نمی‌شود. کارنامه‌ی پیش‌بینی‌ها درست است. برای
-              تعیین تکلیف با پشتیبانی تماس بگیر.
+              تعیین تکلیف{" "}
+              {/* متن بدون لینک بود: کاربر جمله را می‌خواند و نمی‌دانست کجا برود. */}
+              <a
+                href={LINKS.telegramSupport}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-cream underline decoration-line underline-offset-4"
+              >
+                با پشتیبانی تماس بگیر
+              </a>
+              .
             </p>
           </div>
         )}

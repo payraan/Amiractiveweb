@@ -24,7 +24,6 @@ export default function Leaderboard({
   const [game, setGame] = useState<"main" | "combo">("main");
   const [entries, setEntries] = useState<Entry[]>([]);
   const [maxCounted, setMaxCounted] = useState<number | null>(null);
-  const [totalPlayers, setTotalPlayers] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -38,7 +37,6 @@ export default function Leaderboard({
         if (!alive) return;
         setEntries(j.entries ?? []);
         setMaxCounted(typeof j.maxCounted === "number" ? j.maxCounted : null);
-        setTotalPlayers(Number(j.totalPlayers ?? 0));
         setLoading(false);
       })
       .catch(() => alive && setLoading(false));
@@ -150,16 +148,7 @@ export default function Leaderboard({
           {game === "combo"
             ? " کمبو از رتبه‌بندی اصلی و ارزیابی چالش پراپ جداست."
             : " پس همه در هر دوره فرصت برابر دارند و خرید MOON رتبه نمی‌خرد."}
-          {totalPlayers > 0 && (
-            <>
-              {" "}
-              این دوره{" "}
-              <b className="font-mono text-cream" dir="ltr">
-                {totalPlayers}
-              </b>{" "}
-              بازیکن واجد شرایط دارد.
-            </>
-          )}
+
         </p>
       )}
     </div>

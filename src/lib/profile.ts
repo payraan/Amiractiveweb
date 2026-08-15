@@ -189,7 +189,10 @@ export async function loadProfile(playerId: number) {
       accuracy,
       activeDays: Number(streakDays.rows[0].days),
     },
-    rank: { totalPlayers, above: Number(rk.above), percentile },
+    // ⚠️ `totalPlayers` عمدا بیرون نمی‌رود. تعداد کاربران واقعی پلتفرم
+    // عدد تجاری ماست و «رتبه‌ی ۱ از ۱۵» آن را به هر کاربری لو می‌داد.
+    // درصد برتر می‌ماند چون خودش تعداد را نمی‌گوید.
+    rank: { above: Number(rk.above), percentile },
     badgeStats: {
       totalPreds: Number(pu.total) + Number(po.total),
       accuracy,

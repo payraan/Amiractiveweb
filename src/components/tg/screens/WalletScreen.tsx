@@ -207,6 +207,18 @@ export default function WalletScreen() {
         ))}
       </div>
 
+      {/* ⚠️ بلافاصله زیر سه کنش، نه پای صفحه. کاربری که صد تراکنش دارد
+          باید تا ته تاریخچه اسکرول می‌کرد تا پشتیبانی را ببیند — یعنی
+          دقیقا وقتی که دنبالش می‌گردد، پیدایش نمی‌کرد. */}
+      <a
+        href={LINKS.telegramSupport}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-5 block rounded-2xl border border-line bg-surface/40 py-3 text-center text-[11.5px] text-muted transition active:border-gold/40"
+      >
+        سؤالی درباره‌ی واریز یا برداشت داری؟ پشتیبانی
+      </a>
+
       <div className="mb-2 mt-6 flex items-baseline justify-between">
         <h3 className="text-xs font-bold text-cream">تاریخچه</h3>
         <span className="text-[10px] text-muted">{ledger.length} تراکنش</span>
@@ -258,18 +270,6 @@ export default function WalletScreen() {
           })}
         </div>
       )}
-
-      {/* پشتیبانی همیشه در دید، نه چند منو آن‌طرف‌تر: هر جا پول هست سؤال
-          هم هست، و کاربری که نمی‌داند پولش کجاست نباید دنبال راه ارتباط
-          بگردد. */}
-      <a
-        href={LINKS.telegramSupport}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="mt-4 block rounded-2xl border border-line bg-surface/40 py-3.5 text-center text-[11.5px] text-muted transition active:border-gold/40"
-      >
-        سؤالی درباره‌ی واریز یا برداشت داری؟ پشتیبانی
-      </a>
     </div>
   );
 }

@@ -599,8 +599,7 @@ export async function profileScreen(playerId: number): Promise<Screen> {
       : "") +
     `\n<b>جایگاه</b>\n` +
     `⭐ امتیاز: <b>${num(p.player.totalPoints)}</b>\n` +
-    `📊 بالاتر از <b>${num(p.rank.percentile)}٪</b> کاربران ` +
-    `(از ${num(p.rank.totalPlayers)} نفر)\n` +
+    `📊 بالاتر از <b>${num(p.rank.percentile)}٪</b> کاربران\n` +
     `🔥 روزهای متوالی: <b>${num(p.player.streak)}</b>\n` +
     `\n<b>کارنامه‌ی مهارتی</b>\n` +
     `🎯 پیش‌بینی ثبت‌شده: <b>${num(p.badgeStats.totalPreds)}</b>\n` +
