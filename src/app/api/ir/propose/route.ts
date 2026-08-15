@@ -130,7 +130,15 @@ export async function POST(req: Request) {
     await touchActivity(client, playerId);
 
     await client.query("COMMIT");
-    return NextResponse.json({ ok: true, cost: fee });
+    // لینک کاور را **سرور** می‌سازد چون نام ربات فقط اینجاست. اگر کلاینت
+    // می‌ساختش، نام ربات باید NEXT_PUBLIC می‌شد و یک مقدار در دو جا.
+    const bot = (process.env.TG_BOT_USERNAME ?? "").replace(/^@/, "");
+    return NextResponse.json({
+      ok: true,
+      cost: fee,
+      marketId: ins.rows[0].id,
+      coverUrl: bot ? `https://t.me/${bot}?start=cover_${ins.rows[0].id}` : null,
+    });
   } catch {
     await client.query("ROLLBACK").catch(() => {});
     return NextResponse.json({ ok: false, error: "server_error" }, { status: 500 });

@@ -30,6 +30,8 @@ export default function ProposeForm() {
   const [closesAt, setClosesAt] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  // لینک عمیقِ افزودن کاور — فقط پس از ساخت موفق معنا دارد.
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
 
   async function submit() {
     setBusy(true);
@@ -45,6 +47,7 @@ export default function ProposeForm() {
         setMsg({ ok: false, text: ERR[j.error] ?? "خطایی رخ داد." });
         return;
       }
+      setCoverUrl(j.coverUrl ?? null);
       setMsg({
         ok: true,
         // با معافیت ادمین، cost صفر می‌شود و «۰ تتر کسر شد» بی‌معنی است.
@@ -199,6 +202,16 @@ export default function ProposeForm() {
               {/* بازار تازه دست ادمین است و کاربر هیچ راهی برای پیگیری
                   نداشت. انتظارِ بی‌مخاطب، همان‌جایی است که کاربر فکر
                   می‌کند پولش را گرفته‌اند و خبری نیست. */}
+              {msg.ok && coverUrl && (
+                <a
+                  href={coverUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 block rounded-xl border border-gold/40 bg-gold/10 py-2.5 text-center text-[11.5px] font-bold text-gold transition hover:bg-gold hover:text-ink"
+                >
+                  🖼 افزودن کاور در ربات — بازارِ کاوردار بیشتر دیده می‌شود
+                </a>
+              )}
               {msg.ok && (
                 <a
                   href={LINKS.telegramSupport}

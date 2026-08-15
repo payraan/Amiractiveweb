@@ -41,6 +41,8 @@ export default function ProposeScreen({
   const [closesAt, setClosesAt] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  // لینک عمیقِ افزودن کاور — فقط پس از ساخت موفق معنا دارد.
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
   // این صفحه فقط بعد از لمس کاربر رندر می‌شود، یعنی همیشه بعد از hydration،
   // پس خواندن مستقیم وضعیت کلاینت اینجا امن است و به state و افکت نیاز ندارد.
   const nativeButton = typeof window === "undefined" ? true : hasMainButton();
@@ -68,11 +70,12 @@ export default function ProposeScreen({
     setBusy(true);
     setMsg(null);
     try {
-      const j = await api<{ cost: number }>("/api/ir/propose", {
+      const j = await api<{ cost: number; coverUrl: string | null }>("/api/ir/propose", {
         method: "POST",
         body: JSON.stringify({ question, sourceNote, category, closesAt }),
       });
       haptic.success();
+      setCoverUrl(j.coverUrl ?? null);
       setMsg({
         ok: true,
         // با معافیت ادمین، cost صفر می‌شود و «۰ تتر کسر شد» بی‌معنی است.
@@ -212,6 +215,15 @@ export default function ProposeScreen({
           {/* بازار تازه دست ادمین است و کاربر هیچ راهی برای پیگیری نداشت.
               انتظارِ بی‌مخاطب، همان‌جایی است که کاربر فکر می‌کند پولش را
               گرفته‌اند و خبری نیست. */}
+          {msg.ok && coverUrl && (
+            <button
+              type="button"
+              onClick={() => openTelegramChat(coverUrl)}
+              className="mt-2 block w-full rounded-xl border border-gold/40 bg-gold/10 py-2.5 text-center text-[11.5px] font-bold text-gold"
+            >
+              🖼 افزودن کاور در ربات — بازارِ کاوردار بیشتر دیده می‌شود
+            </button>
+          )}
           {msg.ok && (
             <a
               href={LINKS.telegramSupport}

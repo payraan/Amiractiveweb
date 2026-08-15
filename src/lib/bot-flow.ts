@@ -133,3 +133,50 @@ export async function clearFlow(tgUserId: number): Promise<void> {
   const pool = await db();
   await pool.query("DELETE FROM tg_flows WHERE tg_user_id=$1", [tgUserId]);
 }
+
+// ── گفت‌وگوی کاور بازار ───────────────────────────────────────
+//
+// روی همان جدول می‌نشیند با `flow='cover'`، و شناسه‌ی بازار در همان ستون
+// `amount` نگه داشته می‌شود. جدول کلید اصلی‌اش `tg_user_id` است، پس کاربر
+// هم‌زمان نمی‌تواند وسط برداشت و وسط کاور باشد — که همان چیزی است که
+// می‌خواهیم: عکسی که در جریان برداشت فرستاده می‌شود نباید کاور شود.
+//
+// ⚠️ توابع برداشت عمدا `flow='withdraw'` را در شرط دارند، پس این دو هرگز
+// داده‌ی هم را نمی‌بینند.
+
+/** آغاز انتظار برای عکس کاور یک بازار. */
+export async function setCoverFlow(
+  tgUserId: number,
+  marketId: number
+): Promise<void> {
+  await ensureFlowTable();
+  const pool = await db();
+  await pool.query(
+    `INSERT INTO tg_flows (tg_user_id, flow, step, amount, address, message_id, updated_at)
+     VALUES ($1,'cover','photo',$2,NULL,NULL, now())
+     ON CONFLICT (tg_user_id) DO UPDATE
+        SET flow='cover', step='photo', amount=$2, address=NULL,
+            message_id=NULL, updated_at=now()`,
+    [tgUserId, marketId]
+  );
+}
+
+/**
+ * برداشتنِ بازارِ منتظر کاور — یک‌بار و فقط یک‌بار.
+ *
+ * همان الگوی `claimConfirmedFlow`: حذف و خواندن در یک دستور، تا دو عکسِ
+ * پشت‌سرهم دو بار روی یک بازار ننشینند.
+ */
+export async function claimCoverFlow(tgUserId: number): Promise<number | null> {
+  await ensureFlowTable();
+  const pool = await db();
+  const r = await pool.query<{ amount: string }>(
+    `DELETE FROM tg_flows
+      WHERE tg_user_id=$1 AND flow='cover' AND step='photo'
+        AND amount IS NOT NULL
+        AND updated_at > now() - ($2 || ' minutes')::interval
+      RETURNING amount`,
+    [tgUserId, String(FLOW_TTL_MIN)]
+  );
+  return r.rows[0] ? Number(r.rows[0].amount) : null;
+}

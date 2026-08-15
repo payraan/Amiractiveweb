@@ -55,6 +55,8 @@ import {
   setFlow,
   clearFlow,
   claimConfirmedFlow,
+  setCoverFlow,
+  claimCoverFlow,
 } from "@/lib/bot-flow";
 import { requestWithdrawal } from "@/lib/withdrawal";
 import { requireLinkedTelegram } from "@/lib/money-guard";
@@ -99,6 +101,88 @@ type TgUpdate = {
 };
 
 type Player = { id: number; displayName: string };
+
+// ── کاور بازار ───────────────────────────────────────────────
+//
+// چرا از راه ربات و نه آپلود در سایت: تلگرام فایلِ خودش را با `file_id`
+// می‌شناسد و ارسال دوباره‌اش هیچ آپلودی ندارد. یعنی پخش سراسری با کاور،
+// روی سرور ما صفر بار می‌گذارد. با آپلود در سایت، هم باید جایی ذخیره‌اش
+// کنیم و هم تلگرام باید ده‌ها هزار بار از ما بگیردش.
+
+/** `/start cover_<id>` — سازنده می‌خواهد کاور بگذارد. */
+async function handleCoverStart(
+  tg: TgUser,
+  chatId: number,
+  marketId: number,
+  player: Player | null
+) {
+  if (!player || !Number.isInteger(marketId) || marketId <= 0) {
+    await sendTelegram(chatId, "این لینک معتبر نیست.");
+    return;
+  }
+  const pool = await db();
+  const r = await pool.query<{ creator_id: number | null; status: string }>(
+    "SELECT creator_id, status FROM ir_markets WHERE id=$1",
+    [marketId]
+  );
+  if (!r.rowCount) {
+    await sendTelegram(chatId, "این بازار پیدا نشد.");
+    return;
+  }
+  // فقط سازنده. بدون این، هر کسی با ساختن لینک می‌توانست روی بازار دیگری
+  // تصویر بگذارد.
+  if (r.rows[0].creator_id !== player.id) {
+    await sendTelegram(chatId, "این بازار مال شما نیست.");
+    return;
+  }
+
+  await setCoverFlow(tg.id, marketId);
+  await sendTelegram(
+    chatId,
+    `🖼 <b>کاور بازار</b>\n\n` +
+      `حالا تصویر کاور را همین‌جا بفرستید.\n\n` +
+      `• نسبت <b>۱۶:۹</b> بهترین نتیجه را می‌دهد (مثلا ۱۲۸۰×۷۲۰)\n` +
+      `• تصویر را به‌صورت <b>عکس</b> بفرستید، نه فایل\n` +
+      `• کاور اجباری نیست، ولی بازارِ کاوردار بیشتر دیده می‌شود\n\n` +
+      `<i>اگر منصرف شدید، هر دستوری بفرستید تا لغو شود.</i>`
+  );
+}
+
+/**
+ * عکسی که رسیده، کاور است؟ اگر بله ذخیره می‌کند و `true` می‌دهد.
+ *
+ * ⚠️ `claimCoverFlow` گفت‌وگو را در همان دستورِ خواندن پاک می‌کند، پس دو
+ * عکسِ پشت‌سرهم دو بار روی یک بازار نمی‌نشینند.
+ */
+async function handleCoverPhoto(
+  tg: TgUser,
+  chatId: number,
+  photo: { file_id: string; file_size?: number }[],
+  player: Player
+): Promise<boolean> {
+  const marketId = await claimCoverFlow(tg.id);
+  if (!marketId) return false;
+
+  // بزرگ‌ترین اندازه‌ای که تلگرام داده — آخرین عضو آرایه.
+  const fileId = photo[photo.length - 1].file_id;
+
+  const pool = await db();
+  const r = await pool.query(
+    "UPDATE ir_markets SET cover_file_id=$2 WHERE id=$1 AND creator_id=$3 RETURNING id",
+    [marketId, fileId, player.id]
+  );
+  if (!r.rowCount) {
+    await sendTelegram(chatId, "این بازار دیگر در دسترس نیست.");
+    return true;
+  }
+
+  await sendTelegram(
+    chatId,
+    `✅ <b>کاور ثبت شد.</b>\n\n` +
+      `از این به بعد در کارت بازار و در پیام بوست دیده می‌شود.`
+  );
+  return true;
+}
 
 /** `/start` بدون کد: کاربر شناخته‌شده یا تازه‌وارد. */
 async function handleStart(chatId: number, player: Player | null) {
@@ -155,7 +239,8 @@ async function handleMessage(
   chatId: number,
   text: string,
   isPrivate: boolean,
-  broadcastPhoto?: { file_id: string; file_size?: number }[]
+  /** عکس پیام — هم برای پخش ادمین و هم برای کاور بازار. */
+  photo?: { file_id: string; file_size?: number }[]
 ) {
   // لمس دکمه‌ی صفحه‌کلید ثابت، یک پیام متنی معمولی است. اینجا به همان دستور
   // ترجمه می‌شود و از آن به بعد مسیرش دقیقا مسیر دستور است — نه یک شاخه‌ی
@@ -178,6 +263,12 @@ async function handleMessage(
     if (!isPrivate) return;
     const p = await playerByTgUserId(tg.id, tg.username);
     if (!p) return;
+    // عکس، پیش از ورودی برداشت سنجیده می‌شود: کاربری که منتظر کاور است
+    // عدد نمی‌فرستد، عکس می‌فرستد.
+    if (photo?.length && (await handleCoverPhoto(tg, chatId, photo, p))) return;
+    // عکسی که کاور نبود، ورودی برداشت هم نیست. بدون این، کاربری که یک عکس
+    // بی‌ربط می‌فرستد «مبلغ نامعتبر» می‌گیرد.
+    if (!text.trim()) return;
     await handleWithdrawInput(tg, chatId, text, p);
     return;
   }
@@ -197,6 +288,9 @@ async function handleMessage(
 
   if (head === "/start") {
     if (arg.startsWith("link_")) return handleLink(tg, chatId, arg.slice(5));
+    if (arg.startsWith("cover_")) {
+      return handleCoverStart(tg, chatId, Number(arg.slice(6)), player);
+    }
     return handleStart(chatId, player);
   }
   if (head === "/app") {
@@ -239,7 +333,7 @@ async function handleMessage(
     return;
   }
   if (head === "/broadcast") {
-    await handleBroadcast(tg, chatId, text, broadcastPhoto);
+    await handleBroadcast(tg, chatId, text, photo);
     return;
   }
   if (head === "/bonus") return handleBonus(tg, chatId, player);
@@ -664,14 +758,19 @@ export async function POST(req: Request) {
 
     const msg = update.message;
     // دستور می‌تواند در متن پیام باشد یا در کپشن یک عکس (پخش سراسری).
+    //
+    // ⚠️ عکسِ **بدون** متن و کپشن هم باید برسد. تا امروز شرط فقط
+    // `typeof body === "string"` بود، پس عکس تنها اصلا وارد هندلر نمی‌شد —
+    // و کاور بازار، که دقیقا یک عکس بدون کپشن است، بی‌صدا دور ریخته می‌شد.
     const body = typeof msg?.text === "string" ? msg.text : msg?.caption;
-    if (msg?.from && typeof body === "string") {
+    const photos = msg?.photo ?? msg?.reply_to_message?.photo;
+    if (msg?.from && (typeof body === "string" || photos?.length)) {
       await handleMessage(
         msg.from,
         msg.chat.id,
-        body,
+        body ?? "",
         (msg.chat.type ?? "private") === "private",
-        msg.photo ?? msg.reply_to_message?.photo
+        photos
       );
     }
 

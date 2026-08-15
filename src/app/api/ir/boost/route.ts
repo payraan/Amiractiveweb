@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentPlayerId } from "@/lib/current-player";
 import { requireLinkedTelegram } from "@/lib/money-guard";
+import { broadcastBoostedMarket } from "@/lib/boost-broadcast";
 import {
   ensureIrTables,
   moveFunds,
@@ -118,11 +119,44 @@ export async function POST(req: Request) {
       demoAmount: 0,
     });
 
+    // شناسه‌ی تلگرام سازنده، برای نسبت‌دادن کارِ پخش.
+    const tg = await client.query<{ tg_user_id: string | null }>(
+      "SELECT tg_user_id FROM players WHERE id=$1",
+      [playerId]
+    );
+    const tgId = Number(tg.rows[0]?.tg_user_id ?? 0);
+
     await client.query("COMMIT");
+
+    // ── پخش سراسری، **بیرون** از ترنزاکشن و best-effort ──────
+    //
+    // اگر ساختن کار پخش شکست بخورد، پرداخت نباید برگردد: بوست خریداری شده
+    // و پنل طلایی — که اصل قابلیت است — همین حالا فعال است. برعکسش یعنی
+    // یک خطای تلگرام، یک پرداخت موفق را باطل می‌کند.
+    //
+    // نتیجه در پاسخ برمی‌گردد تا اگر پخش نشد، ساکت نماند.
+    let broadcast: { queued: boolean; targets?: number; error?: string } = {
+      queued: false,
+    };
+    try {
+      const b = await broadcastBoostedMarket(marketId, tgId);
+      broadcast = b.ok
+        ? { queued: true, targets: b.targets }
+        : { queued: false, error: b.error };
+      if (!b.ok) {
+        console.warn(`[boost] پخش بازار ${marketId} انجام نشد: ${b.error}`);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "error";
+      broadcast = { queued: false, error: msg };
+      console.error(`[boost] خطای پخش بازار ${marketId}: ${msg}`);
+    }
+
     return NextResponse.json({
       ok: true,
       boostedUntil: until.toISOString(),
       paid: BOOST_PRICE_USDT,
+      broadcast,
     });
   } catch {
     await client.query("ROLLBACK").catch(() => {});

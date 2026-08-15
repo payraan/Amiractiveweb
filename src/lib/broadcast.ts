@@ -70,6 +70,13 @@ export async function ensureBroadcastTables(): Promise<void> {
       await pool.query(
         "ALTER TABLE broadcast_jobs ADD COLUMN IF NOT EXISTS message_id INTEGER"
       );
+      // دکمه‌های زیر پیامِ پخش. پیش از این پخش فقط متن و عکس می‌فرستاد،
+      // پس کاربر بازار را می‌دید ولی راهی برای پیش‌بینی نداشت و باید
+      // دستی دنبالش می‌گشت — یعنی همان لحظه‌ای که بیشترین انگیزه را
+      // داشت، بن‌بست می‌خورد.
+      await pool.query(
+        "ALTER TABLE broadcast_jobs ADD COLUMN IF NOT EXISTS buttons JSONB"
+      );
       await pool.query(
         `CREATE TABLE IF NOT EXISTS broadcast_targets (
            job_id     BIGINT NOT NULL REFERENCES broadcast_jobs(id) ON DELETE CASCADE,
@@ -198,14 +205,15 @@ export async function attachCard(
 export async function createJob(
   createdBy: number,
   text: string,
-  photoId: string | null
+  photoId: string | null,
+  buttons?: InlineButton[][]
 ): Promise<JobStats> {
   await ensureBroadcastTables();
   const pool = await db();
   const j = await pool.query<{ id: string }>(
-    `INSERT INTO broadcast_jobs (text, photo_id, status, created_by)
-     VALUES ($1,$2,'draft',$3) RETURNING id`,
-    [text, photoId, createdBy]
+    `INSERT INTO broadcast_jobs (text, photo_id, status, created_by, buttons)
+     VALUES ($1,$2,'draft',$3,$4) RETURNING id`,
+    [text, photoId, createdBy, buttons ? JSON.stringify(buttons) : null]
   );
   const jobId = Number(j.rows[0].id);
   await pool.query(
@@ -282,14 +290,19 @@ export async function runBroadcastTick(budgetMs = 45_000): Promise<TickResult> {
 
   await ensureBroadcastTables();
   const pool = await db();
-  const job = await pool.query<{ text: string; photo_id: string | null }>(
-    "SELECT text, photo_id FROM broadcast_jobs WHERE id=$1",
-    [jobId]
-  );
+  const job = await pool.query<{
+    text: string;
+    photo_id: string | null;
+    buttons: InlineButton[][] | null;
+  }>("SELECT text, photo_id, buttons FROM broadcast_jobs WHERE id=$1", [jobId]);
   if (!job.rowCount) {
     return { jobId, sent: 0, failed: 0, remaining: 0, done: true, throttled: false };
   }
-  const { text, photo_id: photoId } = job.rows[0];
+  const { text, photo_id: photoId, buttons } = job.rows[0];
+  // reply_markup فقط وقتی فرستاده می‌شود که دکمه‌ای باشد؛ آرایه‌ی خالی را
+  // تلگرام می‌پذیرد ولی یک فضای خالی زیر پیام می‌گذارد.
+  const markup =
+    buttons && buttons.length ? { reply_markup: { inline_keyboard: buttons } } : {};
 
   const deadline = Date.now() + budgetMs;
   let sent = 0;
@@ -327,12 +340,14 @@ export async function runBroadcastTick(budgetMs = 45_000): Promise<TickResult> {
           photo: photoId,
           caption: text,
           parse_mode: "HTML",
+          ...markup,
         })
       : await tgCall("sendMessage", {
           chat_id: chatId,
           text,
           parse_mode: "HTML",
           link_preview_options: { is_disabled: true },
+          ...markup,
         });
 
     if (r.ok) {
