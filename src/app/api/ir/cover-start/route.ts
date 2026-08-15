@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { currentPlayerId } from "@/lib/current-player";
 import { ensureIrTables } from "@/lib/iran";
 import { setCoverFlow } from "@/lib/bot-flow";
+import { sendTelegram, escapeHtml } from "@/lib/telegram";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +66,32 @@ export async function POST(req: Request) {
   }
 
   await setCoverFlow(tgId, marketId);
+
+  // ⚠️ **پیام راهنما را همین‌جا می‌فرستیم.**
+  //
+  // در نسخه‌ی قبلی، `/start cover_<id>` بود که هم وضعیت را ست می‌کرد و هم
+  // راهنما را می‌فرستاد. حالا که `/start` را دور زده‌ایم، اگر پیامی
+  // نفرستیم کاربر از مینی‌اپ بیرون می‌افتد و در یک چتِ **کاملا ساکت** رها
+  // می‌شود — دقیقا همان «مینی‌اپ بسته شد و ربات هیچ واکنشی نشان نداد».
+  //
+  // پیام پیش از باز شدن چت فرستاده می‌شود، پس وقتی کاربر می‌رسد، منتظرش
+  // نشسته است.
+  const q = await pool.query<{ question: string }>(
+    "SELECT question FROM ir_markets WHERE id=$1",
+    [marketId]
+  );
+  await sendTelegram(
+    tgId,
+    `🖼 <b>کاور بازار</b>\n\n` +
+      `<b>${escapeHtml(q.rows[0]?.question ?? "")}</b>\n\n` +
+      `حالا تصویر کاور را همین‌جا بفرستید.\n\n` +
+      `• نسبت <b>۱۶:۹</b> بهترین نتیجه را می‌دهد (مثلا ۱۲۸۰×۷۲۰)\n` +
+      `• تصویر را به‌صورت <b>عکس</b> بفرستید، نه فایل\n` +
+      `• کاور اجباری نیست، ولی بازارِ کاوردار بیشتر دیده می‌شود\n\n` +
+      `<i>اگر منصرف شدید، هر دستوری بفرستید تا لغو شود.</i>`
+  ).catch(() => {
+    /* نرسیدن پیام نباید وضعیت ست‌شده را باطل کند */
+  });
 
   const bot = (process.env.TG_BOT_USERNAME ?? "").replace(/^@/, "");
   return NextResponse.json({
