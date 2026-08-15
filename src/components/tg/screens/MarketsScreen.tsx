@@ -306,9 +306,23 @@ export default function MarketsScreen({
         <div className="mb-4 rounded-2xl border border-gold/30 bg-gold/[0.05] p-3">
           <div className="mb-2 flex items-center gap-2">
             <span className="text-[10px] font-bold text-gold">⭐ بازارهای ویژه</span>
+            {boosted.length > 1 && (
+              <span className="font-mono text-[9px] text-gold/70" dir="ltr">
+                {boosted.length}
+              </span>
+            )}
             <span className="h-px flex-1 bg-gold/20" />
+            {/* راهنمای سوایپ فقط وقتی بیش از یکی هست — وگرنه دروغ می‌گوید */}
+            {boosted.length > 1 && (
+              <span className="text-[9px] text-gold/60">‹ بکشید ›</span>
+            )}
           </div>
-          <div className="flex flex-col gap-2">
+          {/* ── چرخش افقی ──
+              کارت‌ها به‌جای فهرست عمودی، با سوایپ می‌چرخند. عرض ثابت و
+              `snap-start` یعنی هر سوایپ دقیقا روی یک کارت می‌ایستد، نه وسط
+              دو تا. عرض کمی کمتر از صفحه است تا لبه‌ی کارت بعدی پیدا باشد —
+              همان چیزی که به کاربر می‌گوید «بیشتر هست، بکش». */}
+          <div className="no-scrollbar -mx-3 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-3 pb-1">
             {boosted.map((m) => (
               <article
                 key={m.id}
@@ -318,7 +332,7 @@ export default function MarketsScreen({
                   haptic.press();
                   setOpenId(m.id);
                 }}
-                className="cursor-pointer rounded-xl border border-gold/25 bg-surface/50 p-3 transition active:border-gold/60"
+                className="w-[86%] shrink-0 snap-start cursor-pointer rounded-xl border border-gold/25 bg-surface/50 p-3 transition active:border-gold/60"
               >
                 <p className="line-clamp-2 text-[11.5px] font-bold leading-[1.9] text-cream">
                   {m.question}

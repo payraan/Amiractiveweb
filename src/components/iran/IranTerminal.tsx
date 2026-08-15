@@ -705,15 +705,24 @@ export default function IranTerminal() {
             <span className="font-mono text-[10px] text-gold/70" dir="ltr">
               {boosted.length}
             </span>
+            {/* راهنمای سوایپ فقط وقتی بیش از یکی هست — وگرنه دروغ می‌گوید */}
+            {boosted.length > 1 && (
+              <span className="text-[10px] text-gold/60">‹ بکشید ›</span>
+            )}
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+          {/* ── چرخش افقی ──
+              به‌جای گرید، نوار سوایپ‌شونده. عرض ثابت و `snap-start` یعنی هر
+              کشیدن دقیقا روی یک کارت می‌ایستد. روی موبایل کارت تقریبا تمام‌عرض
+              است و لبه‌ی بعدی پیداست؛ روی دسکتاپ چند کارت کنار هم می‌نشینند و
+              با اسکرول افقی می‌چرخند. */}
+          <div className="no-scrollbar flex snap-x snap-mandatory gap-px overflow-x-auto bg-gold/10">
             {boosted.map((x) => (
               <button
                 key={x.id}
                 type="button"
                 onClick={() => setSel(x.id)}
-                className={`border-b border-e border-gold/15 p-3 text-right transition hover:bg-gold/[0.07] ${
-                  x.id === sel ? "bg-gold/10" : ""
+                className={`w-[86%] shrink-0 snap-start p-3 text-right transition hover:bg-gold/[0.10] sm:w-[320px] ${
+                  x.id === sel ? "bg-gold/15" : "bg-ink"
                 }`}
               >
                 <p className="line-clamp-2 text-[11.5px] leading-6 text-cream">
