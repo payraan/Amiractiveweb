@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { ensureIrTables, moveFunds } from "@/lib/iran";
-import {
-  webhookTokenValid,
-  verifyDeposit,
-  playerIdFromClientId,
-  USDT_CURRENCY,
-} from "@/lib/zovix";
+import { webhookTokenValid, verifyDeposit } from "@/lib/zovix";
+import { creditDeposit } from "@/lib/deposit-sync";
 
 export const dynamic = "force-dynamic";
 
 // ── وبهوک درگاه ──────────────────────────────────────────────
+//
+// ⚠️ در پلن رایگانِ درگاه، وبهوک اصلا فعال نیست و این روت هرگز صدا زده
+// نمی‌شود. مسیر واقعیِ امروزِ واریز، خواندن دوره‌ای است
+// (`lib/deposit-sync.ts` + `/api/wallet/reconcile` روی کرون). این روت
+// نگه داشته شده چون اگر پلن ارتقا پیدا کند بدون تغییر کار می‌کند، و شارژ
+// آنی از شارژ ۱۵ دقیقه‌ای بهتر است.
 //
 // سه لایه‌ی محافظت، چون درگاه امضای وبهوک ندارد:
 //
@@ -18,36 +18,17 @@ export const dynamic = "force-dynamic";
 //  ۲. تأیید متقابل — پیش از هر واریز، خودمان از API درگاه می‌پرسیم که
 //     این txid واقعا وجود دارد، SUCCESS است و مبلغش چقدر است. مبلغِ
 //     معتبر همان است که API می‌گوید، نه آنچه در بدنه‌ی وبهوک آمده.
-//  ۳. یکتاسازی روی txid — جدول واریزها ایندکس یکتا دارد، پس ارسال
-//     دوباره‌ی همان وبهوک هرگز دوبار شارژ نمی‌کند.
+//  ۳. یکتاسازی روی txid — داخل `creditDeposit`، مشترک با خواندن دوره‌ای.
 //
 // طبق مستندات، ابتدا DEPOSIT_INITIAL با وضعیت PENDING_CONFIRM می‌آید و
 // بعد DEPOSIT_DONE با SUCCESS. فقط دومی شارژ می‌کند.
 
-async function ensureDepositTable() {
-  const pool = await db();
-  await pool.query(
-    `CREATE TABLE IF NOT EXISTS gateway_deposits (
-       id BIGSERIAL PRIMARY KEY,
-       txid TEXT NOT NULL,
-       player_id INTEGER REFERENCES players(id) ON DELETE SET NULL,
-       amount NUMERIC(18,6) NOT NULL,
-       currency TEXT NOT NULL,
-       network TEXT,
-       status TEXT NOT NULL,
-       credited BOOLEAN NOT NULL DEFAULT false,
-       raw JSONB,
-       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-     )`
-  );
-  await pool.query(
-    "CREATE UNIQUE INDEX IF NOT EXISTS gd_txid_uniq ON gateway_deposits(txid)"
-  );
-}
-
 export async function POST(req: Request) {
   const { searchParams } = new URL(req.url);
   if (!webhookTokenValid(searchParams.get("t"))) {
+    // ⚠️ اگر ZOVIX_WEBHOOK_TOKEN ست نشده باشد، همه‌ی وبهوک‌ها اینجا رد
+    // می‌شوند. لاگ می‌گذاریم تا این حالت بی‌صدا نماند.
+    console.warn("[wallet-webhook] توکن نامعتبر یا ست‌نشده — وبهوک رد شد");
     return NextResponse.json({ ok: false }, { status: 401 });
   }
 
@@ -64,6 +45,7 @@ export async function POST(req: Request) {
 
   // همیشه 200 برمی‌گردانیم تا درگاه تلاش دوباره نکند، مگر خطای واقعی.
   if (type !== "DEPOSIT" || !txid) {
+    console.log(`[wallet-webhook] نادیده: type=${type} txid=${txid || "-"}`);
     return NextResponse.json({ ok: true, ignored: true });
   }
   // مرحله‌ی اول فقط اعلان است، شارژ نمی‌کند.
@@ -76,66 +58,36 @@ export async function POST(req: Request) {
   if (!check.ok) {
     // نتوانستیم تأیید کنیم — عمدا شارژ نمی‌کنیم و ۵۰۰ می‌دهیم تا درگاه
     // دوباره بفرستد.
+    console.error(`[wallet-webhook] تأیید ${txid} شکست خورد: ${check.error}`);
     return NextResponse.json(
       { ok: false, error: "verify_failed" },
       { status: 500 }
     );
   }
+
   const row = check.data.find((d) => d.txid === txid);
-  if (!row || row.status !== "SUCCESS") {
+  if (!row) {
+    // درگاه این txid را نمی‌شناسد. یا جعلی است، یا هنوز ثبت نشده — در هر
+    // دو حالت شارژ نمی‌کنیم، ولی بی‌صدا هم ردش نمی‌کنیم: خواندن دوره‌ای
+    // بعدا همین را می‌بیند اگر واقعی باشد.
+    console.warn(`[wallet-webhook] ${txid} در API درگاه پیدا نشد — شارژ نشد`);
     return NextResponse.json({ ok: true, ignored: "not_confirmed" });
   }
-  if (row.currency?.symbol !== USDT_CURRENCY) {
-    return NextResponse.json({ ok: true, ignored: "unsupported_currency" });
-  }
 
-  const playerId = playerIdFromClientId(row.to_address?.client_id ?? "");
-  const amount = Number(row.amount);
-  if (!playerId || !Number.isFinite(amount) || amount <= 0) {
-    return NextResponse.json({ ok: true, ignored: "unmapped" });
-  }
-
-  await ensureIrTables();
-  await ensureDepositTable();
-
-  const pool = await db();
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-
-    // ایندکس یکتا روی txid یعنی اگر این واریز قبلا ثبت شده، اینجا هیچ
-    // سطری برنمی‌گردد و شارژ تکراری انجام نمی‌شود.
-    const ins = await client.query(
-      `INSERT INTO gateway_deposits (txid, player_id, amount, currency, network, status, raw)
-       VALUES ($1,$2,$3,$4,$5,'SUCCESS',$6)
-       ON CONFLICT (txid) DO NOTHING
-       RETURNING id`,
-      [
-        txid,
-        playerId,
-        amount,
-        USDT_CURRENCY,
-        String(body.network ?? ""),
-        JSON.stringify(body),
-      ]
-    );
-    if (!ins.rowCount) {
-      await client.query("ROLLBACK");
+  const r = await creditDeposit(row);
+  if (!r.ok) {
+    if (r.reason === "duplicate") {
       return NextResponse.json({ ok: true, duplicate: true });
     }
-
-    await client.query("SELECT id FROM players WHERE id=$1 FOR UPDATE", [playerId]);
-    await moveFunds(client, playerId, amount, "deposit", txid);
-    await client.query("UPDATE gateway_deposits SET credited=true WHERE txid=$1", [
-      txid,
-    ]);
-
-    await client.query("COMMIT");
-    return NextResponse.json({ ok: true, credited: amount });
-  } catch {
-    await client.query("ROLLBACK").catch(() => {});
-    return NextResponse.json({ ok: false, error: "server_error" }, { status: 500 });
-  } finally {
-    client.release();
+    if (r.reason.startsWith("error:")) {
+      return NextResponse.json(
+        { ok: false, error: "server_error" },
+        { status: 500 }
+      );
+    }
+    console.warn(`[wallet-webhook] ${txid} شارژ نشد: ${r.reason}`);
+    return NextResponse.json({ ok: true, ignored: r.reason });
   }
+
+  return NextResponse.json({ ok: true, credited: r.credited });
 }

@@ -5,6 +5,7 @@ import { settleCombosDue } from "@/lib/combos";
 import { refreshMarketPosts } from "@/lib/ir-posts";
 import { refreshTradePosts } from "@/lib/trade-posts";
 import { reconcileWithdrawals } from "@/lib/withdrawal-sync";
+import { reconcileDeposits } from "@/lib/deposit-sync";
 import { settleDueIrMarkets } from "@/lib/iran";
 import { runBroadcastTick } from "@/lib/broadcast";
 import { translatePending } from "@/lib/translate";
@@ -67,6 +68,15 @@ export async function POST(req: Request) {
     out.withdrawals = await reconcileWithdrawals();
   } catch (err) {
     out.withdrawalsError = err instanceof Error ? err.message : "error";
+  }
+
+  // آشتی واریزها. وبهوک درگاه در پلن رایگان قفل است، پس این **تنها** مسیری
+  // است که پول واقعی وارد حساب کاربر می‌شود. پیش از این هیچ واریزی به هیچ
+  // حسابی نمی‌نشست: پول به استخر پروژه می‌رسید و سیستم بی‌خبر می‌ماند.
+  try {
+    out.deposits = await reconcileDeposits();
+  } catch (err) {
+    out.depositsError = err instanceof Error ? err.message : "error";
   }
 
   // صف ترجمه‌ی عنوان بازارهای خارجی. بدون کلید بی‌هزینه رد می‌شود.

@@ -162,12 +162,39 @@ export type DepositRow = {
   txid: string;
   amount: string;
   status: string;
+  /** برای انتقال داخلی درگاه، null است */
+  from_address: string | null;
+  /** معنایش از سمت درگاه روشن نیست: واریز تاییدشده‌ی on-chain هم false بود */
+  is_verified?: boolean;
   to_address: { address: string; client_id: string };
   currency: { symbol: string };
+  network?: { symbol: string };
+  created_at?: string;
 };
 
 export async function verifyDeposit(txid: string) {
   return call<DepositRow[]>("/my-blockchain/deposit/index", "GET", { txid });
+}
+
+/**
+ * فهرست واریزها، تازه‌ترین اول.
+ *
+ * ── چرا این وجود دارد ──
+ * وبهوک درگاه در پلن رایگان قفل است، پس هیچ واریزی خودش خبر نمی‌دهد. تنها
+ * راه باخبر شدن، خواندن دوره‌ای همین فهرست است.
+ *
+ * این از وبهوک **مطمئن‌تر** هم هست: وبهوکی که یک بار گم شود، آن واریز را
+ * برای همیشه می‌برد، ولی خواندن دوره‌ای خودش را جبران می‌کند — واریزی که
+ * این دور جا بماند، دور بعد دیده می‌شود.
+ *
+ * ⚠️ سقف نرخ درگاه تنگ است (حدود ۵ درخواست پشت‌سرهم، بعدش ۴۲۹ و سپس چالش
+ * Cloudflare که دیگر JSON نمی‌دهد). هر فراخوانی از این تابع یک درخواست
+ * است — تعدادشان را در هر دور کم نگه دار.
+ */
+export async function listDeposits(page = 1) {
+  return call<DepositRow[]>("/my-blockchain/deposit/index", "GET", {
+    page: String(page),
+  });
 }
 
 /** مقایسه‌ی امن توکن وبهوک — در برابر حمله‌ی زمانی */
