@@ -45,7 +45,14 @@ export type WithdrawResult =
 const MAX_PER_WINDOW = 5;
 const WINDOW_MIN = 10;
 
-async function ensureWithdrawalsTable(): Promise<void> {
+/**
+ * صادرشده چون کرون آشتی هم به همین اسکیما نیاز دارد.
+ *
+ * ⚠️ پیش از این فقط مسیر «ثبت برداشت» صدایش می‌زد، پس ستون تازه تا اولین
+ * برداشتِ بعدی وجود نداشت — و کرونی که همان ستون را می‌نوشت، هر ۱۵ دقیقه
+ * می‌ترکید. هر جدولی که دو مسیر لمسش می‌کنند، باید از هر دو مسیر تضمین شود.
+ */
+export async function ensureWithdrawalsTable(): Promise<void> {
   const pool = await db();
   await pool.query(
     `CREATE TABLE IF NOT EXISTS withdrawals (

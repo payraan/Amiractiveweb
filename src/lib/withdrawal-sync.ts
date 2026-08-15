@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { moveFunds } from "@/lib/iran";
 import { getWithdrawal, gatewayReady } from "@/lib/zovix";
 import { notifyPlayer } from "@/lib/telegram";
+import { ensureWithdrawalsTable } from "@/lib/withdrawal";
 
 // ═══ آشتی‌دادن برداشت‌ها با درگاه ════════════════════════════
 //
@@ -104,14 +105,11 @@ export async function reconcileWithdrawals(): Promise<SyncResult> {
   };
   if (!gatewayReady()) return out;
 
+  // جدول و ستون‌هایش را همین‌جا هم تضمین می‌کنیم، نه فقط در مسیر ثبت
+  // برداشت: این کرون ستون txid را می‌نویسد و اگر هنوز ساخته نشده باشد
+  // هر ۱۵ دقیقه می‌ترکد. بی‌هزینه و idempotent است.
+  await ensureWithdrawalsTable();
   const pool = await db();
-
-  // جدول ممکن است هنوز ساخته نشده باشد (هیچ برداشتی رخ نداده). این کرون
-  // نباید همان‌جا بترکد.
-  const exists = await pool.query<{ ok: boolean }>(
-    "SELECT to_regclass('public.withdrawals') IS NOT NULL AS ok"
-  );
-  if (!exists.rows[0]?.ok) return out;
 
   // ── ۱. ردیف‌های submitted: از درگاه بپرس ──────────────────
   const open = await pool.query<{
