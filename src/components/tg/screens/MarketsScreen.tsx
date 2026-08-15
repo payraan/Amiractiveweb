@@ -7,6 +7,7 @@ import { ErrorState, EmptyState, ScreenTitle, Skeleton, SearchBar } from "@/comp
 import { matchesQuery } from "@/lib/search";
 import { haptic } from "@/components/tg/telegram";
 import ProposeScreen from "@/components/tg/screens/ProposeScreen";
+import MyBetsScreen from "@/components/tg/screens/MyBetsScreen";
 import MarketDetail, { type Market } from "@/components/tg/screens/MarketDetail";
 import { remaining, closingSoon } from "@/lib/dates";
 
@@ -103,6 +104,7 @@ export default function MarketsScreen({
   const [onlySoon, setOnlySoon] = useState(false);
   const [q, setQ] = useState("");
   const [proposing, setProposing] = useState(false);
+  const [showingMine, setShowingMine] = useState(false);
   // مقصد deep link به‌عنوان مقدار اولیه‌ی state می‌نشیند، نه در یک افکت:
   // این‌طور یک‌بار اعمال می‌شود، بازگشت کاربر آن را دوباره باز نمی‌کند، و
   // setState داخل افکت هم لازم نمی‌شود.
@@ -114,6 +116,20 @@ export default function MarketsScreen({
 
   // زیرصفحه، نه تب پنجم: ساخت بازار یک کار است نه یک مقصد، و دکمه‌ی بازگشتِ
   // خود تلگرام همان چیزی است که کاربر برای بستنش دنبالش می‌گردد.
+  // زیرصفحه، نه تب پنجم — همان استدلال ساخت بازار: کارنامه یک نگاه است نه
+  // یک مقصد، و دکمه‌ی بازگشت خود تلگرام همان چیزی است که کاربر می‌زند.
+  if (showingMine) {
+    return (
+      <MyBetsScreen
+        onBack={() => setShowingMine(false)}
+        onOpenMarket={(id) => {
+          setShowingMine(false);
+          setOpenId(id);
+        }}
+      />
+    );
+  }
+
   if (proposing) {
     return (
       <ProposeScreen
@@ -164,16 +180,28 @@ export default function MarketsScreen({
     <div>
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="min-w-0"><ScreenTitle title="بازار ایران" subtitle="از نرخ ارز و طلا تا لیگ برتر" /></div>
-        <button
-          type="button"
-          onClick={() => {
-            haptic.press();
-            setProposing(true);
-          }}
-          className="shrink-0 rounded-xl border border-gold/40 bg-gold/10 px-3 py-2 text-[11px] font-bold text-gold"
-        >
-          + بازار بساز
-        </button>
+        <div className="flex shrink-0 gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              haptic.press();
+              setShowingMine(true);
+            }}
+            className="rounded-xl border border-line bg-surface/40 px-3 py-2 text-[11px] font-bold text-cream"
+          >
+            پیش‌بینی‌های من
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              haptic.press();
+              setProposing(true);
+            }}
+            className="rounded-xl border border-gold/40 bg-gold/10 px-3 py-2 text-[11px] font-bold text-gold"
+          >
+            + بازار
+          </button>
+        </div>
       </div>
 
       {/* آستانه از روی کل بازارها حساب می‌شود نه فهرست فیلترشده، وگرنه
