@@ -7,6 +7,7 @@ import AuthPanel from "@/components/predict/AuthPanel";
 import { IR_CATEGORIES } from "@/lib/ir-categories";
 import { floorUsdt } from "@/lib/wallet-rules";
 import DisputePanel from "@/components/iran/DisputePanel";
+import MyBets from "@/components/iran/MyBets";
 
 type M = {
   id: number;
@@ -102,6 +103,8 @@ export default function IranTerminal() {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [load, setLoad] = useState(true);
   const [sort, setSort] = useState<SortId>("hot");
+  // با هر ثبت موفق بالا می‌رود تا کارنامه هم تازه شود.
+  const [betTick, setBetTick] = useState(0);
 
   const fetchMarkets = useCallback(async () => {
     try {
@@ -161,6 +164,7 @@ export default function IranTerminal() {
         return;
       }
       setMsg({ ok: true, text: "پیش‌بینی ثبت شد ✓" });
+      setBetTick((n) => n + 1);
       setStake("");
       await Promise.all([fetchMarkets(), refresh()]);
     } catch {
@@ -590,6 +594,8 @@ export default function IranTerminal() {
           </div>
         </div>
       </div>
+
+      <MyBets reloadKey={betTick} />
 
       {/* ── اکسپلور: همه‌ی بازارهای باز ── */}
       <div className="border-t border-line">
