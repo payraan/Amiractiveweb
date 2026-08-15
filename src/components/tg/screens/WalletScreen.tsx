@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { ledgerLabel } from "@/lib/ledger-labels";
+import { floorUsdt } from "@/lib/wallet-rules";
 import { useResource } from "@/components/tg/useResource";
 import { ErrorState, ScreenTitle, Skeleton } from "@/components/tg/ui";
 import {
@@ -171,7 +172,7 @@ export default function WalletScreen() {
             <br />
             قابل برداشت:{" "}
             <span dir="ltr" className="font-mono text-cream">
-              ${money(w.withdrawable ?? 0)}
+              ${money(floorUsdt(w.withdrawable ?? 0))}
             </span>
           </div>
         )}

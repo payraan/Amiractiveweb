@@ -3,7 +3,11 @@ import { escapeHtml, type InlineButton, type Screen } from "@/lib/telegram";
 import { ensureIrTables } from "@/lib/iran";
 import { gatewayReady, USDT_NETWORK } from "@/lib/zovix";
 import { depositAddressFor } from "@/lib/deposit-address";
-import { MIN_WITHDRAW, withdrawAddressShapeValid } from "@/lib/wallet-rules";
+import {
+  MIN_WITHDRAW,
+  floorUsdt,
+  withdrawAddressShapeValid,
+} from "@/lib/wallet-rules";
 import { ledgerLabel } from "@/lib/ledger-labels";
 
 // ═══ کیف پول داخل ربات ═══════════════════════════════════════
@@ -112,7 +116,7 @@ export async function walletHomeScreen(playerId: number): Promise<Screen> {
       // پولش را خورده‌ایم.
       (d.demoBalance > 0
         ? `شامل <b>${money(d.demoBalance)}</b> هدیه — قابل برداشت: ` +
-          `<b>${money(d.withdrawable)}</b>\n`
+          `<b>${money(floorUsdt(d.withdrawable))}</b>\n`
         : "") +
       `شبکه: <b>${USDT_NETWORK}</b>\n` +
       (d.openBets > 0

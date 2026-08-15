@@ -4,7 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePlayer } from "@/components/predict/usePlayer";
 import { ledgerLabel } from "@/lib/ledger-labels";
-import { MIN_WITHDRAW, withdrawAddressShapeValid } from "@/lib/wallet-rules";
+import {
+  MIN_WITHDRAW,
+  floorUsdt,
+  withdrawAddressShapeValid,
+} from "@/lib/wallet-rules";
 
 type Ledger = {
   amount: number;
@@ -164,7 +168,7 @@ export default function WalletPanel() {
               <br />
               قابل برداشت:{" "}
               <span dir="ltr" className="font-mono text-cream">
-                ${(d?.withdrawable ?? 0).toFixed(2)}
+                ${floorUsdt(d?.withdrawable ?? 0).toFixed(2)}
               </span>
             </div>
           )}
@@ -291,7 +295,7 @@ export default function WalletPanel() {
                   type="button"
                   onClick={() =>
                     setAmount(
-                      (((d?.withdrawable ?? d?.balance ?? 0) * p) / 100).toFixed(2)
+                      floorUsdt(((d?.withdrawable ?? d?.balance ?? 0) * p) / 100).toFixed(2)
                     )
                   }
                   className="flex-1 rounded-lg border border-line py-1.5 font-mono text-[10px] text-muted transition hover:border-gold/40 hover:text-cream"

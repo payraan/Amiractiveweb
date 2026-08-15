@@ -4,7 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/components/tg/api";
 import { haptic, hasMainButton, showBackButton } from "@/components/tg/telegram";
 import { useMainButton } from "@/components/tg/useMainButton";
-import { MIN_WITHDRAW, withdrawAddressShapeValid } from "@/lib/wallet-rules";
+import {
+  MIN_WITHDRAW,
+  floorUsdt,
+  withdrawAddressShapeValid,
+} from "@/lib/wallet-rules";
 
 // برداشت تتر — روی همان /api/wallet/withdraw سایت.
 //
@@ -92,7 +96,7 @@ export default function WithdrawScreen({
       <div className="rounded-2xl border border-line bg-surface/40 p-4 text-center">
         <div className="text-[10px] text-muted">قابل برداشت</div>
         <div dir="ltr" className="mt-1 font-mono text-2xl font-bold text-gold">
-          ${money(balance)}
+          ${money(floorUsdt(balance))}
         </div>
       </div>
 
@@ -114,7 +118,7 @@ export default function WithdrawScreen({
             type="button"
             onClick={() => {
               haptic.tap();
-              setAmount(String(Math.floor(balance * 100) / 100));
+              setAmount(String(floorUsdt(balance)));
             }}
             className="mt-2 w-full rounded-lg border border-line bg-surface/40 py-2 text-[11px] text-muted"
           >
