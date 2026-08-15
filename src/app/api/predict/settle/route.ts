@@ -1,3 +1,4 @@
+import { log } from "@/lib/log";
 import { NextResponse } from "next/server";
 import { settleDueRounds } from "@/lib/settle";
 import { settlePolyDue } from "@/lib/poly";
@@ -23,6 +24,7 @@ export async function POST(req: Request) {
   // هر سه بازی تسویه می‌شوند. قبلا فقط نبض بازار اینجا بود، پس ترید پیش‌بینی و کمبو
   // حتی با کرون هم تسویه نمی‌شدند و فقط به بازدید صفحه وابسته بودند.
   // هر بخش جدا هندل می‌شود تا خطای یکی بقیه را متوقف نکند.
+  const t0 = Date.now();
   const out: Record<string, unknown> = {};
   try {
     out.pulse = await settleDueRounds();
@@ -94,6 +96,16 @@ export async function POST(req: Request) {
   } catch (err) {
     out.broadcastError = err instanceof Error ? err.message : "error";
   }
+
+  // ⚠️ خلاصه‌ی هر تیک لاگ می‌شود، حتی وقتی همه‌چیز صفر است. لاگِ «هیچ
+  // اتفاقی نیفتاد» هم داده است: نبودنش یعنی کرون اصلا اجرا نشده، و آن
+  // خرابیِ خاموشی است که تا هفته‌ها معلوم نمی‌شود.
+  const errored = Object.keys(out).filter((k) => k.endsWith("Error"));
+  log.info("cron.tick", {
+    ms: Date.now() - t0,
+    errors: errored.length ? errored : undefined,
+    ...out,
+  });
 
   try {
     return NextResponse.json({ ok: true, ...out });

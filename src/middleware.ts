@@ -1,3 +1,4 @@
+import { log } from "@/lib/log";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -160,6 +161,16 @@ export function middleware(req: NextRequest) {
   rec.n++;
   if (rec.n > rule.max) {
     const retryAfter = Math.ceil((rec.ts + WINDOW_MS - now) / 1000);
+    // ⚠️ سقف خوردن دو معنی دارد و هر دو باید دیده شوند: یا کسی دارد
+    // سوءاستفاده می‌کند، یا سقف برای استفاده‌ی عادی تنگ است و کاربر سالم
+    // را بیرون می‌اندازد. بدون لاگ، هیچ‌کدام معلوم نمی‌شود.
+    log.warn("ratelimit.blocked", {
+      rule: rule.id,
+      path,
+      hits: rec.n,
+      max: rule.max,
+      retryAfter,
+    });
     return NextResponse.json(
       { ok: false, error: "rate_limited" },
       { status: 429, headers: { "Retry-After": String(retryAfter) } }

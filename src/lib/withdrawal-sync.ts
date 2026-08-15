@@ -1,3 +1,4 @@
+import { log } from "@/lib/log";
 import { db } from "@/lib/db";
 import { moveFunds } from "@/lib/iran";
 import { getWithdrawal, gatewayReady } from "@/lib/zovix";
@@ -145,6 +146,12 @@ export async function reconcileWithdrawals(): Promise<SyncResult> {
     if (!out.seen.includes(status)) out.seen.push(status);
 
     if (FAILED.has(status)) {
+      log.warn("withdraw.gateway_failed", {
+        withdrawalId: w.id,
+        playerId: w.player_id,
+        amount: Number(w.amount),
+        status,
+      });
       if (await refundWithdrawal(w.id, `gateway:${status}`)) out.refunded++;
       continue;
     }
@@ -165,6 +172,12 @@ export async function reconcileWithdrawals(): Promise<SyncResult> {
         "UPDATE withdrawals SET status='completed', txid=$2 WHERE id=$1 AND status='submitted'",
         [w.id, txid]
       );
+      log.info("withdraw.completed", {
+        withdrawalId: w.id,
+        playerId: w.player_id,
+        amount: Number(w.amount),
+        txid,
+      });
       out.completed++;
       continue;
     }
@@ -175,7 +188,12 @@ export async function reconcileWithdrawals(): Promise<SyncResult> {
     }
 
     // رشته‌ای که در هیچ فهرستی نیست — نه فرض می‌کنیم موفق است نه ناموفق.
-    if (!out.unknown.includes(status)) out.unknown.push(status);
+    if (!out.unknown.includes(status)) {
+      out.unknown.push(status);
+      // وضعیت ناشناخته یعنی درگاه چیزی گفته که ما برایش تصمیمی نداریم —
+      // پول کاربر تا روشن‌شدنش کسرشده می‌ماند، پس باید دیده شود.
+      log.error("withdraw.unknown_status", { withdrawalId: w.id, status });
+    }
   }
 
   // ── ۲. ردیف‌های requested که جا مانده‌اند ──────────────────

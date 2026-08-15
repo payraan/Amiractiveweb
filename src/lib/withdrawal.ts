@@ -1,3 +1,4 @@
+import { log } from "@/lib/log";
 import { randomUUID } from "crypto";
 import { db } from "@/lib/db";
 import { ensureIrTables, moveFunds } from "@/lib/iran";
@@ -155,6 +156,15 @@ export async function requestWithdrawal(
   // کاربر فقط مبلغ کم شده بود — یعنی هر برداشت ۳ تتر از پول کاربران دیگر
   // آب می‌کرد. حالا استخر دقیقا به اندازه‌ی همان چیزی سبک می‌شود که از
   // حساب کاربر کم شده.
+  log.info("withdraw.requested", {
+    playerId,
+    amount,
+    net: receivedAfterFee(amount),
+    fee: WITHDRAW_FEE_USDT,
+    toAddress,
+    network: USDT_NETWORK,
+  });
+
   const r = await createWithdrawal({
     amount: receivedAfterFee(amount).toFixed(6),
     toAddress,
@@ -178,8 +188,16 @@ export async function requestWithdrawal(
     } finally {
       c2.release();
     }
+    log.error("withdraw.gateway_rejected", {
+      playerId,
+      amount,
+      err: r.error,
+      refunded: true,
+    });
     return { ok: false, error: r.error };
   }
+
+  log.info("withdraw.submitted", { playerId, amount, gatewayUuid: r.data.uuid });
 
   await pool.query(
     "UPDATE withdrawals SET status='submitted', gateway_uuid=$2 WHERE unique_param=$1",

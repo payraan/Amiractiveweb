@@ -1,3 +1,4 @@
+import { log } from "@/lib/log";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentPlayerId } from "@/lib/current-player";
@@ -133,6 +134,13 @@ export async function POST(req: Request) {
 
     await client.query("COMMIT");
 
+    log.info("boost.purchased", {
+      marketId,
+      playerId,
+      paid: price,
+      until: until.toISOString(),
+    });
+
     // ── پخش سراسری، **بیرون** از ترنزاکشن و best-effort ──────
     //
     // اگر ساختن کار پخش شکست بخورد، پرداخت نباید برگردد: بوست خریداری شده
@@ -149,12 +157,12 @@ export async function POST(req: Request) {
         ? { queued: true, targets: b.targets }
         : { queued: false, error: b.error };
       if (!b.ok) {
-        console.warn(`[boost] پخش بازار ${marketId} انجام نشد: ${b.error}`);
+        log.warn("boost.broadcast_failed", { marketId, err: b.error });
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "error";
       broadcast = { queued: false, error: msg };
-      console.error(`[boost] خطای پخش بازار ${marketId}: ${msg}`);
+      log.error("boost.broadcast_error", { marketId, err: msg });
     }
 
     return NextResponse.json({

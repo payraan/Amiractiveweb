@@ -1,3 +1,4 @@
+import { log } from "@/lib/log";
 import { NextResponse } from "next/server";
 import { webhookTokenValid, verifyDeposit } from "@/lib/zovix";
 import { creditDeposit } from "@/lib/deposit-sync";
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
   if (!webhookTokenValid(searchParams.get("t"))) {
     // ⚠️ اگر ZOVIX_WEBHOOK_TOKEN ست نشده باشد، همه‌ی وبهوک‌ها اینجا رد
     // می‌شوند. لاگ می‌گذاریم تا این حالت بی‌صدا نماند.
-    console.warn("[wallet-webhook] توکن نامعتبر یا ست‌نشده — وبهوک رد شد");
+    log.warn("webhook.bad_token");
     return NextResponse.json({ ok: false }, { status: 401 });
   }
 
@@ -45,7 +46,7 @@ export async function POST(req: Request) {
 
   // همیشه 200 برمی‌گردانیم تا درگاه تلاش دوباره نکند، مگر خطای واقعی.
   if (type !== "DEPOSIT" || !txid) {
-    console.log(`[wallet-webhook] نادیده: type=${type} txid=${txid || "-"}`);
+    log.info("webhook.ignored", { type, txid: txid || null });
     return NextResponse.json({ ok: true, ignored: true });
   }
   // مرحله‌ی اول فقط اعلان است، شارژ نمی‌کند.
@@ -58,7 +59,7 @@ export async function POST(req: Request) {
   if (!check.ok) {
     // نتوانستیم تأیید کنیم — عمدا شارژ نمی‌کنیم و ۵۰۰ می‌دهیم تا درگاه
     // دوباره بفرستد.
-    console.error(`[wallet-webhook] تأیید ${txid} شکست خورد: ${check.error}`);
+    log.error("webhook.verify_failed", { txid, err: check.error });
     return NextResponse.json(
       { ok: false, error: "verify_failed" },
       { status: 500 }
@@ -70,7 +71,7 @@ export async function POST(req: Request) {
     // درگاه این txid را نمی‌شناسد. یا جعلی است، یا هنوز ثبت نشده — در هر
     // دو حالت شارژ نمی‌کنیم، ولی بی‌صدا هم ردش نمی‌کنیم: خواندن دوره‌ای
     // بعدا همین را می‌بیند اگر واقعی باشد.
-    console.warn(`[wallet-webhook] ${txid} در API درگاه پیدا نشد — شارژ نشد`);
+    log.warn("webhook.not_in_gateway", { txid });
     return NextResponse.json({ ok: true, ignored: "not_confirmed" });
   }
 
@@ -85,7 +86,7 @@ export async function POST(req: Request) {
         { status: 500 }
       );
     }
-    console.warn(`[wallet-webhook] ${txid} شارژ نشد: ${r.reason}`);
+    log.warn("webhook.not_credited", { txid, reason: r.reason });
     return NextResponse.json({ ok: true, ignored: r.reason });
   }
 

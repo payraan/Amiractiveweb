@@ -1,3 +1,4 @@
+import { log } from "@/lib/log";
 import { db } from "@/lib/db";
 import { tgCall, markTelegramBlocked, type InlineButton } from "@/lib/telegram";
 
@@ -393,7 +394,10 @@ export async function runBroadcastTick(budgetMs = 45_000): Promise<TickResult> {
       if (/bot was blocked by the user/i.test(r.error)) {
         await markTelegramBlocked(chatId).catch(() => {});
       }
-      if (/too many requests/i.test(r.error)) throttled = true;
+      if (/too many requests/i.test(r.error)) {
+        throttled = true;
+        log.warn("broadcast.throttled", { jobId, sent, failed });
+      }
     }
 
     // ۴۲۹ یعنی تندتر از سقف رفته‌ایم. تیک را تمام می‌کنیم تا تیک بعدی با

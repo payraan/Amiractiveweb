@@ -1,3 +1,4 @@
+import { log } from "@/lib/log";
 import { db } from "@/lib/db";
 import { ensureIrTables, moveFunds } from "@/lib/iran";
 import {
@@ -133,7 +134,7 @@ export async function creditDeposit(row: DepositRow): Promise<CreditResult> {
     await client.query("ROLLBACK").catch(() => {});
     // خطا را نمی‌بلعیم: شمارنده‌ی بدون علت از خود مشکل بدتر است.
     const msg = err instanceof Error ? err.message : "server_error";
-    console.error(`[deposit-sync] شارژ ${txid} شکست خورد: ${msg}`);
+    log.error("deposit.credit_failed", { txid, playerId, amount, err: msg });
     return { ok: false, reason: `error:${msg}` };
   } finally {
     client.release();
@@ -176,7 +177,7 @@ export async function reconcileDeposits(maxPages = 3): Promise<ReconcileSummary>
     if (!res.ok) {
       sum.ok = false;
       sum.error = res.error;
-      console.error(`[deposit-sync] خواندن صفحه‌ی ${page} شکست خورد: ${res.error}`);
+      log.error("deposit.list_failed", { page, err: res.error });
       break;
     }
     sum.pagesRead++;
@@ -192,15 +193,18 @@ export async function reconcileDeposits(maxPages = 3): Promise<ReconcileSummary>
         newOnThisPage++;
         sum.credited++;
         sum.creditedAmount = Math.round((sum.creditedAmount + r.credited) * 1e6) / 1e6;
-        console.log(
-          `[deposit-sync] شارژ شد: ${r.credited} USDT برای بازیکن ${r.playerId} (${row.txid})`
-        );
+        log.info("deposit.credited", {
+          playerId: r.playerId,
+          amount: r.credited,
+          txid: row.txid,
+          network: row.network?.symbol,
+        });
       } else {
         skip(r.reason);
         // «تکراری» حالت عادی است و لاگ نمی‌خواهد؛ بقیه یعنی پولی رسیده که
         // نتوانستیم نسبت بدهیم — همان چیزی که باید دیده شود.
         if (r.reason !== "duplicate") {
-          console.warn(`[deposit-sync] ${row.txid} رد شد: ${r.reason}`);
+          log.warn("deposit.skipped", { txid: row.txid, reason: r.reason });
           newOnThisPage++;
         }
       }
