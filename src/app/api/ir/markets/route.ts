@@ -118,6 +118,10 @@ export async function GET(req: Request) {
       // ثابت نشان بدهد و بعد سرور چیز دیگری بگیرد.
       boostPrice: boostPriceFor,
       boostHours: BOOST_HOURS,
+      // ⚠️ لینک عمیقِ کاور را **سرور** می‌سازد چون نام ربات فقط اینجاست.
+      // پیش از این فقط در پیام موفقیتِ ساخت بازار برمی‌گشت، یعنی سازنده‌ای
+      // که از آن صفحه رد شده بود، هیچ راهی برای گذاشتن کاور نداشت.
+      botUsername: (process.env.TG_BOT_USERNAME ?? "").replace(/^@/, ""),
     },
   });
 }

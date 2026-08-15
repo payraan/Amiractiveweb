@@ -41,6 +41,7 @@ type Cfg = {
   commission: number;
   boostPrice: number;
   boostHours: number;
+  botUsername: string;
 };
 
 const BOOST_ERR: Record<string, string> = {
@@ -115,7 +116,13 @@ function remain(iso: string) {
 export default function IranTerminal() {
   const { player, loading, refresh } = usePlayer();
   const [markets, setMarkets] = useState<M[]>([]);
-  const [cfg, setCfg] = useState<Cfg>({ minStake: 1, commission: 0.03, boostPrice: 5, boostHours: 24 });
+  const [cfg, setCfg] = useState<Cfg>({
+    minStake: 1,
+    commission: 0.03,
+    boostPrice: 5,
+    boostHours: 24,
+    botUsername: "",
+  });
   const [balance, setBalance] = useState(0);
   const [cat, setCat] = useState("all");
   const [sel, setSel] = useState<number | null>(null);
@@ -636,6 +643,17 @@ export default function IranTerminal() {
                 {/* بوست — فقط برای بازارِ خودِ کاربر.
                     ⚠️ فقط دیده‌شدن می‌خرد: ضریب، تسویه و شانس برد دست
                     نمی‌خورند. */}
+                {m?.isMine && m.status === "open" && cfg.botUsername && (
+                  <a
+                    href={`https://t.me/${cfg.botUsername}?start=cover_${m.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="no-zoom mt-2 block rounded-lg border border-line py-2 text-center text-[11px] text-muted transition hover:border-gold/40 hover:text-cream"
+                  >
+                    {m.hasCover ? "🖼 تعویض کاور" : "🖼 افزودن کاور"}
+                  </a>
+                )}
+
                 {m?.isMine && m.status === "open" && (
                   <button
                     type="button"

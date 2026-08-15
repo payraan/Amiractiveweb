@@ -22,6 +22,7 @@ type MarketsResponse = {
     commission: number;
     boostPrice: number;
     boostHours: number;
+    botUsername: string;
   };
 };
 
@@ -177,6 +178,7 @@ export default function MarketsScreen({
         minStake={data.config.minStake}
         commission={data.config.commission}
         boostPrice={data.config.boostPrice}
+        botUsername={data.config.botUsername}
         myBet={data.myBets?.[open.id]}
         initialSide={open.id === deepLink?.marketId ? deepLink.side : null}
         onBack={() => setOpenId(null)}

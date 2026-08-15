@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/components/tg/api";
-import { haptic, hasMainButton, showBackButton } from "@/components/tg/telegram";
+import { haptic, hasMainButton, openTelegramChat, showBackButton } from "@/components/tg/telegram";
 import { shareText } from "@/components/tg/share";
 import { useMainButton } from "@/components/tg/useMainButton";
 import { floorUsdt } from "@/lib/wallet-rules";
@@ -68,6 +68,7 @@ export default function MarketDetail({
   minStake,
   commission,
   boostPrice,
+  botUsername,
   myBet,
   initialSide,
   onBack,
@@ -80,6 +81,8 @@ export default function MarketDetail({
   commission: number;
   /** قیمت بوست برای همین کاربر — برای ادمین صفر. */
   boostPrice: number;
+  /** نام ربات، برای ساخت لینک عمیق کاور. خالی یعنی ربات تنظیم نشده. */
+  botUsername: string;
   myBet?: { side: string; stake: number };
   /** طرفی که کاربر در کانال رویش کلیک کرده — از پیش انتخاب می‌شود. */
   initialSide?: "yes" | "no" | null;
@@ -469,6 +472,24 @@ export default function MarketDetail({
                 بازار در پنل ویژه بالا می‌آید و یک بار برای همه‌ی کاربران ارسال
                 می‌شود. ضریب و نتیجه تغییر نمی‌کند.
               </p>
+
+              {/* کاور — تا امروز فقط بلافاصله پس از ساخت بازار در دسترس بود،
+                  یعنی سازنده‌ای که از آن صفحه رد شده بود هیچ راهی نداشت. */}
+              {botUsername && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    openTelegramChat(
+                      `https://t.me/${botUsername}?start=cover_${market.id}`
+                    )
+                  }
+                  className="mt-2 w-full rounded-xl border border-line bg-surface/40 py-2.5 text-[11.5px] text-muted"
+                >
+                  {market.hasCover
+                    ? "🖼 تعویض کاور"
+                    : "🖼 افزودن کاور — بازارِ کاوردار بیشتر دیده می‌شود"}
+                </button>
+              )}
               {boostMsg && (
                 <p
                   className={`mt-2 rounded-xl border px-4 py-3 text-[11.5px] leading-6 ${
