@@ -3,7 +3,11 @@ import { db } from "@/lib/db";
 import { ensureIrTables, moveFunds } from "@/lib/iran";
 import { createWithdrawal, gatewayReady, USDT_NETWORK } from "@/lib/zovix";
 import { notifyPlayer } from "@/lib/telegram";
-import { MIN_WITHDRAW } from "@/lib/wallet-rules";
+import {
+  MIN_WITHDRAW,
+  WITHDRAW_FEE_USDT,
+  receivedAfterFee,
+} from "@/lib/wallet-rules";
 import { withdrawAddressValid } from "@/lib/withdraw-address";
 
 // ═══ برداشت تتر — یک مسیر، دو سطح ════════════════════════════
@@ -132,8 +136,15 @@ export async function requestWithdrawal(
   client.release();
 
   // تماس با درگاه *بیرون* از ترنزاکشن، تا قفل دیتابیس منتظر شبکه نماند.
+  //
+  // ⚠️ مبلغی که به درگاه می‌دهیم **منهای کارمزد** است. درگاه کارمزد را
+  // جدا و علاوه بر این عدد از استخر پروژه برمی‌دارد، پس اگر کل مبلغ را
+  // می‌فرستادیم، استخر به اندازه‌ی مبلغ + کارمزد سبک می‌شد در حالی که از
+  // کاربر فقط مبلغ کم شده بود — یعنی هر برداشت ۳ تتر از پول کاربران دیگر
+  // آب می‌کرد. حالا استخر دقیقا به اندازه‌ی همان چیزی سبک می‌شود که از
+  // حساب کاربر کم شده.
   const r = await createWithdrawal({
-    amount: amount.toFixed(6),
+    amount: receivedAfterFee(amount).toFixed(6),
     toAddress,
     uniqueParam,
   });
@@ -172,6 +183,8 @@ export async function requestWithdrawal(
   notifyPlayer(
     playerId,
     `🔔 درخواست برداشت <b>${amount}</b> تتر از حساب نارمون ثبت شد.\n\n` +
+      `کارمزد شبکه: <b>${WITHDRAW_FEE_USDT}</b> تتر · ` +
+      `دریافتی شما: <b>${receivedAfterFee(amount)}</b> تتر\n` +
       `مقصد: <code>${toAddress.slice(0, 6)}…${toAddress.slice(-6)}</code>\n\n` +
       `اگر این درخواست کار شما نبوده، همین حالا به پشتیبانی خبر بدهید.`
   ).catch(() => {});

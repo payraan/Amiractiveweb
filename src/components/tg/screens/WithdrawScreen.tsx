@@ -6,7 +6,9 @@ import { haptic, hasMainButton, showBackButton } from "@/components/tg/telegram"
 import { useMainButton } from "@/components/tg/useMainButton";
 import {
   MIN_WITHDRAW,
+  WITHDRAW_FEE_USDT,
   floorUsdt,
+  receivedAfterFee,
   withdrawAddressShapeValid,
 } from "@/lib/wallet-rules";
 
@@ -20,7 +22,7 @@ const ERR: Record<string, string> = {
   rate_limited: "درخواست‌های پیاپی بیش از حد بود. کمی صبر کنید و دوباره تلاش کنید.",
   not_authed: "ابتدا وارد شوید.",
   gateway_off: "درگاه پرداخت فعال نیست.",
-  amount_too_low: `حداقل برداشت ${MIN_WITHDRAW} تتر است.`,
+  amount_too_low: `کمتر از ${MIN_WITHDRAW} تتر ممکن نیست (کارمزد شبکه ${WITHDRAW_FEE_USDT} تتر است).`,
   bad_address: "آدرس مقصد معتبر نیست.",
   insufficient_funds: "موجودی کافی نیست.",
   server_error: "خطای سرور. کمی بعد دوباره امتحان کنید.",
@@ -146,6 +148,26 @@ export default function WithdrawScreen({
         )}
       </div>
 
+      {value > 0 && (
+        <div className="mt-4 rounded-xl border border-line bg-surface/40 p-4 text-[11px] leading-6">
+          <div className="flex justify-between text-muted">
+            <span>کارمزد شبکه ({network})</span>
+            <span dir="ltr" className="font-mono">
+              {WITHDRAW_FEE_USDT.toFixed(2)}$
+            </span>
+          </div>
+          <div className="flex justify-between font-bold text-cream">
+            <span>به دست تو می‌رسد</span>
+            <span dir="ltr" className="font-mono text-gold">
+              ${money(receivedAfterFee(value))}
+            </span>
+          </div>
+          <p className="mt-1 text-[10px] leading-5 text-muted">
+            کارمزد شبکه است و به نارمون نمی‌رسد.
+          </p>
+        </div>
+      )}
+
       <div className="mt-4 rounded-xl border border-gold/30 bg-gold/5 p-4">
         <p className="text-[11px] leading-6 text-gold">
           آدرس را با دقت بررسی کنید. انتقال روی بلاکچین برگشت‌ناپذیر است و آدرس
@@ -156,8 +178,9 @@ export default function WithdrawScreen({
       {amount && !amountOk && (
         <p className="mt-3 text-[11px] text-loss">
           {value > balance
-            ? "بیشتر از موجودی شما است."
-            : `حداقل برداشت ${MIN_WITHDRAW} تتر است.`}
+            ? "بیشتر از موجودی تو است."
+            : `کمتر از ${MIN_WITHDRAW} تتر ممکن نیست — پس از کسر کارمزد ` +
+              `${WITHDRAW_FEE_USDT} تتری چیزی برای فرستادن نمی‌ماند.`}
         </p>
       )}
 

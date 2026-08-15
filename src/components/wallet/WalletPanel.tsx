@@ -6,7 +6,9 @@ import { usePlayer } from "@/components/predict/usePlayer";
 import { ledgerLabel } from "@/lib/ledger-labels";
 import {
   MIN_WITHDRAW,
+  WITHDRAW_FEE_USDT,
   floorUsdt,
+  receivedAfterFee,
   withdrawAddressShapeValid,
 } from "@/lib/wallet-rules";
 
@@ -320,6 +322,26 @@ export default function WalletPanel() {
                 این آدرس با شبکه‌ی {network} نمی‌خواند. آدرس تتر روی این شبکه با
                 «T» شروع می‌شود و ۳۴ کاراکتر است.
               </p>
+            )}
+
+            {Number(amount) > 0 && (
+              <div className="mt-3 rounded-xl border border-line bg-ink/40 p-3 text-[11px] leading-6">
+                <div className="flex justify-between text-muted">
+                  <span>کارمزد شبکه ({network})</span>
+                  <span dir="ltr" className="font-mono">
+                    {WITHDRAW_FEE_USDT.toFixed(2)}$
+                  </span>
+                </div>
+                <div className="flex justify-between font-bold text-cream">
+                  <span>به دست شما می‌رسد</span>
+                  <span dir="ltr" className="font-mono text-gold">
+                    ${receivedAfterFee(Number(amount)).toFixed(2)}
+                  </span>
+                </div>
+                <p className="mt-1 text-[10px] leading-5 text-muted">
+                  کارمزد شبکه است و به نارمون نمی‌رسد.
+                </p>
+              </div>
             )}
 
             <button

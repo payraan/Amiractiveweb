@@ -5,7 +5,9 @@ import { gatewayReady, USDT_NETWORK } from "@/lib/zovix";
 import { depositAddressFor } from "@/lib/deposit-address";
 import {
   MIN_WITHDRAW,
+  WITHDRAW_FEE_USDT,
   floorUsdt,
+  receivedAfterFee,
   withdrawAddressShapeValid,
 } from "@/lib/wallet-rules";
 import { ledgerLabel } from "@/lib/ledger-labels";
@@ -191,8 +193,10 @@ export function askAmountScreen(balance: number, error?: string): Screen {
     text:
       `⬆️ <b>برداشت تتر</b>  <i>(۱ از ۳)</i>\n\n` +
       (error ? `⚠️ ${error}\n\n` : "") +
-      `موجودی قابل برداشت: <b>$${money(balance)}</b>\n` +
-      `حداقل برداشت: <b>${MIN_WITHDRAW} تتر</b>\n\n` +
+      `موجودی قابل برداشت: <b>$${money(floorUsdt(balance))}</b>\n` +
+      `کارمزد شبکه: <b>${WITHDRAW_FEE_USDT} تتر</b> ` +
+      `(کارمزد ${USDT_NETWORK} است و به نارمون نمی‌رسد)\n` +
+      `کمترین مبلغ ممکن: <b>${MIN_WITHDRAW} تتر</b>\n\n` +
       `<b>مبلغ را بفرستید.</b> فقط عدد، مثلا <code>25</code>`,
     buttons: [cancelRow],
   };
@@ -204,7 +208,8 @@ export function askAddressScreen(amount: number, error?: string): Screen {
     text:
       `⬆️ <b>برداشت تتر</b>  <i>(۲ از ۳)</i>\n\n` +
       (error ? `⚠️ ${error}\n\n` : "") +
-      `مبلغ: <b>$${money(amount)}</b>\n\n` +
+      `مبلغ: <b>$${money(amount)}</b> · ` +
+      `دریافتی شما: <b>$${money(receivedAfterFee(amount))}</b>\n\n` +
       `<b>آدرس مقصد را بفرستید.</b>\n` +
       `آدرس تتر روی شبکه‌ی ${USDT_NETWORK} با «T» شروع می‌شود و ۳۴ کاراکتر است.\n\n` +
       `⚠️ آدرس را کپی کنید، دستی تایپ نکنید. انتقال روی بلاکچین ` +
@@ -218,7 +223,9 @@ export function confirmScreen(amount: number, address: string): Screen {
     media: media("wallet.jpg"),
     text:
       `⬆️ <b>تأیید نهایی</b>  <i>(۳ از ۳)</i>\n\n` +
-      `مبلغ: <b>$${money(amount)}</b>\n` +
+      `از حساب شما کم می‌شود: <b>$${money(amount)}</b>\n` +
+      `کارمزد شبکه: <b>${WITHDRAW_FEE_USDT} تتر</b>\n` +
+      `<b>به دست شما می‌رسد: $${money(receivedAfterFee(amount))}</b>\n` +
       `شبکه: <b>${USDT_NETWORK}</b>\n` +
       `مقصد:\n<code>${escapeHtml(address)}</code>\n\n` +
       `آدرس را یک بار دیگر با دقت بررسی کنید. ` +
@@ -233,7 +240,7 @@ export function confirmScreen(amount: number, address: string): Screen {
 /** پیام فارسی هر کد خطای برداشت. */
 export const WITHDRAW_ERROR: Record<string, string> = {
   gateway_off: "درگاه پرداخت فعال نیست. کمی بعد دوباره تلاش کنید.",
-  amount_too_low: `حداقل برداشت ${MIN_WITHDRAW} تتر است.`,
+  amount_too_low: `کمتر از ${MIN_WITHDRAW} تتر ممکن نیست (کارمزد شبکه ${WITHDRAW_FEE_USDT} تتر است).`,
   bad_address: "آدرس مقصد با شبکه نمی‌خواند.",
   insufficient_funds: "موجودی کافی نیست.",
   rate_limited: "درخواست‌های برداشت پیاپی زیاد بود. کمی صبر کنید.",
