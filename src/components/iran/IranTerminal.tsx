@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePlayer } from "@/components/predict/usePlayer";
 import AuthPanel from "@/components/predict/AuthPanel";
 import { IR_CATEGORIES } from "@/lib/ir-categories";
+import { floorUsdt } from "@/lib/wallet-rules";
 import DisputePanel from "@/components/iran/DisputePanel";
 
 type M = {
@@ -528,7 +529,7 @@ export default function IranTerminal() {
                         key={p}
                         type="button"
                         disabled={!m || balance <= 0}
-                        onClick={() => setStake(((balance * p) / 100).toFixed(2))}
+                        onClick={() => setStake(floorUsdt((balance * p) / 100).toFixed(2))}
                         className="no-zoom flex-1 rounded border border-line py-1 font-mono text-[10px] text-muted transition hover:border-gold/40 hover:text-cream disabled:opacity-40"
                       >
                         {p}%

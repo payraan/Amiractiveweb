@@ -58,7 +58,21 @@ export async function GET(req: Request) {
   const myBets: Record<number, { side: string; stake: number }> = {};
   if (playerId) {
     const [b, mine] = await Promise.all([
-      pool.query("SELECT usdt_balance FROM players WHERE id=$1", [playerId]),
+      // ⚠️ **مجموع واقعی و دمو**، نه فقط واقعی.
+      //
+      // خرجِ پیش‌بینی از `moveFunds` بدون `realOnly` می‌گذرد، یعنی اول از
+      // دمو برداشته می‌شود و سقفِ واقعیِ خرج، مجموع این دو است. وقتی اینجا
+      // فقط `usdt_balance` برمی‌گشت، کاربری که تنها پول هدیه داشت در فرم
+      // «موجودی: $0.00» می‌دید، دکمه‌های درصدی‌اش قفل بود و در مینی‌اپ اصلا
+      // نمی‌توانست ثبت کند (`stake <= balance`) — یعنی هر کاربر تازه‌ای که
+      // بونوس خوش‌آمد می‌گرفت، عملا از بازار ایران بیرون می‌ماند.
+      //
+      // قاعده: فرم باید همان عددی را نشان بدهد که سرور می‌پذیرد. «قابل
+      // برداشت» عدد دیگری است و جایش کیف پول است، نه فرم پیش‌بینی.
+      pool.query(
+        "SELECT usdt_balance + demo_balance AS spendable FROM players WHERE id=$1",
+        [playerId]
+      ),
       pool.query(
         `SELECT market_id, side, SUM(stake)::float AS stake
            FROM ir_bets WHERE player_id=$1 AND status='open'
@@ -66,7 +80,7 @@ export async function GET(req: Request) {
         [playerId]
       ),
     ]);
-    balance = Number(b.rows[0]?.usdt_balance ?? 0);
+    balance = Number(b.rows[0]?.spendable ?? 0);
     for (const r of mine.rows) {
       myBets[r.market_id] = { side: r.side, stake: Number(r.stake) };
     }

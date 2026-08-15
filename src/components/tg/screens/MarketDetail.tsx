@@ -5,6 +5,7 @@ import { api, ApiError } from "@/components/tg/api";
 import { haptic, hasMainButton, showBackButton } from "@/components/tg/telegram";
 import { shareText } from "@/components/tg/share";
 import { useMainButton } from "@/components/tg/useMainButton";
+import { floorUsdt } from "@/lib/wallet-rules";
 
 // صفحه‌ی یک بازار و ثبت پیش‌بینی — روی همان /api/ir/bet سایت.
 //
@@ -338,7 +339,7 @@ export default function MarketDetail({
                 type="button"
                 onClick={() => {
                   haptic.tap();
-                  setAmount(String(Math.floor(balance * 100) / 100));
+                  setAmount(String(floorUsdt(balance)));
                 }}
                 className="flex-1 rounded-lg border border-line bg-surface/40 py-2 text-[11px] text-muted"
               >
