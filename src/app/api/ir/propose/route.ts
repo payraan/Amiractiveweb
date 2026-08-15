@@ -10,6 +10,7 @@ import {
 } from "@/lib/iran";
 import { isIrCategory } from "@/lib/ir-categories";
 import { requireLinkedTelegram } from "@/lib/money-guard";
+import { notifyAdminsNewMarket } from "@/lib/ir-review-notify";
 
 export const dynamic = "force-dynamic";
 
@@ -130,6 +131,11 @@ export async function POST(req: Request) {
     await touchActivity(client, playerId);
 
     await client.query("COMMIT");
+
+    // اعلان به ادمین‌ها — **بیرون** از ترنزاکشن و best-effort. نرسیدن
+    // اعلان نباید ساخت بازارِ کاربر را خراب کند؛ بازار در پنل ادمین هست.
+    notifyAdminsNewMarket(ins.rows[0].id).catch(() => {});
+
     // لینک کاور را **سرور** می‌سازد چون نام ربات فقط اینجاست. اگر کلاینت
     // می‌ساختش، نام ربات باید NEXT_PUBLIC می‌شد و یک مقدار در دو جا.
     const bot = (process.env.TG_BOT_USERNAME ?? "").replace(/^@/, "");

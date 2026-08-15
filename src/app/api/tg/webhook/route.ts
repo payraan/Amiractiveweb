@@ -40,6 +40,7 @@ import {
   WITHDRAW_ERROR,
 } from "@/lib/bot-wallet";
 import { db } from "@/lib/db";
+import { approveMarket, rejectMarket } from "@/lib/ir-moderation";
 import {
   isTgAdmin,
   createJob,
@@ -182,6 +183,53 @@ async function handleCoverPhoto(
       `از این به بعد در کارت بازار و در پیام بوست دیده می‌شود.`
   );
   return true;
+}
+
+/**
+ * لمس «تأیید» یا «رد» روی کارت بازارِ در انتظار.
+ *
+ * ⚠️ منطق از `lib/ir-moderation.ts` می‌آید — همان چیزی که پنل ادمین صدا
+ * می‌زند. رد کردن پول برمی‌گرداند و دو پیاده‌سازی موازی روی مسیر پول یعنی
+ * روزی یکی‌شان یک بررسی کمتر دارد.
+ *
+ * ⚠️ هر دو عمل داخل خودشان شرط `status='pending'` دارند، پس دو لمس
+ * هم‌زمان (یا دو ادمین با هم) فقط یک بار اثر می‌گذارد.
+ */
+async function handleReviewButton(
+  cbId: string,
+  tg: TgUser,
+  chatId: number,
+  messageId: number,
+  data: string
+) {
+  if (!isTgAdmin(tg.id)) {
+    await answerCallback(cbId, "این دکمه برای شما نیست.");
+    return;
+  }
+  const m = /^ir:(ok|no):(\d+)$/.exec(data);
+  if (!m) {
+    await answerCallback(cbId, "");
+    return;
+  }
+  const marketId = Number(m[2]);
+  const approve = m[1] === "ok";
+
+  await answerCallback(cbId, approve ? "در حال انتشار…" : "در حال رد کردن…");
+
+  const r = approve
+    ? await approveMarket(marketId)
+    : await rejectMarket(marketId, `bot:${tg.id}`);
+
+  const outcome = r.ok
+    ? approve
+      ? `✅ <b>تأیید و منتشر شد.</b>`
+      : `❌ <b>رد شد.</b> کارمزد ساخت به سازنده برگشت.`
+    : r.error === "not_pending"
+      ? `⚠️ این بازار دیگر در انتظار نیست — احتمالا قبلا تعیین تکلیف شده.`
+      : `⚠️ خطای سرور. از پنل ادمین امتحان کن.`;
+
+  // کارت را در جا به‌روز می‌کنیم تا ادمین نداند «زدم یا نزدم».
+  await editTelegram(chatId, messageId, outcome);
 }
 
 /** `/start` بدون کد: کاربر شناخته‌شده یا تازه‌وارد. */
@@ -776,6 +824,18 @@ export async function POST(req: Request) {
 
     const cb = update.callback_query;
     if (cb?.data) {
+      // بازبینی بازار — فقط ادمین‌ها. پیش از هر مسیر دیگری، چون این
+      // دکمه‌ها فقط در چت خصوصیِ ادمین می‌نشینند.
+      if (cb.data.startsWith("ir:") && cb.message) {
+        await handleReviewButton(
+          cb.id,
+          cb.from,
+          cb.message.chat.id,
+          cb.message.message_id,
+          cb.data
+        );
+        return NextResponse.json({ ok: true });
+      }
       if (cb.data.startsWith("b:") && cb.message) {
         await handleBroadcastButton(
           cb.id,

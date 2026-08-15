@@ -2,14 +2,13 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { verifyAdmin, ADMIN_COOKIE } from "@/lib/admin";
+import { approveMarket, rejectMarket } from "@/lib/ir-moderation";
 import {
   ensureIrTables,
   oddsFor,
   impliedPct,
   settleIrMarket,
   wouldBeVoid,
-  moveFunds,
-  recordRevenue,
   DISPUTE_HOURS,
 } from "@/lib/iran";
 
@@ -118,67 +117,24 @@ export async function POST(req: Request) {
   await ensureIrTables();
   const pool = await db();
 
-  // تأیید و انتشار
+  // تأیید و رد از `lib/ir-moderation.ts` می‌آیند چون ربات هم همان‌ها را
+  // صدا می‌زند. رد کردن پول برمی‌گرداند؛ دو پیاده‌سازی موازی روی مسیر پول
+  // یعنی روزی یکی‌شان یک بررسی کمتر دارد.
   if (action === "approve") {
-    await pool.query(
-      "UPDATE ir_markets SET status='open' WHERE id=$1 AND status='pending'",
-      [id]
-    );
-    return NextResponse.json({ ok: true });
+    const r = await approveMarket(id);
+    return r.ok
+      ? NextResponse.json({ ok: true })
+      : NextResponse.json({ ok: false, error: r.error }, { status: 409 });
   }
 
-  // رد کردن پیشنهاد — هزینه‌ی ساخت (تتر) کامل به سازنده برمی‌گردد
   if (action === "reject") {
-    const client = await pool.connect();
-    try {
-      await client.query("BEGIN");
-      const upd = await client.query(
-        `UPDATE ir_markets SET status='void', void_reason=$2
-          WHERE id=$1 AND status='pending'
-          RETURNING creator_id, fee_usdt`,
-        [id, String(body.reason ?? "rejected")]
-      );
-      const row = upd.rows[0];
-      if (row?.creator_id && Number(row.fee_usdt) > 0) {
-        await client.query("SELECT id FROM players WHERE id=$1 FOR UPDATE", [
-          row.creator_id,
-        ]);
-        // چقدر از کارمزد اصلی دمو بود؟ از دفترکل خوانده می‌شود، نه حدس:
-        // پول باید دقیقا به همان جیبی برگردد که از آن رفت، وگرنه یک برگشتِ
-        // ساده، پول دمو را بی‌سروصدا به پول واقعیِ قابل‌برداشت تبدیل می‌کند.
-        const orig = await client.query(
-          `SELECT COALESCE(-SUM(demo), 0) AS demo FROM wallet_ledger
-            WHERE player_id=$1 AND kind='ir_propose_fee' AND ref=$2`,
-          [row.creator_id, `m${id}`]
+    const r = await rejectMarket(id, String(body.reason ?? "rejected"));
+    return r.ok
+      ? NextResponse.json({ ok: true })
+      : NextResponse.json(
+          { ok: false, error: r.error },
+          { status: r.error === "not_pending" ? 409 : 500 }
         );
-        const feeDemo = Math.min(
-          Number(orig.rows[0]?.demo ?? 0),
-          Number(row.fee_usdt)
-        );
-        await moveFunds(
-          client,
-          row.creator_id,
-          Number(row.fee_usdt),
-          "ir_propose_refund",
-          `m${id}`,
-          { creditDemo: feeDemo }
-        );
-        // برگشت، درآمد قبلی را خنثی می‌کند → سطر منفی
-        await recordRevenue(client, "ir_propose_refund", -Number(row.fee_usdt), {
-          marketId: id,
-          playerId: row.creator_id,
-          note: "بازار رد شد",
-          demoAmount: feeDemo,
-        });
-      }
-      await client.query("COMMIT");
-    } catch {
-      await client.query("ROLLBACK").catch(() => {});
-      return NextResponse.json({ ok: false, error: "server_error" }, { status: 500 });
-    } finally {
-      client.release();
-    }
-    return NextResponse.json({ ok: true });
   }
 
   // بستن دستی پیش از موعد
