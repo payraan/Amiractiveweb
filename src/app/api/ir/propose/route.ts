@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isTgAdmin } from "@/lib/broadcast";
 import { db, touchActivity } from "@/lib/db";
 import { currentPlayerId } from "@/lib/current-player";
 import {
@@ -66,14 +67,25 @@ export async function POST(req: Request) {
   try {
     await client.query("BEGIN");
 
+    // ⚠️ **مجموع واقعی و دمو**. کارمزد از `moveFunds` بدون `realOnly`
+    // می‌گذرد، یعنی اول از دمو برداشته می‌شود. وقتی اینجا فقط
+    // `usdt_balance` سنجیده می‌شد، کاربری که تنها بونوس داشت «موجودی کافی
+    // نیست» می‌گرفت — در حالی که کارمزدش قابل پرداخت بود.
     const pl = await client.query(
-      "SELECT usdt_balance FROM players WHERE id=$1 FOR UPDATE",
+      `SELECT usdt_balance + demo_balance AS spendable, tg_user_id
+         FROM players WHERE id=$1 FOR UPDATE`,
       [playerId]
     );
     if (!pl.rowCount) {
       await client.query("ROLLBACK");
       return NextResponse.json({ ok: false, error: "not_authed" }, { status: 401 });
     }
+
+    // ادمین پلتفرم رایگان بازار می‌سازد. کارمزد یک ابزار ضد اسپم برای
+    // کاربر است؛ گرفتنش از خودِ گرداننده فقط پول را از یک جیب به جیب دیگر
+    // می‌برد و دفترکل درآمد را با درآمد ساختگی آلوده می‌کند.
+    const tgId = Number(pl.rows[0].tg_user_id ?? 0);
+    const fee = tgId && isTgAdmin(tgId) ? 0 : PROPOSE_FEE_USDT;
 
     const pending = await client.query(
       "SELECT count(*)::int AS n FROM ir_markets WHERE creator_id=$1 AND status='pending'",
@@ -84,7 +96,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: false, error: "too_many_pending" }, { status: 429 });
     }
 
-    if (Number(pl.rows[0].usdt_balance) < PROPOSE_FEE_USDT) {
+    if (fee > 0 && Number(pl.rows[0].spendable) < fee) {
       await client.query("ROLLBACK");
       return NextResponse.json(
         { ok: false, error: "insufficient_funds" },
@@ -95,28 +107,30 @@ export async function POST(req: Request) {
     const ins = await client.query(
       `INSERT INTO ir_markets (creator_id, question, category, source_note, closes_at, status, fee_usdt)
        VALUES ($1,$2,$3,$4,$5,'pending',$6) RETURNING id`,
-      [playerId, question, category, sourceNote, closesAt.toISOString(), PROPOSE_FEE_USDT]
+      [playerId, question, category, sourceNote, closesAt.toISOString(), fee]
     );
     // سهم دمو از همین پرداخت را خودِ moveFunds برمی‌گرداند و به دفترکل
     // درآمد داده می‌شود؛ حدس‌زدنش از روی برچسبِ حساب همان اشتباهی بود که
     // کمیسیون بازارها را «واقعی» نشان می‌داد.
-    const fee = await moveFunds(
-      client,
-      playerId,
-      -PROPOSE_FEE_USDT,
-      "ir_propose_fee",
-      `m${ins.rows[0].id}`
-    );
-    await recordRevenue(client, "ir_propose_fee", PROPOSE_FEE_USDT, {
-      marketId: ins.rows[0].id,
-      playerId,
-      demoAmount: fee.demoPart,
-    });
+    if (fee > 0) {
+      const paid = await moveFunds(
+        client,
+        playerId,
+        -fee,
+        "ir_propose_fee",
+        `m${ins.rows[0].id}`
+      );
+      await recordRevenue(client, "ir_propose_fee", fee, {
+        marketId: ins.rows[0].id,
+        playerId,
+        demoAmount: paid.demoPart,
+      });
+    }
 
     await touchActivity(client, playerId);
 
     await client.query("COMMIT");
-    return NextResponse.json({ ok: true, cost: PROPOSE_FEE_USDT });
+    return NextResponse.json({ ok: true, cost: fee });
   } catch {
     await client.query("ROLLBACK").catch(() => {});
     return NextResponse.json({ ok: false, error: "server_error" }, { status: 500 });

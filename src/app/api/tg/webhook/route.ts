@@ -43,7 +43,7 @@ import {
 } from "@/lib/bot-wallet";
 import { db } from "@/lib/db";
 import {
-  isBroadcastAdmin,
+  isTgAdmin,
   createJob,
   startJob,
   cancelJob,
@@ -356,7 +356,7 @@ async function handleBroadcast(
   text: string,
   photo: { file_id: string; file_size?: number }[] | undefined
 ) {
-  if (!isBroadcastAdmin(tg.id)) return; // بی‌صدا — وجود دستور لو نرود
+  if (!isTgAdmin(tg.id)) return; // بی‌صدا — وجود دستور لو نرود
 
   const body = text.replace(/^\/broadcast(@\S+)?\s*/i, "").trim();
   if (!body) {
@@ -412,7 +412,7 @@ async function handleBroadcastButton(
   messageId: number,
   data: string
 ) {
-  if (!isBroadcastAdmin(tg.id)) {
+  if (!isTgAdmin(tg.id)) {
     await answerCallback(cbId, "");
     return;
   }

@@ -26,7 +26,7 @@ import { tgCall, markTelegramBlocked, type InlineButton } from "@/lib/telegram";
 // دوباره‌اش هیچ آپلودی ندارد. با آدرس، تلگرام باید فایل را از سرور ما
 // بگیرد و در پخش انبوه این یعنی ده‌ها هزار درخواست به سرور خودمان.
 
-/** آیدی‌های تلگرام مجاز به پخش سراسری. */
+/** آیدی‌های تلگرام ادمین‌های پلتفرم (TG_ADMIN_IDS). */
 export function broadcastAdmins(): number[] {
   return (process.env.TG_ADMIN_IDS ?? "")
     .split(",")
@@ -34,7 +34,14 @@ export function broadcastAdmins(): number[] {
     .filter((n) => Number.isInteger(n) && n > 0);
 }
 
-export function isBroadcastAdmin(tgUserId: number): boolean {
+/**
+ * ادمین پلتفرم؟
+ *
+ * ⚠️ نامش قبلا `isBroadcastAdmin` بود، ولی همین فهرست حالا تصمیم‌های دیگری
+ * هم می‌گیرد (معافیت ادمین از کارمزد ساخت بازار). نام محدودکننده روی چیزی
+ * که محدود نیست، دیر یا زود باعث می‌شود کسی فهرست دومی بسازد.
+ */
+export function isTgAdmin(tgUserId: number): boolean {
   return broadcastAdmins().includes(tgUserId);
 }
 
