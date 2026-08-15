@@ -439,6 +439,25 @@ export function escapeHtml(s: string): string {
 }
 
 /**
+ * رنگ دکمه — روی هر دو نوع دکمه کار می‌کند.
+ *
+ * از Bot API 9.4 (فوریه ۲۰۲۶) فیلد `style` اضافه شد. مستندات رسمی:
+ * «Must be one of "danger" (red), "success" (green) or "primary" (blue).
+ * If omitted, then an app-specific style is used.»
+ *
+ * ⚠️ سند فاز ۴ نوشته بود «Bot API هیچ فیلدی برای رنگ دکمه ندارد و تنها
+ * اهرم ایموجی است». آن نتیجه‌گیری اشتباه بود — احتمالا پیش از ۹.۴ بررسی
+ * شده. رنگ‌های ربات‌های خارجی همین فیلد است، نه ترفند.
+ *
+ * قاعده‌ی رنگ در نارمون، همان قاعده‌ی رنگ بقیه‌ی محصول:
+ *   success → پول به داخل و کنش مثبت (واریز، تأیید)
+ *   danger  → کنش برگشت‌ناپذیر یا خروج پول (برداشت)
+ *   primary → مقصد اصلی (مینی‌اپ)
+ * بقیه بی‌رنگ می‌مانند؛ اگر همه‌ی دکمه‌ها رنگی باشند، رنگ دیگر معنا ندارد.
+ */
+export type ButtonStyle = "danger" | "success" | "primary";
+
+/**
  * دکمه‌های شیشه‌ای زیر پیام — همان چیزی که هویت رأی‌دهنده را می‌دهد.
  *
  * `web_app` مینی‌اپ را همان‌جا داخل تلگرام باز می‌کند، بدون بیرون‌رفتن به
@@ -450,6 +469,7 @@ export type InlineButton = {
   url?: string;
   callback_data?: string;
   web_app?: { url: string };
+  style?: ButtonStyle;
 };
 
 /**
@@ -464,6 +484,7 @@ export type InlineButton = {
 export type KeyboardButton = {
   text: string;
   web_app?: { url: string };
+  style?: ButtonStyle;
 };
 
 /**
@@ -481,8 +502,8 @@ export async function sendKeyboard(
   chatId: number,
   text: string,
   keyboard: KeyboardButton[][]
-): Promise<boolean> {
-  const r = await tgCall("sendMessage", {
+): Promise<number | null> {
+  const r = await tgCall<{ message_id: number }>("sendMessage", {
     chat_id: chatId,
     text,
     parse_mode: "HTML",
@@ -493,8 +514,23 @@ export async function sendKeyboard(
       resize_keyboard: true, // وگرنه تلگرام ارتفاع کامل می‌دهد و نصف صفحه را می‌خورد
     },
   });
-  if (!r.ok) await noteSendFailure(chatId, r.error);
-  return r.ok;
+  if (!r.ok) {
+    await noteSendFailure(chatId, r.error);
+    return null;
+  }
+  // شناسه برمی‌گردد تا فراخوان بتواند پیامِ حاملِ صفحه‌کلید را پاک کند.
+  return r.result?.message_id ?? null;
+}
+
+/**
+ * حذف یک پیام. خطایش بی‌اهمیت است — پیامی که پاک نشود فقط یک پیام اضافه
+ * است، نه یک خرابی.
+ */
+export async function deleteMessage(
+  chatId: number,
+  messageId: number
+): Promise<void> {
+  await tgCall("deleteMessage", { chat_id: chatId, message_id: messageId });
 }
 
 /** ارسال پیام مستقیم از سایت به کاربر — بدون نیاز به دخالت ربات. */

@@ -12,7 +12,7 @@ import {
   IconMoon,
   IconWithdraw,
 } from "@/components/tg/icons";
-import { haptic } from "@/components/tg/telegram";
+import { haptic, openTelegramChat } from "@/components/tg/telegram";
 import DepositScreen from "@/components/tg/screens/DepositScreen";
 import WithdrawScreen from "@/components/tg/screens/WithdrawScreen";
 import BuyMoonScreen from "@/components/tg/screens/BuyMoonScreen";
@@ -212,8 +212,10 @@ export default function WalletScreen() {
           دقیقا وقتی که دنبالش می‌گردد، پیدایش نمی‌کرد. */}
       <a
         href={LINKS.telegramSupport}
-        target="_blank"
-        rel="noopener noreferrer"
+        onClick={(e) => {
+          e.preventDefault();
+          openTelegramChat(LINKS.telegramSupport);
+        }}
         className="mt-5 block rounded-2xl border border-line bg-surface/40 py-3 text-center text-[11.5px] text-muted transition active:border-gold/40"
       >
         سؤالی درباره‌ی واریز یا برداشت داری؟ پشتیبانی

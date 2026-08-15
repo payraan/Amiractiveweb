@@ -101,9 +101,10 @@ export async function walletHomeScreen(playerId: number): Promise<Screen> {
   const d = await walletData(playerId, 5);
 
   const buttons: InlineButton[][] = [
+    // همان قرارداد رنگی کل محصول: سبز پول به داخل، قرمز پول به بیرون.
     [
-      { text: "⬇️ واریز", callback_data: WALLET.deposit },
-      { text: "⬆️ برداشت", callback_data: WALLET.withdrawStart },
+      { text: "⬇️ واریز", callback_data: WALLET.deposit, style: "success" },
+      { text: "⬆️ برداشت", callback_data: WALLET.withdrawStart, style: "danger" },
     ],
     [{ text: "🧾 تاریخچه", callback_data: WALLET.history }],
     // پشتیبانی روی خودِ کارت کیف پول، نه چند منو آن‌طرف‌تر: هر جا پول
@@ -236,7 +237,15 @@ export function confirmScreen(amount: number, address: string): Screen {
       `آدرس را یک بار دیگر با دقت بررسی کنید. ` +
       `<b>پس از تأیید، این انتقال برگشت‌ناپذیر است.</b>`,
     buttons: [
-      [{ text: "✅ تأیید و ارسال", callback_data: WALLET.withdrawConfirm }],
+      // قرمز عمدی: تنها دکمه‌ی برگشت‌ناپذیر پلتفرم. رنگ اینجا تزئین نیست،
+      // آخرین هشدار پیش از خروج پول است.
+      [
+        {
+          text: "✅ تأیید و ارسال",
+          callback_data: WALLET.withdrawConfirm,
+          style: "danger",
+        },
+      ],
       cancelRow,
     ],
   };

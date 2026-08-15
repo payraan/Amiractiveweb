@@ -5,7 +5,7 @@ import { useCallback, useState } from "react";
 import { api, ApiError } from "@/components/tg/api";
 import { useResource } from "@/components/tg/useResource";
 import { Card, ErrorState, ScreenTitle, Skeleton } from "@/components/tg/ui";
-import { haptic } from "@/components/tg/telegram";
+import { haptic, openTelegramChat } from "@/components/tg/telegram";
 
 // چالش پراپ در مینی‌اپ — همان /api/predict/challenge سایت.
 //
@@ -424,8 +424,10 @@ export default function ChallengeScreen() {
               {/* متن بدون لینک بود: کاربر جمله را می‌خواند و نمی‌دانست کجا برود. */}
               <a
                 href={LINKS.telegramSupport}
-                target="_blank"
-                rel="noopener noreferrer"
+                onClick={(e) => {
+                  e.preventDefault();
+                  openTelegramChat(LINKS.telegramSupport);
+                }}
                 className="text-cream underline decoration-line underline-offset-4"
               >
                 با پشتیبانی تماس بگیر

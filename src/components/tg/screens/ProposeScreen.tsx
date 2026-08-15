@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/components/tg/api";
 import { IR_CATEGORIES } from "@/lib/ir-categories";
 import JalaliDateTime from "@/components/iran/JalaliDateTime";
-import { haptic, hasMainButton, showBackButton } from "@/components/tg/telegram";
+import { haptic, hasMainButton, openTelegramChat, showBackButton } from "@/components/tg/telegram";
 import { useMainButton } from "@/components/tg/useMainButton";
 
 // ساخت بازار ایران — همان قواعد و همان روت سایت (/api/ir/propose).
@@ -215,8 +215,10 @@ export default function ProposeScreen({
           {msg.ok && (
             <a
               href={LINKS.telegramSupport}
-              target="_blank"
-              rel="noopener noreferrer"
+              onClick={(e) => {
+                e.preventDefault();
+                openTelegramChat(LINKS.telegramSupport);
+              }}
               className="mt-2 inline-block text-[11px] text-muted underline decoration-line underline-offset-4"
             >
               سؤالی درباره‌ی بازارت داری یا پیگیری می‌خواهی؟ پشتیبانی

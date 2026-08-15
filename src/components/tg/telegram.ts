@@ -101,3 +101,20 @@ export function openExternal(url: string) {
   if (wa?.openLink) wa.openLink(url);
   else window.open(url, "_blank", "noopener");
 }
+
+/**
+ * لینک تلگرامی (t.me) — چت مقصد را باز می‌کند **بدون بستن مینی‌اپ**.
+ *
+ * ⚠️ چرا `openTelegramLink` و نه یک `<a target="_blank">` ساده: تلگرام یک
+ * لینک t.me معمولی را «خروج از اپ» می‌فهمد، مینی‌اپ را می‌بندد و کاربر را
+ * در چت رها می‌کند. یعنی کسی که فقط می‌خواست از پشتیبانی چیزی بپرسد،
+ * جایی را که در آن بود از دست می‌داد و باید از اول باز می‌کرد.
+ *
+ * با این تابع، چت پشتیبانی روی مینی‌اپ باز می‌شود و بستنش کاربر را به همان
+ * صفحه‌ای برمی‌گرداند که بود.
+ */
+export function openTelegramChat(url: string) {
+  const wa = webApp();
+  if (wa?.openTelegramLink) wa.openTelegramLink(url);
+  else openExternal(url);
+}

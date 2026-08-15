@@ -5,7 +5,7 @@ import { useCallback, useState } from "react";
 import { useResource } from "@/components/tg/useResource";
 import { api } from "@/components/tg/api";
 import { ErrorState, ScreenTitle, Skeleton } from "@/components/tg/ui";
-import { haptic } from "@/components/tg/telegram";
+import { haptic, openTelegramChat } from "@/components/tg/telegram";
 import { shareText } from "@/components/tg/share";
 import {
   BADGES,
@@ -189,8 +189,10 @@ export default function ProfileScreen({ siteUrl }: { siteUrl: string }) {
           منو، نه در پروفایل — و تنها راهش صفحه‌ی کیف پول بود. */}
       <a
         href={LINKS.telegramSupport}
-        target="_blank"
-        rel="noopener noreferrer"
+        onClick={(e) => {
+          e.preventDefault();
+          openTelegramChat(LINKS.telegramSupport);
+        }}
         className="mt-2.5 block rounded-2xl border border-line bg-surface/40 py-3 text-center text-[11.5px] text-muted transition active:border-gold/40"
       >
         🎧 گفت‌وگو با پشتیبانی
