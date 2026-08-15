@@ -61,6 +61,11 @@ async function ensureWithdrawalsTable(): Promise<void> {
        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
      )`
   );
+  // شناسه‌ی تراکنش روی زنجیره. تنها مدرکِ قطعیِ «پول رفت» — رشته‌ی وضعیتِ
+  // درگاه این را نمی‌گوید (`SUCCESS` را همان لحظه‌ی ثبت می‌دهد).
+  await pool.query(
+    "ALTER TABLE withdrawals ADD COLUMN IF NOT EXISTS txid TEXT"
+  );
 }
 
 /** اعتبارسنجی بدون هیچ اثر جانبی — برای نشان‌دادن خطا پیش از تأیید نهایی. */

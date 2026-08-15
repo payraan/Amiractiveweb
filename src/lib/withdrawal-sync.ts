@@ -23,22 +23,52 @@ import { notifyPlayer } from "@/lib/telegram";
 // این پول واقعی است. پس فقط علامت `stuck` می‌خورد تا آدم ببیندش. تصمیم
 // اشتباهِ خودکار روی پول، از تصمیم دیرِ انسانی بدتر است.
 
+// ── وضعیت‌های درگاه ──────────────────────────────────────────
+//
+// این فهرست‌ها دیگر حدس نیستند: از مستندات Zovix آمده‌اند و با یک برداشت
+// واقعی هم دیده شده‌اند. فهرست کامل مستندات:
+//   PENDING · PENDING_ADMIN · SENT_TO_BLOCKCHAIN · PENDING_CONFIRM ·
+//   SUCCESS · FAILED · CANCELLED_BY_ADMIN · CANCELLED_BY_USER ·
+//   REJECTED_BY_AML
+
 /**
- * وضعیت‌هایی که از سمت درگاه **قطعی** شمرده می‌شوند.
- *
- * عمدا فهرست بسته است و نه «هر چیزی که success نیست». نام وضعیت‌های Zovix
- * در مستندات کامل نیامده؛ اگر روزی رشته‌ی تازه‌ای برگرداند، این کد باید
- * دست نگه دارد نه اینکه حدس بزند — و حدسِ اشتباه اینجا یعنی یا پول دوبار
- * می‌رود یا پول کاربر بی‌دلیل قفل می‌ماند.
+ * وضعیت موفق — ولی **به‌تنهایی کافی نیست**، پایین را ببین.
  */
 const DONE = new Set(["SUCCESS", "COMPLETED", "DONE", "CONFIRMED"]);
+
+/**
+ * وضعیت‌های قطعیِ شکست — پول باید برگردد.
+ *
+ * ⚠️ سه رشته‌ی اول تا امروز اینجا نبودند و این پول‌سوزترین حفره‌ی این فایل
+ * بود: تأیید برداشت در Zovix **دستی** است، پس رد شدن به دست ادمین یک
+ * سناریوی روزمره است نه استثنا. بدون این‌ها، ردیفِ ردشده هر ۱۵ دقیقه
+ * «نمی‌شناسم» می‌گرفت و پول کاربر تا ابد کسرشده می‌ماند.
+ */
 const FAILED = new Set([
+  "CANCELLED_BY_ADMIN",
+  "CANCELLED_BY_USER",
+  "REJECTED_BY_AML",
   "FAILED",
   "REJECTED",
   "CANCELED",
   "CANCELLED",
   "EXPIRED",
   "DECLINED",
+]);
+
+/**
+ * وضعیت‌های «هنوز در راه» — نه موفق، نه شکست. فقط باید دوباره پرسید.
+ *
+ * جدا نگه داشتنشان برای این است که فهرست `unknown` واقعا فهرستِ ناشناخته‌ها
+ * بماند. وقتی چیزی که می‌شناسیم هم آنجا می‌نشست، رشته‌ی واقعا تازه گم
+ * می‌شد میان نویز.
+ */
+const IN_FLIGHT = new Set([
+  "PENDING",
+  "PENDING_ADMIN",
+  "SENT_TO_BLOCKCHAIN",
+  "PENDING_CONFIRM",
+  "PROCESSING",
 ]);
 
 /** پس از این مدت، ردیف `requested` بی‌سرانجام شمرده می‌شود. */
@@ -49,7 +79,16 @@ export type SyncResult = {
   completed: number;
   refunded: number;
   stuck: number;
-  /** وضعیت‌هایی که نمی‌شناسیم — برای دیدن در خروجی کرون. */
+  /** هنوز در راه — وضعیت شناخته‌شده ولی غیرقطعی. */
+  inFlight: number;
+  /**
+   * هر وضعیتی که از درگاه دیدیم.
+   *
+   * بدون این، تنها راه فهمیدنِ رشته‌های واقعی درگاه، حدس‌زدن بود — و همین
+   * حدس‌ها بودند که سه وضعیتِ «رد شد» را از فهرست شکست جا انداختند.
+   */
+  seen: string[];
+  /** وضعیت‌هایی که در هیچ فهرستی نیستند. */
   unknown: string[];
 };
 
@@ -59,6 +98,8 @@ export async function reconcileWithdrawals(): Promise<SyncResult> {
     completed: 0,
     refunded: 0,
     stuck: 0,
+    inFlight: 0,
+    seen: [],
     unknown: [],
   };
   if (!gatewayReady()) return out;
@@ -91,28 +132,51 @@ export async function reconcileWithdrawals(): Promise<SyncResult> {
     const r = await getWithdrawal(w.gateway_uuid);
     if (!r.ok) continue; // درگاه در دسترس نیست — دور بعد
 
-    const row = Array.isArray(r.data)
-      ? r.data.find((x) => x.id === w.gateway_uuid) ?? r.data[0]
-      : null;
+    // ⚠️ ردیف باید **همان** برداشت باشد. نسخه‌ی قبلی اگر شناسه نمی‌خورد،
+    // بی‌صدا به `data[0]` می‌افتاد — یعنی می‌توانست وضعیت یک برداشتِ دیگر
+    // را روی این یکی بنشاند. تنها حالتی که بدون تطابق شناسه امن است، وقتی
+    // است که پاسخ دقیقا یک ردیف دارد (ما با همان uuid پرسیده‌ایم).
+    const rows = Array.isArray(r.data) ? r.data : [];
+    const row =
+      rows.find((x) => x.id === w.gateway_uuid) ??
+      (rows.length === 1 ? rows[0] : null);
     if (!row) continue;
 
     const status = String(row.status ?? "").toUpperCase();
-
-    if (DONE.has(status)) {
-      await pool.query(
-        "UPDATE withdrawals SET status='completed' WHERE id=$1 AND status='submitted'",
-        [w.id]
-      );
-      out.completed++;
-      continue;
-    }
+    const txid = String(row.txid ?? "").trim();
+    if (!out.seen.includes(status)) out.seen.push(status);
 
     if (FAILED.has(status)) {
       if (await refundWithdrawal(w.id, `gateway:${status}`)) out.refunded++;
       continue;
     }
 
-    // در جریان است (PENDING، PROCESSING…) یا رشته‌ای که نمی‌شناسیم.
+    // ── چرا وضعیت به‌تنهایی کافی نیست ──────────────────────
+    //
+    // درگاه در همان لحظه‌ی ثبت `SUCCESS` می‌دهد، در حالی که پنلش همان
+    // برداشت را `PENDING` و بدون TxID نشان می‌دهد و ادمین هنوز تأییدش
+    // نکرده. یعنی `SUCCESS` آنجا «درخواست ثبت شد» است، نه «پول رفت».
+    //
+    // اگر همان‌جا `completed` می‌زدیم، دیگر هرگز نمی‌پرسیدیم — و اگر ادمین
+    // بعدا ردش می‌کرد، پول کاربر تا ابد کسرشده می‌ماند.
+    //
+    // پس مدرکِ ما شناسه‌ی تراکنش روی زنجیره است، نه رشته‌ی وضعیت: تا txid
+    // نیامده، برداشت هنوز در راه است و دور بعد دوباره می‌پرسیم.
+    if (DONE.has(status) && txid) {
+      await pool.query(
+        "UPDATE withdrawals SET status='completed', txid=$2 WHERE id=$1 AND status='submitted'",
+        [w.id, txid]
+      );
+      out.completed++;
+      continue;
+    }
+
+    if (DONE.has(status) || IN_FLIGHT.has(status)) {
+      out.inFlight++;
+      continue;
+    }
+
+    // رشته‌ای که در هیچ فهرستی نیست — نه فرض می‌کنیم موفق است نه ناموفق.
     if (!out.unknown.includes(status)) out.unknown.push(status);
   }
 

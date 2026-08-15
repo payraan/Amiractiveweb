@@ -36,7 +36,7 @@ export async function GET(req: Request) {
 
   const { rows } = await pool.query(
     `SELECT w.id, w.player_id, w.amount, w.to_address, w.network,
-            w.gateway_uuid, w.status, w.error, w.created_at,
+            w.gateway_uuid, w.status, w.error, w.txid, w.created_at,
             p.display_name, p.tg_username
        FROM withdrawals w
        LEFT JOIN players p ON p.id = w.player_id
