@@ -70,6 +70,7 @@ export async function GET(req: Request) {
   const playerId = playerIdEarly;
   let balance = 0;
   let boostPriceFor = BOOST_PRICE_USDT;
+  let canCover = false;
   const myBets: Record<number, { side: string; stake: number }> = {};
   if (playerId) {
     const [b, mine] = await Promise.all([
@@ -100,7 +101,12 @@ export async function GET(req: Request) {
     // سرور می‌گیرد، وگرنه ادمین «۵ تتر» می‌بیند و صفر پرداخت می‌کند —
     // همان ناسازگاری فرم و سرور که یک بار در برداشت دیدیم.
     const tgId = Number(b.rows[0]?.tg_user_id ?? 0);
-    if (tgId && isTgAdmin(tgId)) boostPriceFor = 0;
+    if (tgId && isTgAdmin(tgId)) {
+      boostPriceFor = 0;
+      // کاور فقط برای ادمین — رابط نباید دکمه‌ای نشان بدهد که سرور ردش
+      // می‌کند. دکمه‌ی کارنکن بدتر از نبودن دکمه است.
+      canCover = true;
+    }
     for (const r of mine.rows) {
       myBets[r.market_id] = { side: r.side, stake: Number(r.stake) };
     }
@@ -122,6 +128,7 @@ export async function GET(req: Request) {
       // پیش از این فقط در پیام موفقیتِ ساخت بازار برمی‌گشت، یعنی سازنده‌ای
       // که از آن صفحه رد شده بود، هیچ راهی برای گذاشتن کاور نداشت.
       botUsername: (process.env.TG_BOT_USERNAME ?? "").replace(/^@/, ""),
+      canCover,
     },
   });
 }

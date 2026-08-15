@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { currentPlayerId } from "@/lib/current-player";
 import { ensureIrTables } from "@/lib/iran";
 import { setCoverFlow } from "@/lib/bot-flow";
+import { isTgAdmin } from "@/lib/broadcast";
 import { sendTelegram, escapeHtml } from "@/lib/telegram";
 
 export const dynamic = "force-dynamic";
@@ -63,6 +64,18 @@ export async function POST(req: Request) {
       { ok: false, error: "telegram_required" },
       { status: 403 }
     );
+  }
+
+  // ⚠️ **کاور فقط برای ادمین.**
+  //
+  // کاور مستقیم و بدون هیچ بازبینی‌ای به کارت بازار و به پیام همگانیِ همه‌ی
+  // کاربران می‌رود. یک تصویر نامناسب از یک کاربر، به اسم پلتفرم برای همه
+  // فرستاده می‌شود و برگشتی هم ندارد — پیام‌های فرستاده‌شده پاک نمی‌شوند.
+  //
+  // تا وقتی لایه‌ی بازبینی تصویر نداریم، این در بسته می‌ماند. بقیه‌ی
+  // کاربران همچنان بوست می‌کنند؛ فقط بازارشان بدون کاور می‌رود.
+  if (!isTgAdmin(tgId)) {
+    return NextResponse.json({ ok: false, error: "admin_only" }, { status: 403 });
   }
 
   await setCoverFlow(tgId, marketId);

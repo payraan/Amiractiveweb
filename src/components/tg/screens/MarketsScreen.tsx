@@ -23,6 +23,7 @@ type MarketsResponse = {
     boostPrice: number;
     boostHours: number;
     botUsername: string;
+    canCover: boolean;
   };
 };
 
@@ -179,6 +180,7 @@ export default function MarketsScreen({
         commission={data.config.commission}
         boostPrice={data.config.boostPrice}
         botUsername={data.config.botUsername}
+        canCover={data.config.canCover}
         myBet={data.myBets?.[open.id]}
         initialSide={open.id === deepLink?.marketId ? deepLink.side : null}
         onBack={() => setOpenId(null)}

@@ -136,6 +136,15 @@ async function handleCoverStart(
     await sendTelegram(chatId, "این بازار مال شما نیست.");
     return;
   }
+  // ⚠️ و فقط ادمین. کاور بدون بازبینی به پیام همگانی می‌رود؛ تا وقتی
+  // بازبینی تصویر نداریم این در بسته است. همان شرطِ روت مینی‌اپ.
+  if (!isTgAdmin(tg.id)) {
+    await sendTelegram(
+      chatId,
+      "فعلا فقط تیم نارمون می‌تواند برای بازارها کاور بگذارد. بازار شما بدون کاور و کامل ارسال می‌شود."
+    );
+    return;
+  }
 
   await setCoverFlow(tg.id, marketId);
   await sendTelegram(
@@ -163,6 +172,14 @@ async function handleCoverPhoto(
 ): Promise<boolean> {
   const marketId = await claimCoverFlow(tg.id);
   if (!marketId) return false;
+
+  // لایه‌ی سوم. دو در بالادست بسته‌اند، ولی این آخرین جایی است که تصویر
+  // واقعا روی بازار می‌نشیند — و تنها جایی که اگر روزی مسیر تازه‌ای اضافه
+  // شود، باز هم از آن رد نمی‌شود.
+  if (!isTgAdmin(tg.id)) {
+    await sendTelegram(chatId, "فعلا فقط تیم نارمون می‌تواند کاور بگذارد.");
+    return true;
+  }
 
   // بزرگ‌ترین اندازه‌ای که تلگرام داده — آخرین عضو آرایه.
   const fileId = photo[photo.length - 1].file_id;

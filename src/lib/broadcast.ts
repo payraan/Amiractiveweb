@@ -256,15 +256,27 @@ export async function runningJob(): Promise<number | null> {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** فاصله‌ی بین پیام‌ها. سقف تلگرام حدود ۳۰ در ثانیه است؛ زیرش می‌مانیم. */
-const GAP_MS = 45;
-
 /**
  * پس از این مدت، یک ردیفِ «در حال ارسال» رهاشده حساب می‌شود.
  *
  * سخاوتمندانه گرفته شده تا ردیفی که واقعا در حال ارسال است دوباره برداشته
  * نشود؛ بدترین پیامدِ کوتاه‌بودنش، پیام تکراری برای یک نفر است.
  */
+/**
+ * چند پیام در هر دسته به‌صورت موازی فرستاده شود.
+ *
+ * با ۲۵۰ میلی‌ثانیه تأخیر هر تماس، دسته‌ی ۲۰تایی یعنی حدود ۸۰ پیام در
+ * ثانیه — بالاتر از سقف تلگرام. برای همین `MAX_PER_SEC` هم هست: دسته
+ * موازی می‌رود ولی سرعت کلی خودمان محدود می‌شود.
+ */
+const BATCH = 20;
+
+/**
+ * سقف پیام در ثانیه. تلگرام حدود ۳۰ را تحمل می‌کند؛ عمدا زیرش می‌مانیم
+ * چون ۴۲۹ خوردن یعنی کل تیک متوقف می‌شود و کار عقب می‌افتد.
+ */
+const MAX_PER_SEC = 25;
+
 const STALE_CLAIM_MIN = 5;
 
 export type TickResult = {
@@ -310,13 +322,18 @@ export async function runBroadcastTick(budgetMs = 45_000): Promise<TickResult> {
   let throttled = false;
 
   while (Date.now() < deadline) {
-    // یک نفر را «در حال ارسال» علامت می‌زنیم و همان لحظه برمی‌داریم، تا دو
-    // تیک همزمان یک نفر را دو بار نگیرند.
+    // ── چرا دسته‌ای و موازی، نه یکی‌یکی ────────────────────────
     //
-    // ⚠️ ردیف‌های `sending` کهنه هم برداشته می‌شوند. اگر پروسه دقیقا وسط
-    // یک ارسال ری‌استارت شود (هر دیپلوی می‌تواند)، آن ردیف در `sending`
-    // می‌ماند؛ بدون این شرط برای همیشه گیر می‌کرد، کار هرگز تمام نمی‌شد و
-    // آن کاربر هیچ‌وقت پیام نمی‌گرفت.
+    // نسخه‌ی قبلی هر پیام را پشت‌سرهم می‌فرستاد: یک رفت‌وبرگشت شبکه، بعد
+    // یک UPDATE، بعد نفر بعدی. با ۲۵۰ میلی‌ثانیه برای هر پیام یعنی حدود
+    // ۴ پیام در ثانیه، در حالی که سقف خود تلگرام ۳۰ است.
+    //
+    // با ۵۰ هزار کاربر این تفاوت یعنی **۱۳ روز به‌جای نیم‌ساعت**. گلوگاه
+    // تلگرام نبود، خودِ ما بودیم.
+    //
+    // حالا یک دسته با هم ادعا می‌شود، همه با هم فرستاده می‌شوند، و بعد
+    // نتیجه‌ها ثبت می‌شوند. ادعای دسته‌ای همچنان اتمیک است، پس تضمینِ
+    // «هیچ‌کس دو بار پیام نمی‌گیرد» دست‌نخورده می‌ماند.
     const claim = await pool.query<{ tg_user_id: string }>(
       `UPDATE broadcast_targets SET status='sending', claimed_at=now()
         WHERE (job_id, tg_user_id) IN (
@@ -327,36 +344,45 @@ export async function runBroadcastTick(budgetMs = 45_000): Promise<TickResult> {
                       AND claimed_at < now() - ($2 || ' minutes')::interval))
            ORDER BY tg_user_id
            FOR UPDATE SKIP LOCKED
-           LIMIT 1)
+           LIMIT $3)
         RETURNING tg_user_id`,
-      [jobId, String(STALE_CLAIM_MIN)]
+      [jobId, String(STALE_CLAIM_MIN), BATCH]
     );
     if (!claim.rowCount) break;
 
-    const chatId = Number(claim.rows[0].tg_user_id);
-    const r = photoId
-      ? await tgCall("sendPhoto", {
-          chat_id: chatId,
-          photo: photoId,
-          caption: text,
-          parse_mode: "HTML",
-          ...markup,
-        })
-      : await tgCall("sendMessage", {
-          chat_id: chatId,
-          text,
-          parse_mode: "HTML",
-          link_preview_options: { is_disabled: true },
-          ...markup,
-        });
+    const batchStart = Date.now();
+    const chatIds = claim.rows.map((r) => Number(r.tg_user_id));
 
-    if (r.ok) {
-      sent++;
-      await pool.query(
-        "UPDATE broadcast_targets SET status='sent', sent_at=now() WHERE job_id=$1 AND tg_user_id=$2",
-        [jobId, chatId]
-      );
-    } else {
+    const results = await Promise.all(
+      chatIds.map(async (chatId) => {
+        const r = photoId
+          ? await tgCall("sendPhoto", {
+              chat_id: chatId,
+              photo: photoId,
+              caption: text,
+              parse_mode: "HTML",
+              ...markup,
+            })
+          : await tgCall("sendMessage", {
+              chat_id: chatId,
+              text,
+              parse_mode: "HTML",
+              link_preview_options: { is_disabled: true },
+              ...markup,
+            });
+        return { chatId, r };
+      })
+    );
+
+    for (const { chatId, r } of results) {
+      if (r.ok) {
+        sent++;
+        await pool.query(
+          "UPDATE broadcast_targets SET status='sent', sent_at=now() WHERE job_id=$1 AND tg_user_id=$2",
+          [jobId, chatId]
+        );
+        continue;
+      }
       failed++;
       await pool.query(
         "UPDATE broadcast_targets SET status='failed', error=$3 WHERE job_id=$1 AND tg_user_id=$2",
@@ -367,15 +393,21 @@ export async function runBroadcastTick(budgetMs = 45_000): Promise<TickResult> {
       if (/bot was blocked by the user/i.test(r.error)) {
         await markTelegramBlocked(chatId).catch(() => {});
       }
-      // ۴۲۹ یعنی تندتر از سقف رفته‌ایم. تیک را همین‌جا تمام می‌کنیم تا
-      // تیک بعدی با فاصله شروع کند.
-      if (/too many requests/i.test(r.error)) {
-        throttled = true;
-        break;
-      }
+      if (/too many requests/i.test(r.error)) throttled = true;
     }
 
-    await sleep(GAP_MS);
+    // ۴۲۹ یعنی تندتر از سقف رفته‌ایم. تیک را تمام می‌کنیم تا تیک بعدی با
+    // فاصله شروع کند.
+    if (throttled) break;
+
+    // ── پیس‌کردن ────────────────────────────────────────────
+    // سقف تلگرام حدود ۳۰ پیام در ثانیه است. اگر دسته زودتر از سهمیه‌اش
+    // تمام شد، همان‌قدر صبر می‌کنیم. بدون این، در شبکه‌ی سریع دسته‌ی
+    // ۲۰تایی در ۱۰۰ میلی‌ثانیه می‌رفت — یعنی ۲۰۰ پیام در ثانیه و ۴۲۹
+    // قطعی. سرعت را عمدا خودمان محدود می‌کنیم، نه تلگرام با خطا.
+    const minMs = (chatIds.length / MAX_PER_SEC) * 1000;
+    const spent = Date.now() - batchStart;
+    if (spent < minMs) await sleep(minMs - spent);
   }
 
   const mid = await jobStats(jobId);

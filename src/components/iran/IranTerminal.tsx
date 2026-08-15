@@ -42,6 +42,7 @@ type Cfg = {
   boostPrice: number;
   boostHours: number;
   botUsername: string;
+  canCover: boolean;
 };
 
 const BOOST_ERR: Record<string, string> = {
@@ -122,6 +123,7 @@ export default function IranTerminal() {
     boostPrice: 5,
     boostHours: 24,
     botUsername: "",
+    canCover: false,
   });
   const [balance, setBalance] = useState(0);
   const [cat, setCat] = useState("all");
@@ -684,7 +686,7 @@ export default function IranTerminal() {
                 {/* بوست — فقط برای بازارِ خودِ کاربر.
                     ⚠️ فقط دیده‌شدن می‌خرد: ضریب، تسویه و شانس برد دست
                     نمی‌خورند. */}
-                {m?.isMine && m.status === "open" && cfg.botUsername && (
+                {m?.isMine && m.status === "open" && cfg.canCover && cfg.botUsername && (
                   <button
                     type="button"
                     disabled={coverBusy}

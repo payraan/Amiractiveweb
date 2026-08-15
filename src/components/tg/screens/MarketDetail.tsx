@@ -69,6 +69,7 @@ export default function MarketDetail({
   commission,
   boostPrice,
   botUsername,
+  canCover,
   myBet,
   initialSide,
   onBack,
@@ -83,6 +84,8 @@ export default function MarketDetail({
   boostPrice: number;
   /** نام ربات، برای ساخت لینک عمیق کاور. خالی یعنی ربات تنظیم نشده. */
   botUsername: string;
+  /** اجازه‌ی گذاشتن کاور — فعلا فقط ادمین. */
+  canCover: boolean;
   myBet?: { side: string; stake: number };
   /** طرفی که کاربر در کانال رویش کلیک کرده — از پیش انتخاب می‌شود. */
   initialSide?: "yes" | "no" | null;
@@ -512,7 +515,7 @@ export default function MarketDetail({
 
               {/* کاور — تا امروز فقط بلافاصله پس از ساخت بازار در دسترس بود،
                   یعنی سازنده‌ای که از آن صفحه رد شده بود هیچ راهی نداشت. */}
-              {botUsername && (
+              {canCover && botUsername && (
                 <button
                   type="button"
                   disabled={coverBusy}
