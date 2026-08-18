@@ -95,16 +95,43 @@ function clean(fields: Record<string, any>): Record<string, any> {
   return out;
 }
 
+/**
+ * خلاصه‌ی خوانا برای فیلد `message`.
+ *
+ * فقط مقدارهای ساده می‌آیند؛ شیء و آرایه در `message` نمی‌نشینند چون خط
+ * را بلند و ناخوانا می‌کنند — آن‌ها به‌عنوان attribute می‌مانند و همان‌جا
+ * قابل فیلترند.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function summarize(evt: string, fields: Record<string, any>): string {
+  const parts: string[] = [];
+  for (const [k, v] of Object.entries(fields)) {
+    if (v === null || typeof v === "object") continue;
+    parts.push(`${k}=${v}`);
+  }
+  return parts.length ? `${evt} ${parts.join(" ")}` : evt;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function emit(lvl: Level, evt: string, fields: Record<string, any> = {}) {
   if (ORDER[lvl] < MIN) return;
+  const safe = clean(fields);
+  // ⚠️ **`message` و `level` نام‌های رزروِ Railway هستند.**
+  //
+  // نسخه‌ی اول `lvl` و بدون `message` می‌نوشت. نتیجه‌اش این شد که Railway
+  // خط را پارس می‌کرد، متنی پیدا نمی‌کرد، و **یک خط کاملا خالی** نشان
+  // می‌داد — سه روز، ۲۶۳ لاگ، همه خالی. لاگی که دیده نشود با نبودنش فرقی
+  // ندارد.
+  //
+  // بقیه‌ی فیلدها attribute می‌شوند و در Railway با `@evt:deposit.credited`
+  // یا `@playerId:7` قابل فیلترند — همان چیزی که از اول هدف بود.
   const line = JSON.stringify({
-    t: new Date().toISOString(),
-    lvl,
+    message: summarize(evt, safe),
+    level: lvl,
     evt,
-    ...clean(fields),
+    ...safe,
   });
-  // ⚠️ خطا و هشدار به stderr، بقیه به stdout. Railway هر دو را می‌گیرد ولی
+  // خطا و هشدار به stderr، بقیه به stdout. Railway هر دو را می‌گیرد ولی
   // جدا بودنشان یعنی می‌شود فقط خطاها را دید.
   if (lvl === "error" || lvl === "warn") console.error(line);
   else console.log(line);
