@@ -43,7 +43,7 @@ import {
 import { db } from "@/lib/db";
 import { LINKS } from "@/config/site";
 import { log } from "@/lib/log";
-import { approveMarket, rejectMarket } from "@/lib/ir-moderation";
+import { approveMarket, rejectMarket, lockMarket } from "@/lib/ir-moderation";
 import {
   isTgAdmin,
   createJob,
@@ -229,6 +229,27 @@ async function handleReviewButton(
     await answerCallback(cbId, "این دکمه برای شما نیست.");
     return;
   }
+  // ⚠️ «بستن» پیش از تأیید/رد سنجیده می‌شود چون معنایش کاملا فرق دارد:
+  // آن دو روی بازارِ **در انتظار** کار می‌کنند، این یکی روی بازارِ **باز**.
+  // یک هندلر مشترک برای هر سه، دیر یا زود شرط‌ها را قاطی می‌کرد.
+  const lk = /^ir:lk:(\d+)$/.exec(data);
+  if (lk) {
+    const id = Number(lk[1]);
+    await answerCallback(cbId, "در حال بستن…");
+    const r = await lockMarket(id);
+    // متن پیام کامل بازنویسی نمی‌شود؛ فقط یک خط وضعیت به آن اضافه می‌شود و
+    // دکمه برداشته می‌شود تا ادمین نداند «زدم یا نزدم».
+    await editTelegram(
+      chatId,
+      messageId,
+      r.ok
+        ? `🔒 <b>بازار بسته شد.</b>\n\nاز این لحظه کسی پیش‌بینی تازه ثبت ` +
+            `نمی‌کند. نتیجه را در پنل ادمین ثبت کن.`
+        : `⚠️ این بازار دیگر باز نیست — احتمالا خودش بسته شده یا قبلا بستیش.`
+    );
+    return;
+  }
+
   const m = /^ir:(ok|no):(\d+)$/.exec(data);
   if (!m) {
     await answerCallback(cbId, "");

@@ -3,7 +3,7 @@ import { log } from "@/lib/log";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { verifyAdmin, ADMIN_COOKIE } from "@/lib/admin";
-import { approveMarket, rejectMarket } from "@/lib/ir-moderation";
+import { approveMarket, rejectMarket, lockMarket } from "@/lib/ir-moderation";
 import {
   ensureIrTables,
   oddsFor,
@@ -146,13 +146,13 @@ export async function POST(req: Request) {
         );
   }
 
-  // بستن دستی پیش از موعد
+  // بستن دستی پیش از موعد — همان تابعی که دکمه‌ی ربات صدا می‌زند. دو
+  // پیاده‌سازی موازی یعنی روزی یکی‌شان یک شرط کمتر دارد.
   if (action === "lock") {
-    await pool.query(
-      "UPDATE ir_markets SET status='locked' WHERE id=$1 AND status='open'",
-      [id]
-    );
-    return NextResponse.json({ ok: true });
+    const r = await lockMarket(id);
+    return r.ok
+      ? NextResponse.json({ ok: true })
+      : NextResponse.json({ ok: false, error: r.error }, { status: 409 });
   }
 
   // ثبت نتیجه — شروع پنجره‌ی اعتراض ۲۴ ساعته

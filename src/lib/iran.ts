@@ -148,9 +148,24 @@ export async function ensureIrTables(): Promise<void> {
       await pool.query(
         "ALTER TABLE ir_markets ADD COLUMN IF NOT EXISTS cover_file_id TEXT"
       );
+      // یادآوری پیش از بسته‌شدن: **کوچک‌ترین** آستانه‌ای که خبرش رفته
+      // (۴۸ سپس ۲۴)، یعنی مقدارش کاهشی است. صفر = هنوز خبری نرفته.
+      //
+      // ⚠️ عمدا عدد است و نه پرچم بولی: با پرچم فقط یک بار می‌شد خبر داد.
+      // منطق مقایسه‌اش در `alreadyNotified` است — مقایسه‌ی ساده‌ی «<» اینجا
+      // غلط است، چون آستانه‌ها نزولی‌اند.
+      await pool.query(
+        "ALTER TABLE ir_markets ADD COLUMN IF NOT EXISTS close_notice_stage INTEGER NOT NULL DEFAULT 0"
+      );
       await pool.query(
         `CREATE INDEX IF NOT EXISTS ir_markets_boosted
            ON ir_markets (boosted_until DESC) WHERE boosted_until IS NOT NULL`
+      );
+      // بازارهای بازی که نزدیک مهلتشان‌اند — همان چیزی که کرون هر ۱۵ دقیقه
+      // می‌پرسد. بدون این، هر تیک یک اسکن کامل جدول است.
+      await pool.query(
+        `CREATE INDEX IF NOT EXISTS ir_markets_closing
+           ON ir_markets (closes_at) WHERE status='open'`
       );
 
       await pool.query(

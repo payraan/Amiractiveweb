@@ -8,6 +8,7 @@ import { refreshTradePosts } from "@/lib/trade-posts";
 import { reconcileWithdrawals } from "@/lib/withdrawal-sync";
 import { reconcileDeposits } from "@/lib/deposit-sync";
 import { settleDueIrMarkets } from "@/lib/iran";
+import { remindClosingMarkets } from "@/lib/ir-close-notify";
 import { runBroadcastTick } from "@/lib/broadcast";
 import { translatePending } from "@/lib/translate";
 
@@ -49,6 +50,14 @@ export async function POST(req: Request) {
     out.iran = await settleDueIrMarkets();
   } catch (err) {
     out.iranError = err instanceof Error ? err.message : "error";
+  }
+
+  // یادآوری پیش از بسته‌شدن. عمدا **پس از** تسویه می‌آید: اگر بازاری همین
+  // تیک بسته و تسویه شد، دیگر نباید برایش «۲۴ ساعت مانده» برود.
+  try {
+    out.closing = await remindClosingMarkets();
+  } catch (err) {
+    out.closingError = err instanceof Error ? err.message : "error";
   }
 
   // کارت‌های منتشرشده در کانال هم روی همین کرون تازه می‌شوند — یک زمان‌بند

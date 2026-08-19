@@ -11,7 +11,7 @@ import { ensureIrTables, moveFunds, recordRevenue } from "@/lib/iran";
 
 export type ModerationResult =
   | { ok: true }
-  | { ok: false; error: "not_pending" | "server_error" };
+  | { ok: false; error: "not_pending" | "not_open" | "server_error" };
 
 /** تأیید و انتشار یک بازار در انتظار. */
 export async function approveMarket(id: number): Promise<ModerationResult> {
@@ -27,6 +27,37 @@ export async function approveMarket(id: number): Promise<ModerationResult> {
   // که باید رد داشته باشد.
   if (r.rowCount) log.warn("ir.market_approved", { marketId: id });
   return r.rowCount ? { ok: true } : { ok: false, error: "not_pending" };
+}
+
+/**
+ * بستن دستی بازار پیش از موعد — یعنی «از این لحظه دیگر کسی پیش‌بینی ثبت
+ * نمی‌کند».
+ *
+ * ── چرا لازم است ──
+ * `closes_at` را سازنده هنگام ساخت انتخاب می‌کند و بعدش قابل تغییر نیست.
+ * ولی نوع بازار تعیین می‌کند چه‌وقت باید بسته شود: بازار نتیجه‌ی یک بازی
+ * فوتبال باید **پیش از سوت آغاز** بسته شود، نه بعدش؛ و بازاری که نتیجه‌اش
+ * از یک روز قبل عملا معلوم می‌شود، باید همان‌جا بسته شود. بدون این دکمه،
+ * تنها راه، رسیدنِ خودِ `closes_at` بود.
+ *
+ * ⚠️ اینجا **هیچ پولی جابه‌جا نمی‌شود.** بستن فقط ورودی را می‌بندد؛ نتیجه
+ * را همچنان انسان ثبت می‌کند و پرداخت از مسیر همیشگی می‌رود.
+ *
+ * ⚠️ شرط `status='open'` داخل خودِ UPDATE است، نه یک چک جدا: دو لمس
+ * هم‌زمان (ادمین در پنل و ادمین دیگری در ربات) فقط یکی‌شان سطر می‌گیرد.
+ */
+export async function lockMarket(id: number): Promise<ModerationResult> {
+  await ensureIrTables();
+  const pool = await db();
+  const r = await pool.query(
+    "UPDATE ir_markets SET status='locked' WHERE id=$1 AND status='open' RETURNING id",
+    [id]
+  );
+  if (r.rowCount) {
+    log.warn("ir.market_locked", { marketId: id, manual: true });
+    return { ok: true };
+  }
+  return { ok: false, error: "not_open" };
 }
 
 /**
