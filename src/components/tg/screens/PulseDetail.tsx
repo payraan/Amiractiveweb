@@ -6,6 +6,7 @@ import { api, ApiError } from "@/components/tg/api";
 import { haptic, hasMainButton, showBackButton } from "@/components/tg/telegram";
 import { useMainButton } from "@/components/tg/useMainButton";
 import { AssetBadge, type Me } from "@/components/tg/screens/PulseScreen";
+import { ASSETS } from "@/lib/assets";
 // همان نمودار سایت — نه یک نسخه‌ی دوم. lightweight-charts از قبل در باندل
 // هست، پس هزینه‌ی اضافه‌ای ندارد و رفتار هر دو سطح یکی می‌ماند.
 import LiveChart from "@/components/predict/LiveChart";
@@ -14,6 +15,7 @@ import {
   tf,
   scoreFor,
   volScaleFor,
+  thresholdsFor,
   isAssetOpen,
   nextClose,
   settleFor,
@@ -138,6 +140,42 @@ export default function PulseDetail({
     onClick: submit,
   });
 
+  // ── داده‌ی لایه‌ی نمودار ────────────────────────────────────
+  //
+  // ⚠️ آستانه‌ها از همان `thresholdsFor` می‌آیند که تسویه استفاده می‌کند.
+  // کشیدن جدول دوم برای نمایش یعنی روزی نوارِ روی نمودار با امتیازی که
+  // واقعا داده می‌شود فرق کند — همان الگویی که ضریب بازار ایران هم داشت.
+  const bands = useMemo(
+    () => thresholdsFor(tfId, volScale).filter((b) => Number.isFinite(b.maxErr)),
+    [tfId, volScale]
+  );
+
+  // پیش‌بینی‌های ثبت‌شده‌ی خودِ کاربر روی همین دارایی — اگر ۱۲ و ۲۴ ساعته
+  // هر دو را زده باشد، هر دو خط را می‌بیند.
+  const marks = useMemo(
+    () =>
+      (me?.mine ?? [])
+        .filter((p) => p.asset === market.asset && p.points === null)
+        .map((p) => ({ price: p.guess, label: p.timeframe })),
+    [me?.mine, market.asset]
+  );
+
+  // ⚠️ تا وقتی کاربر عددی نگذاشته، خط روی **قیمت فعلی** می‌نشیند. بدون
+  // این، چیزی برای گرفتن و کشیدن وجود نداشت و قابلیت نامرئی می‌ماند.
+  const linePrice = Number.isFinite(n) && n > 0 ? n : market.price ?? null;
+
+  /** گرد کردن به دقتِ همان دارایی — کشیدن نباید ۹ رقم اعشار بسازد. */
+  const onDrag = useCallback(
+    (price: number) => {
+      // دقتِ اعشار از کاتالوگ دارایی می‌آید، نه یک عدد ثابت: کشیدن روی
+      // دوج‌کوین باید پنج رقم بدهد و روی بیت‌کوین صفر.
+      const dec = ASSETS.find((a) => a.id === market.asset)?.decimals ?? 2;
+      setGuess(price.toFixed(dec));
+      haptic.tap();
+    },
+    [market.asset]
+  );
+
   // نمونه‌ی امتیاز: چند خطای واقعی و امتیازی که می‌گیرند.
   const samples = [0, 0.1, 0.3, 0.8, 2, 5].map((e) => ({
     err: e,
@@ -184,7 +222,16 @@ export default function PulseDetail({
 
       {/* key اجباری است — بدون آن نمودار بین دارایی‌ها بازاستفاده می‌شود. */}
       <div className="mt-4 overflow-hidden rounded-2xl border border-line bg-ink/30 px-2 py-2">
-        <LiveChart key={`${market.asset}-${tfId}`} asset={market.asset} interval={tfId} />
+        <LiveChart
+          key={`${market.asset}-${tfId}`}
+          asset={market.asset}
+          interval={tfId}
+          guess={linePrice}
+          onGuessChange={already || !open ? undefined : onDrag}
+          basePrice={market.price ?? null}
+          bands={bands}
+          marks={marks}
+        />
         <div
           className="flex justify-between px-1 font-mono text-[9px] text-muted"
           dir="ltr"
