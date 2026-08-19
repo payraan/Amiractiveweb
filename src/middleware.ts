@@ -71,6 +71,9 @@ const RULES: Rule[] = [
   // ── پول واقعی: تنگ‌ترین سقف‌ها ──
   { id: "withdraw", pattern: /^\/api\/wallet\/withdraw/, max: 5, by: "identity" },
   { id: "buy-credits", pattern: /^\/api\/wallet\/buy-credits/, max: 20, by: "identity" },
+  // ⚠️ تنگ: حدس‌زدنِ کد بونوس با تلاش پیاپی دقیقا همان چیزی است که این
+  // سقف برایش هست. کد کوتاه است و بدون سقف، جست‌وجوی کامل ممکن می‌شود.
+  { id: "bonus-code", pattern: /^\/api\/wallet\/bonus-code/, max: 10, by: "identity" },
   { id: "ir-bet", pattern: /^\/api\/ir\/bet/, max: 60, by: "identity" },
   { id: "ir-propose", pattern: /^\/api\/ir\/propose/, max: 10, by: "identity" },
   { id: "ir-dispute", pattern: /^\/api\/ir\/dispute/, max: 10, by: "identity" },

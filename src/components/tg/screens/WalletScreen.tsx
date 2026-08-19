@@ -5,6 +5,7 @@ import { useCallback, useState } from "react";
 import { ledgerLabel } from "@/lib/ledger-labels";
 import { floorUsdt } from "@/lib/wallet-rules";
 import { useResource } from "@/components/tg/useResource";
+import { api } from "@/components/tg/api";
 import { ErrorState, ScreenTitle, Skeleton } from "@/components/tg/ui";
 import {
   IconArrow,
@@ -207,6 +208,8 @@ export default function WalletScreen() {
         ))}
       </div>
 
+      <BonusCodeBox onDone={() => reload()} />
+
       {/* ⚠️ بلافاصله زیر سه کنش، نه پای صفحه. کاربری که صد تراکنش دارد
           باید تا ته تاریخچه اسکرول می‌کرد تا پشتیبانی را ببیند — یعنی
           دقیقا وقتی که دنبالش می‌گردد، پیدایش نمی‌کرد. */}
@@ -271,6 +274,91 @@ export default function WalletScreen() {
             );
           })}
         </div>
+      )}
+    </div>
+  );
+}
+
+// ── کد هدیه ─────────────────────────────────────────────────
+//
+// ⚠️ جایش عمدا داخل کیف پول است و نه یک صفحه‌ی جدا: کد هدیه یک «موجودی»
+// است، و کاربری که کد کمپین گرفته اول جایی را باز می‌کند که پولش آنجاست.
+// صفحه‌ی جدا یعنی یک مقصد بیشتر برای گشتن.
+function BonusCodeBox({ onDone }: { onDone: () => void }) {
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  async function submit() {
+    const c = code.trim();
+    if (!c || busy) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      const r = await api<{ kind: string; amount: number }>(
+        "/api/wallet/bonus-code",
+        { method: "POST", body: JSON.stringify({ code: c }) }
+      );
+      haptic.success();
+      setMsg({
+        ok: true,
+        text:
+          r.kind === "moon"
+            ? `${r.amount} MOON به حسابت اضافه شد.`
+            : `${r.amount} تتر هدیه اضافه شد — با آن پیش‌بینی کن؛ فقط سودش قابل برداشت است.`,
+      });
+      setCode("");
+      onDone();
+    } catch (e) {
+      // هر علت پیام خودش را دارد؛ «خطا» به کاربر نمی‌گوید چه کار کند.
+      const why: Record<string, string> = {
+        bad_code: "این کد معتبر نیست.",
+        not_found: "چنین کدی وجود ندارد.",
+        expired: "این کد منقضی شده است.",
+        exhausted: "سهمیه‌ی این کد تمام شده است.",
+        already_used: "این کد را قبلا استفاده کرده‌ای.",
+        rate_limited: "کمی صبر کن و دوباره امتحان کن.",
+      };
+      const key = e instanceof Error ? e.message : "error";
+      haptic.error();
+      setMsg({ ok: false, text: why[key] ?? "کد پذیرفته نشد." });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-5 rounded-2xl border border-line bg-surface/40 p-4">
+      <p className="text-[11.5px] font-bold text-cream">کد هدیه داری؟</p>
+      <div className="mt-2.5 flex gap-2">
+        <input
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && submit()}
+          placeholder="مثلا NARMOON50"
+          dir="ltr"
+          autoCapitalize="characters"
+          autoCorrect="off"
+          spellCheck={false}
+          className="min-w-0 flex-1 rounded-xl border border-line bg-ink/60 px-3 py-2.5 text-center font-mono text-[13px] tracking-wider text-cream outline-none placeholder:text-muted/60 focus:border-gold/50"
+        />
+        <button
+          type="button"
+          onClick={submit}
+          disabled={busy || !code.trim()}
+          className="shrink-0 rounded-xl bg-gold px-4 py-2.5 text-xs font-extrabold text-ink transition active:scale-[0.98] disabled:opacity-40"
+        >
+          {busy ? "…" : "ثبت"}
+        </button>
+      </div>
+      {msg && (
+        <p
+          className={`mt-2.5 text-[11px] leading-6 ${
+            msg.ok ? "text-gain" : "text-loss"
+          }`}
+        >
+          {msg.text}
+        </p>
       )}
     </div>
   );

@@ -71,6 +71,7 @@ import {
   claimChannelFlow,
 } from "@/lib/bot-flow";
 import { registerChannel, reviewChannel } from "@/lib/ir-channels";
+import { createBonusCode, redeemBonusCode, listBonusCodes } from "@/lib/bonus-codes";
 import { requestWithdrawal } from "@/lib/withdrawal";
 import { requireLinkedTelegram } from "@/lib/money-guard";
 import { MIN_WITHDRAW } from "@/lib/wallet-rules";
@@ -517,6 +518,50 @@ async function handleMessage(
     await sendScreen(chatId, await inviteScreen(player.id));
     return;
   }
+  // ── کد هدیه ─────────────────────────────────────────────
+  //
+  // ⚠️ دو دستور جدا و عمدا هم‌نام‌نشده: `/code` مال کاربر است و `/newcode`
+  // فقط ادمین. اگر یکی بودند، یک اشتباه تایپی کاربر می‌توانست به شاخه‌ی
+  // ساخت برسد.
+  if (head === "/code") {
+    if (!player) return needAccount(chatId);
+    if (!arg) {
+      await sendTelegram(
+        chatId,
+        `🎟 <b>کد هدیه</b>\n\nکدت را همراه دستور بفرست:\n<code>/code NARMOON50</code>`
+      );
+      return;
+    }
+    const r = await redeemBonusCode(player.id, arg);
+    await sendTelegram(chatId, redeemMessage(r));
+    return;
+  }
+  if (head === "/newcode") {
+    await handleNewCode(tg, chatId, cmd);
+    return;
+  }
+  if (head === "/codes") {
+    if (!isTgAdmin(tg.id)) return;
+    const list = await listBonusCodes(20);
+    await sendTelegram(
+      chatId,
+      list.length
+        ? `🎟 <b>کدهای هدیه</b>\n\n` +
+            list
+              .map(
+                (c) =>
+                  `<code>${escapeHtml(c.code)}</code> — ${c.amount} ` +
+                  `${c.kind === "moon" ? "MOON" : "تتر دمو"}\n` +
+                  `مصرف: ${c.used}/${c.maxUses}` +
+                  (c.expiresAt
+                    ? ` · تا ${new Date(c.expiresAt).toLocaleDateString("fa-IR", { timeZone: "Asia/Tehran" })}`
+                    : " · بدون انقضا")
+              )
+              .join("\n\n")
+        : "هنوز کدی ساخته نشده."
+    );
+    return;
+  }
   if (head === "/bonus") return handleBonus(tg, chatId, player);
   if (head === "/help") {
     await sendScreen(chatId, helpScreen());
@@ -524,6 +569,73 @@ async function handleMessage(
   }
 
   // هر چیز دیگر: بی‌سروصدا رد می‌شود. ربات نباید به هر پیام گروه جواب بدهد.
+}
+
+/** پیام نتیجه‌ی مصرف کد — یکی برای ربات، هم‌معنی با متن سایت و مینی‌اپ. */
+function redeemMessage(r: Awaited<ReturnType<typeof redeemBonusCode>>): string {
+  if (r.ok) {
+    return r.kind === "moon"
+      ? `🎉 <b>${r.amount} MOON</b> به حسابت اضافه شد.` +
+          (r.credits !== undefined ? `\n\nموجودی MOON: <b>${r.credits}</b>` : "")
+      : `🎉 <b>${r.amount} تتر هدیه</b> به حسابت اضافه شد.\n\n` +
+          `<i>با آن می‌توانی در بازار ایران پیش‌بینی کنی. خودِ هدیه قابل ` +
+          `برداشت نیست، ولی سودش هست.</i>`;
+  }
+  const why: Record<string, string> = {
+    bad_code: "این کد معتبر نیست.",
+    not_found: "چنین کدی وجود ندارد.",
+    expired: "این کد منقضی شده است.",
+    exhausted: "سهمیه‌ی این کد تمام شده است.",
+    already_used: "این کد را قبلا استفاده کرده‌ای.",
+    server_error: "خطای سرور. کمی بعد دوباره امتحان کن.",
+  };
+  return `⚠️ ${why[r.error] ?? "کد پذیرفته نشد."}`;
+}
+
+/**
+ * `/newcode <کد> <moon|usdt> <مبلغ> <تعداد> [روز انقضا]` — فقط ادمین.
+ *
+ * ⚠️ بی‌صدا رد می‌شود اگر ادمین نباشد: وجودِ دستور نباید لو برود.
+ */
+async function handleNewCode(tg: TgUser, chatId: number, cmd: string[]) {
+  if (!isTgAdmin(tg.id)) return;
+
+  const [, code, kind, amount, uses, days] = cmd;
+  if (!code || (kind !== "moon" && kind !== "usdt")) {
+    await sendTelegram(
+      chatId,
+      `🎟 <b>ساخت کد هدیه</b>\n\n` +
+        `<code>/newcode NARMOON50 moon 50 200 7</code>\n\n` +
+        `به ترتیب: کد · نوع (<code>moon</code> یا <code>usdt</code>) · مبلغ · ` +
+        `سقف تعداد · روز تا انقضا (اختیاری)\n\n` +
+        `<i>usdt یعنی تتر دمو — قابل پیش‌بینی، غیرقابل برداشت.</i>`
+    );
+    return;
+  }
+
+  const r = await createBonusCode({
+    code,
+    kind,
+    amount: Number(amount),
+    maxUses: Number(uses),
+    expiresInDays: days ? Number(days) : null,
+    createdBy: tg.id,
+  });
+
+  const why: Record<string, string> = {
+    bad_code: "کد فقط حروف و رقم انگلیسی، بین ۳ تا ۲۴ کاراکتر.",
+    bad_amount: "مبلغ باید عددی بزرگ‌تر از صفر باشد.",
+    bad_uses: "سقف تعداد باید عددی بزرگ‌تر از صفر باشد.",
+    exists: "این کد قبلا ساخته شده است.",
+  };
+  await sendTelegram(
+    chatId,
+    r.ok
+      ? `✅ کد <code>${escapeHtml(r.code)}</code> ساخته شد.\n\n` +
+          `کاربر با <code>/code ${escapeHtml(r.code)}</code> یا از کیف پول ` +
+          `مینی‌اپ آن را وارد می‌کند.`
+      : `⚠️ ${why[r.error] ?? "ساخت انجام نشد."}`
+  );
 }
 
 /** دستوری که حساب لازم دارد، ولی کاربر هنوز وصل نیست. */
