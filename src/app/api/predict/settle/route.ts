@@ -10,6 +10,7 @@ import { reconcileDeposits } from "@/lib/deposit-sync";
 import { settleDueIrMarkets } from "@/lib/iran";
 import { remindClosingMarkets } from "@/lib/ir-close-notify";
 import { runBroadcastTick } from "@/lib/broadcast";
+import { runOutboxTick, kickOutboxChain } from "@/lib/notify-outbox";
 import { translatePending } from "@/lib/translate";
 
 export const dynamic = "force-dynamic";
@@ -88,6 +89,19 @@ export async function POST(req: Request) {
     out.deposits = await reconcileDeposits();
   } catch (err) {
     out.depositsError = err instanceof Error ? err.message : "error";
+  }
+
+  // ⚠️ صف اعلان **پس از** همه‌ی تسویه‌ها. اگر بالاتر بود، اعلان‌هایی که
+  // همین تیک ساخته شده‌اند تا تیک بعد منتظر می‌ماندند.
+  //
+  // زنجیره اول راه می‌افتد تا اگر صف بلند بود پیوسته خالی شود؛ تیک
+  // درجا فقط تور ایمنی است برای وقتی که پیکربندی زنجیره ناقص باشد.
+  try {
+    if (!kickOutboxChain()) {
+      out.outbox = await runOutboxTick(10_000);
+    }
+  } catch (err) {
+    out.outboxError = err instanceof Error ? err.message : "error";
   }
 
   // صف ترجمه‌ی عنوان بازارهای خارجی. بدون کلید بی‌هزینه رد می‌شود.

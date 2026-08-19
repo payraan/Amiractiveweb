@@ -66,7 +66,22 @@
 @evt:credits.purchased   خرید MOON
 @evt:boost.purchased     خرید بوست
 @evt:gateway.*      خودِ درگاه Zovix
+@evt:outbox.tick    ارسال اعلان نتیجه به کاربران
 ```
+
+### اعلان نتیجه
+
+هر پیش‌بینی که تسویه شود، یک ردیف در `tg_outbox` می‌گذارد و جدا ارسال
+می‌شود. اگر کاربران می‌گویند نتیجه به دستشان نمی‌رسد:
+
+```
+@evt:outbox.tick           sent/failed/skipped/remaining هر تیک
+@evt:outbox.queue_failed   ردیف ساخته نشد (نادر — SAVEPOINT گرفتش)
+@evt:outbox.throttled      به سقف تلگرام خوردیم
+```
+
+`skipped` یعنی کاربر تلگرام وصل ندارد — عادی است. `remaining` که پایین
+نیاید یعنی زنجیره پاره شده؛ `SITE_URL` و `SETTLE_KEY` را چک کن.
 
 `ir.settled` مهم‌ترینشان است: `pool`، `paid`، `commission` و `creatorCut` را با
 هم می‌دهد، پس تقسیم پول هر بازار بدون هیچ کوئری دیتابیسی دیده می‌شود.

@@ -1,6 +1,8 @@
 import type { RevenueKind } from "@/lib/revenue-kinds";
 import { log } from "@/lib/log";
 import { db } from "@/lib/db";
+import { queueNotify, ensureOutboxTable } from "@/lib/notify-outbox";
+import { irSettledMessage } from "@/lib/settle-messages";
 
 // ═══ بازار ایران — اقتصاد پولی ═══════════════════════════════
 //
@@ -623,13 +625,16 @@ export async function settleIrMarket(
   marketId: number
 ): Promise<{ ok: boolean; paid?: number; voided?: boolean; error?: string }> {
   await ensureIrTables();
+  // ⚠️ پیش از شروع ترنزاکشن: DDL داخل ترنزاکشنِ قفل‌دار هم کند است و هم
+  // اگر شکست بخورد کل تسویه را می‌کشد.
+  await ensureOutboxTable();
   const pool = await db();
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
 
     const m = await client.query(
-      `SELECT id, status, outcome, yes_total, no_total, settled_at,
+      `SELECT id, status, outcome, yes_total, no_total, settled_at, question,
               creator_id, creator_cut, creator_cut_demo
          FROM ir_markets WHERE id = $1 FOR UPDATE`,
       [marketId]
@@ -670,6 +675,7 @@ export async function settleIrMarket(
     //
     // ⚠️ سازنده‌ی حذف‌شده سهمی ندارد و آن مبلغ **به برنده‌ها می‌رسد**، نه به
     // پلتفرم: سهمی که صاحب ندارد نباید بی‌صدا به درآمد تبدیل شود.
+    const question = String(row.question ?? "");
     const creatorId = row.creator_id as number | null;
     const creatorCut = creatorId === null ? 0 : round6(Number(row.creator_cut));
     const creatorCutDemo =
@@ -734,6 +740,7 @@ export async function settleIrMarket(
           "UPDATE ir_bets SET status='refunded', payout=$1 WHERE id=$2",
           [Number(b.stake), b.id]
         );
+        await queueIrResult(client, b, marketId, question, "refunded", Number(b.stake), "low_odds");
       }
       await client.query(
         "UPDATE ir_markets SET status='void', void_reason=COALESCE(void_reason,'low_odds') WHERE id=$1",
@@ -782,6 +789,7 @@ export async function settleIrMarket(
           "UPDATE ir_bets SET status='refunded', payout=$1 WHERE id=$2",
           [back, b.id]
         );
+        await queueIrResult(client, b, marketId, question, "refunded", back, "no_winners");
       }
       await payCreator(client, creatorId, creatorCut, creatorCutDemo, marketId);
       await recordRevenue(client, "ir_commission_void", round6(kept), {
@@ -840,6 +848,9 @@ export async function settleIrMarket(
         "UPDATE ir_bets SET status=$1, payout=$2 WHERE id=$3",
         [won ? "won" : "lost", amt, b.id]
       );
+      await queueIrResult(
+        client, b, marketId, question, won ? "won" : "lost", amt, null
+      );
     }
     await payCreator(client, creatorId, creatorCut, creatorCutDemo, marketId);
 
@@ -884,6 +895,52 @@ export async function settleIrMarket(
     return { ok: false, error: msg };
   } finally {
     client.release();
+  }
+}
+
+/**
+ * گذاشتن نتیجه‌ی یک پیش‌بینی در صف اعلان.
+ *
+ * ⚠️ داخل همان ترنزاکشن تسویه است، پس اگر تسویه برگردد اعلان هم برمی‌گردد
+ * — هیچ‌کس پیام «بردی» برای چیزی که اتفاق نیفتاده نمی‌گیرد.
+ *
+ * ⚠️ خطایش بلعیده می‌شود و **عمدا**: یک اعلان از دست‌رفته نباید پرداختِ
+ * برگشت‌ناپذیر را برگرداند. پول مهم‌تر از پیام است.
+ */
+async function queueIrResult(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  client: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  bet: any,
+  marketId: number,
+  question: string,
+  outcome: "won" | "lost" | "refunded",
+  payout: number,
+  voidReason: string | null
+): Promise<void> {
+  try {
+    const { text, buttons } = irSettledMessage({
+      marketId,
+      question,
+      side: bet.side === "yes" ? "yes" : "no",
+      outcome,
+      stake: Number(bet.stake),
+      payout,
+      voidReason,
+    });
+    await queueNotify(client, {
+      playerId: bet.player_id,
+      kind: "ir_settled",
+      ref: `m${marketId}b${bet.id}`,
+      text,
+      buttons,
+    });
+  } catch (err) {
+    log.warn("outbox.queue_failed", {
+      marketId,
+      kind: "ir_settled",
+      err: err instanceof Error ? err.message : "error",
+    });
   }
 }
 

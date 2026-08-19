@@ -39,7 +39,11 @@ import Logo from "@/components/Logo";
  */
 type DeepLink =
   | { tab: "markets"; marketId: number; side: "yes" | "no" | null }
-  | { tab: "trade"; marketId: string; side: "yes" | "no" | null };
+  | { tab: "trade"; marketId: string; side: "yes" | "no" | null }
+  // نبض بازار با **شناسه‌ی دارایی** آدرس‌دهی می‌شود، نه شناسه‌ی راند: راند
+  // تسویه‌شده دیگر باز نمی‌شود، ولی همان دارایی همیشه هست و کاربر می‌تواند
+  // کارنامه و پیش‌بینی بعدی‌اش را همان‌جا ببیند.
+  | { tab: "pulse"; asset: string };
 
 function parseStartParam(raw: string | null): DeepLink | null {
   if (!raw) return null;
@@ -61,6 +65,9 @@ function parseStartParam(raw: string | null): DeepLink | null {
       side: (trade[2] as "yes" | "no") ?? null,
     };
   }
+
+  const pulse = /^pulse_([A-Za-z0-9=._-]{1,24})$/.exec(raw);
+  if (pulse) return { tab: "pulse", asset: pulse[1] };
 
   return null;
 }
@@ -302,7 +309,16 @@ export default function MiniApp({
                   }
                 />
               )}
-              {tab === "pulse" && <PulseScreen key={`pulse-${homeNonce}`} />}
+              {tab === "pulse" && (
+                <PulseScreen
+                  key={`pulse-${homeNonce}`}
+                  openAsset={
+                    homeNonce === 0 && deepLink?.tab === "pulse"
+                      ? deepLink.asset
+                      : null
+                  }
+                />
+              )}
               {tab === "challenge" && (
                 <ChallengeScreen key={`challenge-${homeNonce}`} />
               )}

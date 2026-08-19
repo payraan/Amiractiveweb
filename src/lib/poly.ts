@@ -3,6 +3,8 @@
 // یعنی فقط «بهتر از بازار فهمیدن» امتیاز مثبت می‌سازد — مهارت، نه شانس.
 
 import { db } from "@/lib/db";
+import { queueNotify, ensureOutboxTable } from "@/lib/notify-outbox";
+import { tradeSettledMessage } from "@/lib/settle-messages";
 import { winPoints, losePoints } from "@/lib/poly-scoring";
 
 export const POLY_FREE_PER_DAY = 5; // پیش‌بینی رایگان روزانه
@@ -299,6 +301,9 @@ export async function settlePolyDue(): Promise<{ settled: number }> {
     `SELECT DISTINCT market_id FROM poly_predictions WHERE status='open' LIMIT 15`
   );
 
+  // ⚠️ پیش از هر ترنزاکشن: DDL داخل ترنزاکشنِ قفل‌دار خطرناک است.
+  await ensureOutboxTable();
+
   let settled = 0;
   for (const { market_id } of due.rows) {
     try {
@@ -329,8 +334,9 @@ export async function settlePolyDue(): Promise<{ settled: number }> {
           player_id: number;
           choice: string;
           prob: string;
+          question: string;
         }>(
-          `SELECT id, player_id, choice, prob FROM poly_predictions
+          `SELECT id, player_id, choice, prob, question FROM poly_predictions
             WHERE market_id=$1 AND status='open' FOR UPDATE`,
           [market_id]
         );
@@ -346,6 +352,25 @@ export async function settlePolyDue(): Promise<{ settled: number }> {
             `UPDATE players SET total_points = total_points + $1 WHERE id=$2`,
             [points, p.player_id]
           );
+
+          // ⚠️ داخل همان ترنزاکشن: اگر تسویه برگردد، اعلان هم برمی‌گردد.
+          // `queueNotify` خودش SAVEPOINT دارد، پس شکستش امتیازِ ثبت‌شده را
+          // باطل نمی‌کند.
+          const { text, buttons } = tradeSettledMessage({
+            marketId: String(market_id),
+            question: p.question ?? "",
+            side: p.choice === "yes" ? "yes" : "no",
+            won,
+            points,
+            probPct,
+          });
+          await queueNotify(client, {
+            playerId: p.player_id,
+            kind: "trade_settled",
+            ref: String(p.id),
+            text,
+            buttons,
+          });
         }
         await client.query("COMMIT");
         settled++;

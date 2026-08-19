@@ -46,9 +46,22 @@ export type Me = {
 /** از چند دارایی به بعد فیلد جست‌وجو نشان داده شود. */
 const SEARCH_MIN = 8;
 
-export default function PulseScreen() {
-  const [cat, setCat] = useState<string>("crypto");
-  const [openId, setOpenId] = useState<string | null>(null);
+export default function PulseScreen({
+  openAsset = null,
+}: {
+  /** دارایی‌ای که لینک عمیق اعلان نتیجه به آن اشاره می‌کند. */
+  openAsset?: string | null;
+}) {
+  // ⚠️ دسته هم از خودِ دارایی گرفته می‌شود، نه پیش‌فرض «کریپتو». بدون این،
+  // لینک اعلانِ یک دارایی فارکس باز می‌شد ولی چون فهرست فقط کریپتو را
+  // می‌آورد، دارایی پیدا نمی‌شد و کاربر روی صفحه‌ی معمولی می‌افتاد — یعنی
+  // دکمه بی‌صدا کار نمی‌کرد.
+  const [cat, setCat] = useState<string>(
+    (openAsset && ASSETS.find((a) => a.id === openAsset)?.category) || "crypto"
+  );
+  // فقط مقدار اولیه: اگر هر رندر اعمال می‌شد، کاربر بعد از بستنِ دارایی
+  // دوباره داخلش پرت می‌شد و هرگز نمی‌توانست برگردد.
+  const [openId, setOpenId] = useState<string | null>(openAsset);
   // بازه پیش از دارایی انتخاب می‌شود — همان ترتیبی که در ذهن کاربر اتفاق
   // می‌افتد. قبلا تایم‌فریم فقط *بعد* از باز کردن دارایی دیده می‌شد، پس
   // برای عوض کردن بازه باید هر بار به عقب برمی‌گشت.

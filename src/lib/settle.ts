@@ -1,6 +1,9 @@
 import { db } from "@/lib/db";
 import { getMarket } from "@/lib/market";
-import { scoreFor, type Asset, type TimeframeId } from "@/lib/game";
+import { queueNotify, ensureOutboxTable } from "@/lib/notify-outbox";
+import { pulseSettledMessage } from "@/lib/settle-messages";
+import { ASSETS } from "@/lib/assets";
+import { scoreFor, TIMEFRAMES, type Asset, type TimeframeId } from "@/lib/game";
 
 // Settle every round whose settle_at has passed and isn't settled yet.
 // Idempotent: only touches rounds with status='open' past settle_at.
@@ -19,6 +22,9 @@ export async function settleDueRounds(): Promise<{ settled: number; scored: numb
       ORDER BY settle_at ASC
       LIMIT 50`
   );
+
+  // ⚠️ پیش از هر ترنزاکشن: DDL داخل ترنزاکشنِ قفل‌دار خطرناک است.
+  await ensureOutboxTable();
 
   let settled = 0;
   let scored = 0;
@@ -78,6 +84,30 @@ export async function settleDueRounds(): Promise<{ settled: number; scored: numb
           `UPDATE players SET total_points = total_points + $1 WHERE id=$2`,
           [points, p.player_id]
         );
+
+        // ⚠️ داخل همان ترنزاکشن. `queueNotify` خودش SAVEPOINT دارد، پس
+        // شکستش امتیازِ ثبت‌شده را باطل نمی‌کند.
+        {
+          const { text, buttons } = pulseSettledMessage({
+            asset: round.asset,
+            assetLabel:
+              ASSETS.find((a) => a.id === round.asset)?.label ?? round.asset,
+            timeframeLabel:
+              TIMEFRAMES.find((t) => t.id === round.timeframe)?.label ??
+              round.timeframe,
+            guess,
+            settlePrice,
+            errorPct,
+            points,
+          });
+          await queueNotify(client, {
+            playerId: p.player_id,
+            kind: "pulse_settled",
+            ref: String(p.id),
+            text,
+            buttons,
+          });
+        }
         scored++;
       }
 
