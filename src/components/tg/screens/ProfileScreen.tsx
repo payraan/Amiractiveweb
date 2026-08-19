@@ -42,7 +42,13 @@ type Profile = {
     staked: number;
     winRate: number | null;
   };
-  rank: { above: number; percentile: number };
+  rank: {
+    ranked: boolean;
+    above: number;
+    percentile: number;
+    points: number;
+    counted: number;
+  };
   badgeStats: BadgeStats;
   showcase: string[];
 };
@@ -201,7 +207,7 @@ export default function ProfileScreen({
         className="mt-2.5 flex w-full items-center justify-between rounded-2xl border border-gold/40 bg-gold/10 px-4 py-3 text-right transition active:scale-[0.99]"
       >
         <span className="text-[11.5px] font-bold text-gold">
-          🎁 دعوت دوستان و دریافت پورسانت
+          🎁 دعوت دوستان
         </span>
         <span className="text-gold">‹</span>
       </button>
@@ -241,7 +247,7 @@ export default function ProfileScreen({
         <Metric label="MOON" value={num(me.credits)} tone="gold" />
         <Metric label="تتر" value={`$${money(me.usdtBalance)}`} tone="gain" />
         <Metric
-          label="امتیاز"
+          label="امتیاز کل"
           value={num(me.totalPoints)}
           tone={me.totalPoints >= 0 ? "gain" : "loss"}
         />
@@ -249,9 +255,30 @@ export default function ProfileScreen({
 
       <div className="mt-2.5 grid grid-cols-3 gap-2.5">
         <Metric label="روزهای متوالی (استریک)" value={`${me.streak} روز`} />
-        <Metric label="رتبه" value={`${p.rank.above + 1}`} />
-        <Metric label="درصد برتر" value={`${p.rank.percentile}%`} tone="gold" />
+        {/* ⚠️ رتبه و درصد از **امتیاز ۳۰ روزه‌ی سقف‌دار** می‌آیند، نه از
+            «امتیاز کل». دو عدد متفاوت با یک نام، همان چیزی بود که مالک را
+            گیج کرد. کاربری که هنوز نتیجه‌ای ندارد، به‌جای رتبه‌ی ساختگی
+            خط تیره می‌بیند. */}
+        <Metric
+          label="رتبه (۳۰ روز)"
+          value={p.rank.ranked ? `${p.rank.above + 1}` : "—"}
+        />
+        <Metric
+          label="درصد برتر"
+          value={p.rank.ranked ? `${p.rank.percentile}%` : "—"}
+          tone="gold"
+        />
       </div>
+
+      {/* توضیح تفاوت دو عدد، همان‌جا که دیده می‌شوند. */}
+      <p className="mt-2 px-1 text-[10px] leading-5 text-muted">
+        «امتیاز کل» جمع همیشگیِ هر سه بازی است (نبض بازار، ترید، کمبو).
+        «رتبه» فقط از پیش‌بینی‌های تسویه‌شده‌ی ۳۰ روز گذشته حساب می‌شود و
+        سقف تعداد دارد — تا با MOON بیشتر نشود رتبه خرید.
+        {p.rank.ranked && (
+          <> امتیاز رتبه‌ای تو در این بازه: <b>{num(p.rank.points)}</b>.</>
+        )}
+      </p>
 
       {/* بازار ایران: پول واقعی، پس جدا از امتیاز نشان داده می‌شود */}
       <h3 className="mb-2 mt-5 text-xs font-bold text-cream">بازار ایران</h3>
@@ -349,7 +376,9 @@ export default function ProfileScreen({
           haptic.press();
           shareText(
             `کارنامه‌ی من در نارمون:\n` +
-              `امتیاز ${num(me.totalPoints)} · درصد برتر ${p.rank.percentile}%\n` +
+              `امتیاز ${num(me.totalPoints)}` +
+              (p.rank.ranked ? ` · درصد برتر ${p.rank.percentile}%` : "") +
+              `\n` +
               `${earned.length} نشان از ${BADGES.length}`,
             `${siteUrl}/profile`
           );

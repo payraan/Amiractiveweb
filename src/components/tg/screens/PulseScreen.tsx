@@ -2,7 +2,15 @@
 
 import { useState } from "react";
 import { useResource } from "@/components/tg/useResource";
-import { ErrorState, ScreenTitle, Skeleton, SearchBar } from "@/components/tg/ui";
+import {
+  Card,
+  EmptyState,
+  ErrorState,
+  ScreenTitle,
+  Skeleton,
+  SearchBar,
+} from "@/components/tg/ui";
+import { ASSETS } from "@/lib/assets";
 import { matchesQuery } from "@/lib/search";
 import { haptic } from "@/components/tg/telegram";
 import PulseDetail, { type PulseMarket } from "@/components/tg/screens/PulseDetail";
@@ -21,6 +29,18 @@ export type Me = {
   // سهمیه‌ی رایگان به تفکیک تایم‌فریم است، نه یک عدد کلی — فقط ۲۴ ساعته
   // سهمیه‌ی رایگان دارد و بقیه همیشه MOON می‌گیرند.
   freeRemaining: Record<string, number>;
+  /** کارنامه‌ی کامل — باز و تسویه‌شده با هم. `points === null` یعنی باز. */
+  mine: {
+    id: number;
+    asset: string;
+    timeframe: string;
+    guess: number;
+    settlePrice: number | null;
+    errorPct: number | null;
+    points: number | null;
+    createdAt: string;
+  }[];
+  pulse: { points: number; settled: number; open: number };
 };
 
 /** از چند دارایی به بعد فیلد جست‌وجو نشان داده شود. */
@@ -34,6 +54,9 @@ export default function PulseScreen() {
   // برای عوض کردن بازه باید هر بار به عقب برمی‌گشت.
   const [timeframe, setTimeframe] = useState<string>("24h");
   const [q, setQ] = useState("");
+  // ⚠️ ترید این را داشت و نبض بازار نداشت. کاربری که پیش‌بینی ثبت می‌کرد
+  // هیچ راهی نداشت ببیند ثبت شده یا نه، و فکر می‌کرد کار نکرده.
+  const [view, setView] = useState<"markets" | "mine">("markets");
 
   const markets = useResource<{ markets: PulseMarket[] }>(
     `/api/predict/market?category=${cat}`
@@ -66,6 +89,46 @@ export default function PulseScreen() {
         title="نبض بازار"
         subtitle="قیمت آینده را پیش‌بینی کن؛ امتیاز بر اساس دقت تحلیل محاسبه می‌شود، نه شانس"
       />
+
+      <div className="mb-4 flex gap-2 rounded-xl border border-line bg-surface/40 p-1">
+        <button
+          type="button"
+          onClick={() => {
+            haptic.tap();
+            setView("markets");
+          }}
+          className={`flex-1 rounded-lg px-3 py-2 text-center transition ${
+            view === "markets" ? "bg-gold text-ink" : "text-muted"
+          }`}
+        >
+          <span className="block text-[12px] font-bold">دارایی‌ها</span>
+          <span className="mt-0.5 block text-[9px] opacity-80">
+            {me.data ? `${me.data.freeRemaining?.["24h"] ?? 0} رایگان امروز` : "\u00a0"}
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            haptic.tap();
+            setView("mine");
+          }}
+          className={`flex-1 rounded-lg px-3 py-2 text-center transition ${
+            view === "mine" ? "bg-gold text-ink" : "text-muted"
+          }`}
+        >
+          <span className="block text-[12px] font-bold">پیش‌بینی‌های من</span>
+          <span className="mt-0.5 block text-[9px] opacity-80">
+            {(me.data?.mine?.length ?? 0) > 0
+              ? `${me.data!.mine.length} مورد`
+              : "هنوز خالی"}
+          </span>
+        </button>
+      </div>
+
+      {view === "mine" && <MyPulse me={me.data} />}
+
+      {view === "markets" && (
+      <>
 
       {/* ── بازه‌ی پیش‌بینی ────────────────────────────────────
           هزینه‌ی هر بازه روی خودِ دکمه است. قبلا کاربر تا وارد دارایی
@@ -221,6 +284,8 @@ export default function PulseScreen() {
           })}
         </div>
       )}
+      </>
+      )}
     </div>
   );
 }
@@ -288,5 +353,116 @@ export function AssetBadge({ id }: { id: string }) {
     >
       {id.replace(/[^A-Za-z0-9]/g, "").slice(0, 4)}
     </span>
+  );
+}
+
+// ── کارنامه‌ی نبض بازار ──────────────────────────────────────
+//
+// ⚠️ مجموع امتیازِ نشان‌داده‌شده اینجا **فقط نبض بازار** است، نه
+// `total_points` پروفایل. آن یکی جمع هر سه بازی است (نبض بازار + ترید +
+// کمبو) و نشان‌دادنش اینجا یعنی کاربر عددی می‌بیند که با فهرست زیرش
+// نمی‌خواند — همان سردرگمی‌ای که مالک گزارش کرد.
+function MyPulse({ me }: { me: Me | null }) {
+  if (!me) {
+    return (
+      <div className="flex flex-col gap-2">
+        <Skeleton className="h-20" />
+        <Skeleton className="h-16" />
+      </div>
+    );
+  }
+
+  const mine = me.mine ?? [];
+  const open = mine.filter((p) => p.points === null);
+  const settled = mine.filter((p) => p.points !== null);
+  const pts = me.pulse?.points ?? 0;
+
+  const fa = (n: number) => n.toLocaleString("fa-IR");
+  const num = (n: number) =>
+    n >= 1000 ? n.toLocaleString("en-US", { maximumFractionDigits: 0 })
+              : n.toLocaleString("en-US", { maximumFractionDigits: 4 });
+  const tfLabel = (id: string) =>
+    TIMEFRAMES.find((t) => t.id === id)?.label ?? id;
+  const assetLabel = (id: string) =>
+    ASSETS.find((a) => a.id === id)?.label ?? id;
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-3 gap-2">
+        <Card className="text-center">
+          <p
+            className={`font-mono text-xl font-black ${
+              pts > 0 ? "text-gain" : pts < 0 ? "text-loss" : "text-cream"
+            }`}
+          >
+            {pts > 0 ? "+" : ""}
+            {fa(pts)}
+          </p>
+          <p className="mt-1 text-[10px] text-muted">امتیاز نبض بازار</p>
+        </Card>
+        <Card className="text-center">
+          <p className="font-mono text-xl font-black text-cream">
+            {fa(settled.length)}
+          </p>
+          <p className="mt-1 text-[10px] text-muted">تسویه‌شده</p>
+        </Card>
+        <Card className="text-center">
+          <p className="font-mono text-xl font-black text-cream">
+            {fa(open.length)}
+          </p>
+          <p className="mt-1 text-[10px] text-muted">در جریان</p>
+        </Card>
+      </div>
+
+      {/* ⚠️ حالت خالی اجباری است: فهرستی که فقط با داده رندر شود، برای
+          کاربر تازه یعنی «این قابلیت وجود ندارد». */}
+      {!mine.length ? (
+        <EmptyState
+          title="هنوز پیش‌بینی‌ای ثبت نکرده‌ای"
+          hint="از تب «دارایی‌ها» یک دارایی را باز کن و قیمت آینده‌اش را حدس بزن."
+        />
+      ) : (
+        <div className="flex flex-col gap-2">
+          {mine.map((p) => {
+            const done = p.points !== null;
+            return (
+              <Card key={p.id} className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[12px] font-bold text-cream">
+                    {assetLabel(p.asset)}
+                    <span className="mr-1.5 text-[10px] font-normal text-muted">
+                      {tfLabel(p.timeframe)}
+                    </span>
+                  </p>
+                  <p className="mt-0.5 text-[10px] text-muted" dir="ltr">
+                    حدس {num(p.guess)}
+                    {p.settlePrice !== null && ` → ${num(p.settlePrice)}`}
+                  </p>
+                  {p.errorPct !== null && (
+                    <p className="mt-0.5 text-[10px] text-muted">
+                      خطا: {p.errorPct.toFixed(2)}٪
+                    </p>
+                  )}
+                </div>
+                {done ? (
+                  <span
+                    className={`shrink-0 font-mono text-sm font-black ${
+                      (p.points ?? 0) > 0 ? "text-gain" : "text-loss"
+                    }`}
+                  >
+                    {(p.points ?? 0) > 0 ? "+" : ""}
+                    {fa(p.points ?? 0)}
+                  </span>
+                ) : (
+                  <span className="shrink-0 rounded-full border border-gold/30 bg-gold/10 px-2 py-0.5 text-[10px] text-gold">
+                    در جریان
+                  </span>
+                )}
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }

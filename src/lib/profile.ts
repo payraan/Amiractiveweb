@@ -83,12 +83,57 @@ export async function loadProfile(playerId: number) {
           [playerId]
         )
         .catch(() => ({ rows: [{ total: 0, settled: 0, positive: 0, points: 0 }] })),
-      // جایگاه رتبه: چند درصد کاربران امتیاز کمتری دارند
+      // ── جایگاه رتبه ────────────────────────────────────────
+      //
+      // ⚠️ **این باید با لیدربورد یکی باشد، وگرنه دو رتبه‌ی متفاوت با یک
+      // نام به کاربر نشان داده می‌شود.**
+      //
+      // نسخه‌ی قبلی از `players.total_points` می‌خواند: جمعِ همه‌ی
+      // بازی‌ها، بی‌سقف و همیشگی. دو ایراد داشت:
+      //
+      //   ۱. با لیدربورد نمی‌خواند. آنجا فقط پیش‌بینی‌های تسویه‌شده‌ی داخل
+      //      بازه شمرده می‌شوند، با سقف تعداد، و کمبو جداست.
+      //   ۲. **رتبه را خریدنی می‌کرد.** بی‌سقف یعنی هرکس MOON بیشتری بخرد
+      //      پیش‌بینی بیشتری ثبت می‌کند و بالاتر می‌رود — دقیقا همان چیزی
+      //      که لیدربورد با سقف‌گذاری بست و خط قرمز محصول است.
+      //
+      // مخرج هم عوض شد: قبلا **همه‌ی** ثبت‌نام‌شده‌ها بودند، حتی کسی که
+      // هرگز بازی نکرده. با آن حساب، «۱۳٪ برتر» فقط یعنی «۸۷٪ اصلا بازی
+      // نکرده‌اند» — عددی که هیچ چیزی درباره‌ی مهارت نمی‌گوید.
       pool.query(
-        `SELECT
-           (SELECT COUNT(*)::int FROM players)                                       AS total_players,
-           (SELECT COUNT(*)::int FROM players WHERE total_points >
-              (SELECT total_points FROM players WHERE id=$1))                        AS above`,
+        `WITH unified AS (
+           SELECT pr.player_id, pr.points
+             FROM predictions pr
+             JOIN rounds r ON r.id = pr.round_id
+            WHERE r.status='settled' AND pr.points IS NOT NULL
+              AND r.settle_at >= now() - interval '30 days'
+           UNION ALL
+           SELECT pp.player_id, pp.points
+             FROM poly_predictions pp
+            WHERE pp.status='settled' AND pp.points IS NOT NULL
+              AND pp.settled_at >= now() - interval '30 days'
+         ),
+         ranked AS (
+           SELECT player_id, points,
+                  ROW_NUMBER() OVER (PARTITION BY player_id ORDER BY points ASC) AS rn
+             FROM unified
+         ),
+         capped AS (
+           SELECT player_id, COALESCE(SUM(points),0) AS pts
+             FROM ranked WHERE rn <= 60 GROUP BY player_id
+         )
+         SELECT
+           (SELECT COUNT(*)::int FROM capped)                    AS total_players,
+           (SELECT COUNT(*)::int FROM capped
+             WHERE pts > COALESCE((SELECT pts FROM capped WHERE player_id=$1), 0)
+           )                                                     AS above,
+           COALESCE((SELECT ROUND(pts)::int FROM capped WHERE player_id=$1), 0)
+                                                                 AS ranked_points,
+           -- ⚠️ «آیا خودِ این کاربر رتبه دارد» جدا از «چند نفر رتبه دارند»
+           -- است. بدون این، کاربری که هیچ پیش‌بینی تسویه‌شده‌ای ندارد
+           -- above=0 می‌گرفت و «۱۰۰٪ برتر» می‌دید — عددی که هم غلط است و
+           -- هم دقیقا برعکس واقعیت.
+           EXISTS(SELECT 1 FROM capped WHERE player_id=$1)        AS is_ranked`,
         [playerId]
       ),
       // روزهای فعال متمایز — برای نشان‌ها
@@ -123,9 +168,14 @@ export async function loadProfile(playerId: number) {
   const rk = rank.rows[0];
 
   const irNet = Number(ir.returned) - Number(ir.staked);
-  const totalPlayers = Number(rk.total_players) || 1;
-  // بالاتر از چند درصد کاربران؟
-  const percentile = Math.round(((totalPlayers - Number(rk.above)) / totalPlayers) * 100);
+  // ⚠️ مخرج فقط کسانی‌اند که در ۳۰ روز گذشته پیش‌بینیِ تسویه‌شده دارند —
+  // همان جمعیتی که لیدربورد می‌شمارد. کاربری که هنوز نتیجه‌ای ندارد،
+  // درصدش صفر می‌ماند تا عددی ساختگی به او نشان داده نشود.
+  const totalPlayers = Number(rk.total_players) || 0;
+  const percentile =
+    rk.is_ranked && totalPlayers > 0
+      ? Math.round(((totalPlayers - Number(rk.above)) / totalPlayers) * 100)
+      : 0;
 
   const pulseTotal = Number(pu.settled);
   const polyTotal = Number(po.settled);
@@ -192,7 +242,15 @@ export async function loadProfile(playerId: number) {
     // ⚠️ `totalPlayers` عمدا بیرون نمی‌رود. تعداد کاربران واقعی پلتفرم
     // عدد تجاری ماست و «رتبه‌ی ۱ از ۱۵» آن را به هر کاربری لو می‌داد.
     // درصد برتر می‌ماند چون خودش تعداد را نمی‌گوید.
-    rank: { above: Number(rk.above), percentile },
+    rank: {
+      ranked: Boolean(rk.is_ranked),
+      above: Number(rk.above),
+      percentile,
+      // امتیازِ رتبه‌ساز — همان عددی که لیدربورد می‌شمارد، جدا از
+      // `totalPoints` که جمع همیشگیِ همه‌ی بازی‌هاست.
+      points: Number(rk.ranked_points ?? 0),
+      counted: totalPlayers,
+    },
     badgeStats: {
       totalPreds: Number(pu.total) + Number(po.total),
       accuracy,

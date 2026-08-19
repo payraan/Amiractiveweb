@@ -119,7 +119,10 @@ export default function ReferralScreen({ botUsername }: { botUsername: string })
 
   return (
     <div className="flex flex-col gap-4">
-      <ScreenTitle title="دعوت دوستان" subtitle="از هر شارژ دعوت‌شده‌هایت سهم می‌گیری" />
+      <ScreenTitle
+        title="دعوت دوستان"
+        subtitle="نارمون با کسی جالب می‌شود که می‌شناسی"
+      />
 
       {/* ── کد و لینک ────────────────────────────────────── */}
       <Card>
@@ -149,27 +152,39 @@ export default function ReferralScreen({ botUsername }: { botUsername: string })
         </div>
       </Card>
 
-      {/* ── اقتصاد دعوت، صریح و بدون ابهام ───────────────── */}
+      {/* ⚠️ لحن اینجا عمدا **دعوت** است و نه **بازاریابی شبکه‌ای**. پیش‌بینی
+          وقتی معنا دارد که طرف مقابلی باشد؛ این حرف اول است. سهم و پورسانت
+          توضیح داده می‌شود چون باید شفاف باشد، ولی دلیلِ کار نیست. */}
       <Card>
-        <p className="text-xs font-bold text-cream">چطور کار می‌کند</p>
-        <ol className="mt-3 flex flex-col gap-2.5 text-[11px] leading-6 text-muted">
+        <p className="text-xs font-bold text-cream">چرا دعوت کنی</p>
+        <p className="mt-2 text-[11px] leading-6 text-muted">
+          بازار پیش‌بینی با دو نفر معنا ندارد. هرچه آدم‌های بیشتری روی یک سؤال
+          نظر بدهند، عدد نهایی به واقعیت نزدیک‌تر می‌شود — و بحث سرِ بازارها
+          با کسانی که می‌شناسی، خودش نصف ماجراست.
+        </p>
+      </Card>
+
+      <Card>
+        <p className="text-xs font-bold text-cream">شفاف بگوییم چه اتفاقی می‌افتد</p>
+        <ul className="mt-3 flex flex-col gap-2.5 text-[11px] leading-6 text-muted">
           <li>
-            <span className="font-bold text-gold">۱.</span> لینک بالا را برای
-            دوستانت — یا اعضای کانالت — بفرست.
+            • کسی که با لینک تو وارد شود،{" "}
+            <span className="font-bold text-cream">{fa(data.bonus)} MOON</span>{" "}
+            هدیه‌ی شروع می‌گیرد.
           </li>
           <li>
-            <span className="font-bold text-gold">۲.</span> هرکس با آن ثبت‌نام
-            کند، <span className="font-bold text-cream">{fa(data.bonus)} MOON</span>{" "}
-            هدیه می‌گیرد.
+            • اگر روزی MOON بخرد،{" "}
+            <span className="font-bold text-cream">{fa(data.percent)}٪</span> آن
+            به تو هم می‌رسد. از سهم او کم نمی‌شود — جدا حساب می‌شود.
           </li>
           <li>
-            <span className="font-bold text-gold">۳.</span> از هر شارژ MOON او،{" "}
-            <span className="font-bold text-cream">{fa(data.percent)}٪</span> به
-            حساب تو اضافه می‌شود — همیشه و بدون سقف.
+            • اگر بازاری بسازی و او روی آن پیش‌بینی کند، سهم بیشتری از کارمزد
+            همان بازار به تو می‌رسد.
           </li>
-        </ol>
+        </ul>
         <p className="mt-3 border-t border-line/60 pt-3 text-[10.5px] leading-6 text-muted">
-          سهم تو از MOONِ خود او کم نمی‌شود؛ جدا حساب می‌شود.
+          هیچ‌کدام از اینها اجباری نیست و هیچ‌کدام امتیاز یا رتبه نمی‌خرد.
+          امتیاز فقط از درست پیش‌بینی‌کردن می‌آید.
         </p>
       </Card>
 
