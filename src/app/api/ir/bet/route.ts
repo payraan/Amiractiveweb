@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import { log } from "@/lib/log";
 import { db, touchActivity } from "@/lib/db";
 import { currentPlayerId } from "@/lib/current-player";
-import { ensureIrTables, moveFunds, MIN_STAKE_USDT } from "@/lib/iran";
+import {
+  ensureIrTables,
+  moveFunds,
+  creatorRate,
+  MIN_STAKE_USDT,
+} from "@/lib/iran";
 import { requireLinkedTelegram } from "@/lib/money-guard";
 
 export const dynamic = "force-dynamic";
@@ -48,7 +53,7 @@ export async function POST(req: Request) {
     // Postgres بن‌بست را می‌گیرد و یکی را می‌کشد، ولی آن یکی می‌تواند تسویه
     // باشد؛ یعنی پول برنده‌ها معلق می‌ماند.
     const m = await client.query(
-      "SELECT status, closes_at FROM ir_markets WHERE id=$1 FOR UPDATE",
+      "SELECT status, closes_at, creator_id FROM ir_markets WHERE id=$1 FOR UPDATE",
       [marketId]
     );
     if (!m.rowCount) {
@@ -65,7 +70,7 @@ export async function POST(req: Request) {
     }
 
     const pl = await client.query(
-      "SELECT usdt_balance, demo_balance FROM players WHERE id=$1 FOR UPDATE",
+      "SELECT usdt_balance, demo_balance, referred_by FROM players WHERE id=$1 FOR UPDATE",
       [playerId]
     );
     if (!pl.rowCount) {
@@ -89,6 +94,25 @@ export async function POST(req: Request) {
     // اصل به دمو برمی‌گردد و سود واقعی می‌شود.
     const spent = await moveFunds(client, playerId, -stake, "ir_bet", `m${marketId}`);
 
+    // ── سهم سازنده ──────────────────────────────────────────
+    //
+    // نرخ **همین‌جا** تعیین و ذخیره می‌شود، نه در تسویه: «آیا این شرط‌بند را
+    // سازنده آورده» واقعیتی در لحظه‌ی ثبت است. اگر در تسویه دوباره حساب
+    // می‌شد، هر تغییری در رابطه‌ی دعوت، سهمِ شرط‌های گذشته را بازنویسی
+    // می‌کرد.
+    //
+    // ⚠️ سازنده‌ی حذف‌شده (`creator_id IS NULL`) سهمی ندارد و آن مبلغ هم
+    // برداشته نمی‌شود — یعنی به برنده‌ها می‌رسد، نه به پلتفرم. سهمی که
+    // صاحب ندارد نباید بی‌صدا به درآمد تبدیل شود.
+    const creatorId = m.rows[0].creator_id as number | null;
+    const referredByCreator =
+      creatorId !== null && Number(pl.rows[0].referred_by) === creatorId;
+    const rate = creatorId === null ? 0 : creatorRate(referredByCreator);
+    const cut = Math.round(stake * rate * 1e6) / 1e6;
+    // سهم دمو به همان نسبتِ سهم دمو در خودِ شرط. بدون این، سهمی که از پول
+    // هدیه آمده به پول واقعیِ قابل‌برداشت تبدیل می‌شد.
+    const cutDemo = Math.round(spent.demoPart * rate * 1e6) / 1e6;
+
     // آیا این کاربر برای اولین بار روی این بازار شرط می‌بندد؟
     const prev = await client.query(
       "SELECT 1 FROM ir_bets WHERE market_id=$1 AND player_id=$2 LIMIT 1",
@@ -96,17 +120,27 @@ export async function POST(req: Request) {
     );
 
     await client.query(
-      `INSERT INTO ir_bets (market_id, player_id, side, stake, demo_stake)
-       VALUES ($1,$2,$3,$4,$5)`,
-      [marketId, playerId, side, stake, spent.demoPart]
+      `INSERT INTO ir_bets (market_id, player_id, side, stake, demo_stake,
+                            creator_cut, creator_cut_demo)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+      [marketId, playerId, side, stake, spent.demoPart, cut, cutDemo]
     );
     await client.query(
       `UPDATE ir_markets
           SET yes_total = yes_total + $1,
               no_total  = no_total  + $2,
-              bettors   = bettors   + $3
+              bettors   = bettors   + $3,
+              creator_cut = creator_cut + $5,
+              creator_cut_demo = creator_cut_demo + $6
         WHERE id = $4`,
-      [side === "yes" ? stake : 0, side === "no" ? stake : 0, prev.rowCount ? 0 : 1, marketId]
+      [
+        side === "yes" ? stake : 0,
+        side === "no" ? stake : 0,
+        prev.rowCount ? 0 : 1,
+        marketId,
+        cut,
+        cutDemo,
+      ]
     );
 
     // بدون این، شرط‌بندی در بازار ایران کاربر را فعال حساب نمی‌کرد و آمار
@@ -124,6 +158,8 @@ export async function POST(req: Request) {
       stake,
       demo: spent.demoPart,
       firstOnMarket: !prev.rowCount,
+      creatorCut: cut,
+      referredByCreator,
     });
     return NextResponse.json({ ok: true });
   } catch (err) {

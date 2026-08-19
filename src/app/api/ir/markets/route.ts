@@ -24,7 +24,7 @@ export async function GET(req: Request) {
   const { rows } = await pool.query(
     `SELECT m.id, m.question, m.category, m.source_note, m.closes_at,
             m.status, m.outcome, m.yes_total, m.no_total, m.bettors,
-            m.boosted_until, m.cover_file_id, m.creator_id,
+            m.boosted_until, m.cover_file_id, m.creator_id, m.creator_cut,
             p.display_name AS creator
        FROM ir_markets m
        LEFT JOIN players p ON p.id = m.creator_id
@@ -40,6 +40,8 @@ export async function GET(req: Request) {
   const markets = rows.map((r) => {
     const yes = Number(r.yes_total);
     const no = Number(r.no_total);
+    // سازنده‌ی حذف‌شده سهمی ندارد؛ همان قاعده‌ی تسویه.
+    const cut = r.creator_id === null ? 0 : Number(r.creator_cut);
     return {
       id: r.id,
       question: r.question,
@@ -62,8 +64,10 @@ export async function GET(req: Request) {
       // شناسه‌ی سازنده عمدا بیرون نمی‌رود — فقط همین بولین.
       isMine: playerIdEarly !== null && r.creator_id === playerIdEarly,
       yesPct: impliedPct(yes, no),
-      yesOdds: Math.round(oddsFor(yes, no, "yes") * 100) / 100,
-      noOdds: Math.round(oddsFor(yes, no, "no") * 100) / 100,
+      // ⚠️ سهم سازنده حتما پاس داده می‌شود، وگرنه ضریبِ نمایش‌داده‌شده از
+      // چیزی که تسویه می‌پردازد بالاتر است.
+      yesOdds: Math.round(oddsFor(yes, no, "yes", cut) * 100) / 100,
+      noOdds: Math.round(oddsFor(yes, no, "no", cut) * 100) / 100,
     };
   });
 

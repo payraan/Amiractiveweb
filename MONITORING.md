@@ -65,8 +65,23 @@
 @evt:gateway.*      خودِ درگاه Zovix
 ```
 
-`ir.settled` مهم‌ترینشان است: `pool`، `paid` و `commission` را با هم می‌دهد، پس
-درآمد هر بازار بدون هیچ کوئری دیتابیسی دیده می‌شود.
+`ir.settled` مهم‌ترینشان است: `pool`، `paid`، `commission` و `creatorCut` را با
+هم می‌دهد، پس تقسیم پول هر بازار بدون هیچ کوئری دیتابیسی دیده می‌شود.
+
+`ir.bet` هم `creatorCut` و `referredByCreator` دارد — یعنی می‌شود دید سهم هر
+سازنده از کجا می‌آید و چه نسبتی از حجمش از دعوت‌شده‌های خودش است.
+
+### سنجه‌ی سلامت تازه
+
+سهم انباشته‌ی سازنده روی بازار باید همیشه با جمع سهم تک‌تک شرط‌ها بخواند —
+دقیقا مثل `yes_total` و `no_total`:
+
+```sql
+SELECT count(*) FROM (
+  SELECT m.id FROM ir_markets m LEFT JOIN ir_bets b ON b.market_id=m.id
+  GROUP BY m.id, m.creator_cut
+  HAVING round(m.creator_cut,6) <> round(COALESCE(SUM(b.creator_cut),0),6)) x;
+```
 
 ⚠️ `@evt:ir.settle_failed` یعنی **پول کاربران در وضعیت `settling` قفل مانده**.
 این فوری‌ترین هشدار پلتفرم است.

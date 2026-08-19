@@ -22,6 +22,8 @@ type Row = {
   closes_at: string;
   status: string;
   outcome: string | null;
+  creator_id: number | null;
+  creator_cut: string;
   yes_total: string;
   no_total: string;
   bettors: number;
@@ -35,7 +37,8 @@ async function getMarket(id: string): Promise<Row | null> {
   const pool = await db();
   const { rows } = await pool.query<Row>(
     `SELECT m.id, m.question, m.category, m.source_note, m.closes_at, m.status,
-            m.outcome, m.yes_total, m.no_total, m.bettors, p.display_name AS creator
+            m.outcome, m.yes_total, m.no_total, m.bettors, m.creator_id,
+            m.creator_cut, p.display_name AS creator
        FROM ir_markets m
        LEFT JOIN players p ON p.id = m.creator_id
       WHERE m.id = $1 AND m.status <> 'pending'`,
@@ -99,6 +102,7 @@ export default async function IranMarketPage({ params }: Props) {
 }
 
 function Market({ m }: { m: Row }) {
+  const cut = m.creator_id === null ? 0 : Number(m.creator_cut ?? 0);
   const yes = Number(m.yes_total);
   const no = Number(m.no_total);
   const yesPct = impliedPct(yes, no);
@@ -142,8 +146,8 @@ function Market({ m }: { m: Row }) {
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Cell k="حجم استخر" v={`$${(yes + no).toFixed(2)}`} />
           <Cell k="مشارکت‌کنندگان" v={String(m.bettors)} />
-          <Cell k="ضریب بله" v={`×${Math.round(oddsFor(yes, no, "yes") * 100) / 100 || "—"}`} />
-          <Cell k="ضریب خیر" v={`×${Math.round(oddsFor(yes, no, "no") * 100) / 100 || "—"}`} />
+          <Cell k="ضریب بله" v={`×${Math.round(oddsFor(yes, no, "yes", cut) * 100) / 100 || "—"}`} />
+          <Cell k="ضریب خیر" v={`×${Math.round(oddsFor(yes, no, "no", cut) * 100) / 100 || "—"}`} />
         </div>
 
         <div className="mt-5 rounded-xl border border-line bg-ink/30 p-4 text-[11px] leading-7 text-muted">
