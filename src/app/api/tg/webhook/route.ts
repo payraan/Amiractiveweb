@@ -23,6 +23,7 @@ import {
   helpScreen,
   helpTopicScreen,
   profileScreen,
+  inviteScreen,
   appUrl,
   backRow,
   keyboardCommand,
@@ -472,6 +473,11 @@ async function handleMessage(
     await handleBroadcast(tg, chatId, text, photo);
     return;
   }
+  if (head === "/invite") {
+    if (!player) return needAccount(chatId);
+    await sendScreen(chatId, await inviteScreen(player.id));
+    return;
+  }
   if (head === "/bonus") return handleBonus(tg, chatId, player);
   if (head === "/help") {
     await sendScreen(chatId, helpScreen());
@@ -810,6 +816,10 @@ async function handleMenu(
   }
   if (action === MENU.profile) {
     await editScreen(chatId, messageId, await profileScreen(player.id));
+    return;
+  }
+  if (action === MENU.invite) {
+    await editScreen(chatId, messageId, await inviteScreen(player.id));
     return;
   }
   if (action === MENU.wallet) {

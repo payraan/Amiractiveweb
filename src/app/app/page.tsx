@@ -13,5 +13,7 @@ export const dynamic = "force-dynamic";
 export default function AppPage() {
   // آدرس سایت از سرور می‌آید تا لینک‌های بیرونی مینی‌اپ هاردکد نشوند.
   const siteUrl = (process.env.SITE_URL ?? "").trim().replace(/\/+$/, "");
-  return <MiniApp siteUrl={siteUrl} />;
+  // نام ربات از سرور می‌آید تا NEXT_PUBLIC نشود — یک مقدار، یک منبع.
+  const botUsername = (process.env.TG_BOT_USERNAME ?? "").replace(/^@/, "");
+  return <MiniApp siteUrl={siteUrl} botUsername={botUsername} />;
 }

@@ -1,5 +1,6 @@
 import {
   escapeHtml,
+  BOT_USERNAME,
   GROUP_BONUS_CREDITS,
   type InlineButton,
   type Screen,
@@ -17,7 +18,11 @@ import {
 import { MIN_WITHDRAW } from "@/lib/wallet-rules";
 import { WELCOME_CREDITS } from "@/lib/game";
 import { POLY_FREE_PER_DAY } from "@/lib/poly";
-import { REFERRAL_PERCENT, REFERRAL_BONUS } from "@/lib/referral";
+import {
+  REFERRAL_PERCENT,
+  REFERRAL_BONUS,
+  getReferralStats,
+} from "@/lib/referral";
 import {
   CHALLENGES,
   CONSISTENCY_PCT,
@@ -68,6 +73,8 @@ export const MENU = {
   help: "m:help",
   /** «گرفتن هدیه» — بعد از عضویت در کانال، بدون تایپ دستور. */
   bonus: "m:bonus",
+  /** پنل دعوت — کد، لینک، و آمار پورسانت. */
+  invite: "m:invite",
 } as const;
 
 const money = (n: number) =>
@@ -131,6 +138,9 @@ export function mainKeyboard(): InlineButton[][] {
     ]);
   }
 
+  rows.push([
+    { text: "🎁 دعوت دوستان", callback_data: MENU.invite, style: "success" },
+  ]);
   rows.push([
     { text: "❓ راهنما", callback_data: MENU.help },
     { text: "🎧 پشتیبانی", callback_data: MENU.support },
@@ -568,6 +578,54 @@ export function helpTopicScreen(key: string): Screen | null {
  * یکی‌اند. نشان‌ها و کارنامه‌ی قابل اشتراک اینجا نمی‌آیند — آن‌ها تصویری‌اند
  * و جایشان مینی‌اپ است؛ دکمه‌اش پایین همین کارت هست.
  */
+/**
+ * پنل دعوت داخل چت ربات.
+ *
+ * ── چرا در خودِ چت و نه فقط در مینی‌اپ ──
+ * ادمین کانالی که می‌خواهد اعضایش را بیاورد، معمولا وسط گفت‌وگو در تلگرام
+ * است — نه داخل اپ. اگر برای برداشتن لینکش باید مینی‌اپ را باز کند، یک
+ * قدم اضافه است و همان‌جا رهایش می‌کند. لینک باید جایی باشد که با یک
+ * لمس فوروارد شود.
+ *
+ * ⚠️ لینک به **مینی‌اپ** می‌رود نه به سایت: کسی که از تلگرام دعوت می‌شود
+ * باید در تلگرام بماند.
+ */
+export async function inviteScreen(playerId: number): Promise<Screen> {
+  const st = await getReferralStats(playerId);
+  const bot = BOT_USERNAME.replace(/^@/, "");
+  const link = bot ? `https://t.me/${bot}/market?startapp=ref_${st.code}` : "";
+
+  const text =
+    `🎁 <b>دعوت دوستان</b>\n\n` +
+    `کد اختصاصی تو:\n<code>${escapeHtml(st.code)}</code>\n\n` +
+    (link ? `لینک دعوتت:\n<code>${escapeHtml(link)}</code>\n\n` : "") +
+    `<b>چطور کار می‌کند</b>\n` +
+    `۱. لینک بالا را برای دوستانت — یا اعضای کانالت — بفرست.\n` +
+    `۲. هرکس با آن ثبت‌نام کند، <b>${num(REFERRAL_BONUS)} MOON</b> هدیه می‌گیرد.\n` +
+    `۳. از هر شارژ MOON او، <b>${num(REFERRAL_PERCENT)}٪</b> به حساب تو ` +
+    `اضافه می‌شود — همیشه و بدون سقف.\n\n` +
+    `<i>سهم تو از MOONِ خودِ او کم نمی‌شود؛ جدا حساب می‌شود.</i>\n\n` +
+    `<b>کارنامه</b>\n` +
+    `👥 دعوت‌شده: <b>${num(st.invited)}</b> · فعال: <b>${num(st.activeInvited)}</b>\n` +
+    `🌙 پورسانت دریافتی: <b>${num(st.earned)} MOON</b>`;
+
+  const buttons: InlineButton[][] = [];
+  if (link) {
+    // دکمه‌ی share تلگرام: انتخابگر مخاطب بومی باز می‌شود و کاربر لینک را
+    // مستقیم داخل چت یا کانالش می‌فرستد.
+    const share =
+      `https://t.me/share/url?url=${encodeURIComponent(link)}` +
+      `&text=${encodeURIComponent(
+        "من در نارمون پیش‌بینی می‌کنم. با این لینک ثبت‌نام کن و MOON هدیه بگیر:"
+      )}`;
+    buttons.push([{ text: "📤 ارسال دعوت", url: share, style: "primary" }]);
+  }
+  buttons.push([{ text: "🎁 هدیه‌ی عضویت کانال", callback_data: MENU.bonus }]);
+  buttons.push(backRow());
+
+  return { media: media("profile.jpg"), text, buttons };
+}
+
 export async function profileScreen(playerId: number): Promise<Screen> {
   const p = await loadProfile(playerId);
   if (!p) {
@@ -613,7 +671,10 @@ export async function profileScreen(playerId: number): Promise<Screen> {
       { text: "🏅 نشان‌ها و کارنامه‌ی کامل", web_app: { url: appUrl("profile") } },
     ]);
   }
-  buttons.push([{ text: "👛 کیف پول", callback_data: MENU.wallet }]);
+  buttons.push([
+    { text: "🎁 دعوت دوستان", callback_data: MENU.invite },
+    { text: "👛 کیف پول", callback_data: MENU.wallet },
+  ]);
   buttons.push(backRow());
   return { media: media("profile.jpg"), text, buttons };
 }

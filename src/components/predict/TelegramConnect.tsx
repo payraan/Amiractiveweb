@@ -17,6 +17,7 @@ export default function TelegramConnect() {
   const [status, setStatus] = useState<Status | null>(null);
   const [link, setLink] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [bonusMsg, setBonusMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [botReady, setBotReady] = useState(false);
 
@@ -44,6 +45,47 @@ export default function TelegramConnect() {
       }
     } catch {
       /* ignore */
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /**
+   * دریافت هدیه‌ی عضویت.
+   *
+   * ⚠️ عضویت در همین لحظه از تلگرام پرسیده می‌شود؛ هیچ صف و هیچ تأخیری
+   * نیست. اگر کاربر همین حالا عضو شده باشد، همین‌جا هدیه را می‌گیرد.
+   */
+  async function claimBonus() {
+    setBusy(true);
+    setBonusMsg(null);
+    try {
+      const res = await fetch("/api/predict/tg-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "bonus" }),
+      });
+      const j = await res.json();
+      if (j.ok) {
+        setBonusMsg(`${j.granted} MOON به حسابتان اضافه شد.`);
+        load();
+        refresh();
+        return;
+      }
+      // هر علت پیام خودش را دارد — کاربر باید بداند چه کار کند، نه اینکه
+      // یک «خطا» ببیند و بماند.
+      const why: Record<string, string> = {
+        not_member:
+          "هنوز عضو گروه نیستید. اول عضو شوید، بعد دوباره همین دکمه را بزنید.",
+        already: "این هدیه قبلا به حسابتان اضافه شده است.",
+        no_account: "ابتدا تلگرامتان را وصل کنید.",
+        not_configured: "این هدیه فعلا در دسترس نیست.",
+        unknown:
+          "الان نتوانستیم عضویتتان را بررسی کنیم. چند لحظه بعد دوباره امتحان کنید.",
+      };
+      setBonusMsg(why[String(j.error)] ?? "دریافت هدیه انجام نشد.");
+    } catch {
+      setBonusMsg("ارتباط برقرار نشد. دوباره امتحان کنید.");
     } finally {
       setBusy(false);
     }
@@ -97,17 +139,29 @@ export default function TelegramConnect() {
         <p className="mt-2 text-[11px] leading-6 text-muted">
           {status.bonusClaimed
             ? "هدیه‌ی عضویت گروه دریافت شده است. نتیجه‌ی پیش‌بینی‌ها و وضعیت چالش از همین‌جا به شما اطلاع داده می‌شود."
-            : `هنوز هدیه‌ی عضویت نگرفته‌اید؛ عضو گروه شوید و در ربات دستور /bonus را بزنید تا ${status.bonusCredits} MOON دریافت کنید.`}
+            : `عضو گروه شوید و بعد دکمه‌ی «دریافت هدیه» را بزنید تا ${status.bonusCredits} MOON به حسابتان اضافه شود.`}
         </p>
         {!status.bonusClaimed && (
-          <a
-            href={CHANNEL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-4 inline-block rounded-xl bg-gold px-5 py-2.5 font-display text-sm font-extrabold text-ink transition hover:bg-gold-deep"
-          >
-            عضویت در گروه تلگرام
-          </a>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <a
+              href={CHANNEL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block rounded-xl border border-line px-5 py-2.5 font-display text-sm font-extrabold text-cream transition hover:border-gold hover:text-gold"
+            >
+              ۱. عضویت در گروه
+            </a>
+            <button
+              onClick={claimBonus}
+              disabled={busy}
+              className="rounded-xl bg-gold px-5 py-2.5 font-display text-sm font-extrabold text-ink transition hover:bg-gold-deep disabled:opacity-50"
+            >
+              {busy ? "در حال بررسی…" : "۲. دریافت هدیه"}
+            </button>
+          </div>
+        )}
+        {bonusMsg && (
+          <p className="mt-3 text-[11px] leading-6 text-gold">{bonusMsg}</p>
         )}
       </div>
     );

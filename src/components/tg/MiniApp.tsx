@@ -11,6 +11,7 @@ import PulseScreen from "@/components/tg/screens/PulseScreen";
 import ChallengeScreen from "@/components/tg/screens/ChallengeScreen";
 import WalletScreen from "@/components/tg/screens/WalletScreen";
 import ProfileScreen from "@/components/tg/screens/ProfileScreen";
+import ReferralScreen from "@/components/tg/screens/ReferralScreen";
 import { Skeleton } from "@/components/tg/ui";
 import { TermsGate, TourGate } from "@/components/tg/screens/Gate";
 import Logo from "@/components/Logo";
@@ -90,7 +91,13 @@ const AUTH_ERRORS: Record<string, string> = {
   server_error: "خطای سرور. کمی بعد دوباره امتحان کن.",
 };
 
-export default function MiniApp({ siteUrl }: { siteUrl: string }) {
+export default function MiniApp({
+  siteUrl,
+  botUsername,
+}: {
+  siteUrl: string;
+  botUsername: string;
+}) {
   const [tab, setTab] = useState<TabId>("markets");
   // تپ دوباره روی همان تبِ فعال = برگشت به ریشه‌ی آن تب.
   //
@@ -100,7 +107,13 @@ export default function MiniApp({ siteUrl }: { siteUrl: string }) {
   // بردن این شمارنده، تب از نو mount می‌شود و به ریشه برمی‌گردد — همان
   // رفتاری که کاربر از نوار تب هر اپ موبایلی انتظار دارد.
   const [homeNonce, setHomeNonce] = useState(0);
+  // زیرصفحه‌ی دعوت داخل تب پروفایل می‌نشیند، نه یک تب هفتم: نوار تب شش
+  // خانه دارد و هفتمی روی موبایل هر شش را باریک و بدقواره می‌کند.
+  const [showReferral, setShowReferral] = useState(false);
   const goTab = (t: TabId) => {
+    // هر جابه‌جایی تب، زیرصفحه‌ی دعوت را می‌بندد — وگرنه کاربر از تب دیگری
+    // برمی‌گردد و هنوز داخل دعوت است.
+    setShowReferral(false);
     if (t === tab) setHomeNonce((n) => n + 1);
     else setTab(t);
   };
@@ -294,9 +307,24 @@ export default function MiniApp({ siteUrl }: { siteUrl: string }) {
                 <ChallengeScreen key={`challenge-${homeNonce}`} />
               )}
               {tab === "wallet" && <WalletScreen key={`wallet-${homeNonce}`} />}
-              {tab === "profile" && (
-                <ProfileScreen key={`profile-${homeNonce}`} siteUrl={siteUrl} />
-              )}
+              {tab === "profile" &&
+                (showReferral ? (
+                  <div>
+                    <button
+                      onClick={() => setShowReferral(false)}
+                      className="mb-3 text-[11px] text-muted transition active:text-cream"
+                    >
+                      ‹ بازگشت به پروفایل
+                    </button>
+                    <ReferralScreen botUsername={botUsername} />
+                  </div>
+                ) : (
+                  <ProfileScreen
+                    key={`profile-${homeNonce}`}
+                    siteUrl={siteUrl}
+                    onReferral={() => setShowReferral(true)}
+                  />
+                ))}
             </>
           )}
         </main>

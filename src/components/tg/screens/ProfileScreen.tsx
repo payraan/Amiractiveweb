@@ -88,7 +88,13 @@ function Metric({
   );
 }
 
-export default function ProfileScreen({ siteUrl }: { siteUrl: string }) {
+export default function ProfileScreen({
+  siteUrl,
+  onReferral,
+}: {
+  siteUrl: string;
+  onReferral: () => void;
+}) {
   const { data: p, error, reload } = useResource<Profile>("/api/profile");
   const [picking, setPicking] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -187,6 +193,19 @@ export default function ProfileScreen({ siteUrl }: { siteUrl: string }) {
           می‌گردد نباید از کنار نشان‌ها و آمار و کارنامه رد شود تا پیدایش
           کند. مینی‌اپ تا امروز هیچ ورودی عمومی پشتیبانی نداشت — نه در
           منو، نه در پروفایل — و تنها راهش صفحه‌ی کیف پول بود. */}
+      {/* ⚠️ دعوت پیش از پشتیبانی و با رنگ طلایی: این تنها جایی است که
+          کاربر — و مخصوصا ادمین کانال — کد خودش را پیدا می‌کند. تا امروز
+          فقط در سایت بود، یعنی کاربر تلگرامی باید از تلگرام بیرون می‌رفت. */}
+      <button
+        onClick={onReferral}
+        className="mt-2.5 flex w-full items-center justify-between rounded-2xl border border-gold/40 bg-gold/10 px-4 py-3 text-right transition active:scale-[0.99]"
+      >
+        <span className="text-[11.5px] font-bold text-gold">
+          🎁 دعوت دوستان و دریافت پورسانت
+        </span>
+        <span className="text-gold">‹</span>
+      </button>
+
       <a
         href={LINKS.telegramSupport}
         onClick={(e) => {

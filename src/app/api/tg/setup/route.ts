@@ -20,6 +20,7 @@ const COMMANDS = [
   { command: "app", description: "باز کردن اپلیکیشن نارمون" },
   { command: "wallet", description: "کیف پول و موجودی" },
   { command: "profile", description: "کارنامه و آمار من" },
+  { command: "invite", description: "دعوت دوستان و پورسانت" },
   { command: "support", description: "پشتیبانی" },
   { command: "bonus", description: "هدیه‌ی عضویت کانال" },
   { command: "help", description: "راهنما" },

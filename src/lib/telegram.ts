@@ -540,6 +540,21 @@ export type GroupBonusResult =
  * ⚠️ اعطا همچنان با همان `UPDATE … WHERE group_bonus_at IS NULL` اتمیک
  * انجام می‌شود، پس دو `/bonus` هم‌زمان هم دو بار پرداخت نمی‌کند.
  */
+export async function grantGroupBonusForPlayer(
+  playerId: number
+): Promise<GroupBonusResult> {
+  await ensureTelegramTables();
+  const pool = await db();
+  const r = await pool.query<{ tg_user_id: string | null }>(
+    "SELECT tg_user_id FROM players WHERE id=$1",
+    [playerId]
+  );
+  const tgId = Number(r.rows[0]?.tg_user_id ?? 0);
+  // بدون تلگرامِ متصل، عضویتی برای سنجیدن وجود ندارد.
+  if (!tgId) return { ok: false, reason: "no_account" };
+  return grantGroupBonus(tgId);
+}
+
 export async function grantGroupBonus(tgUserId: number): Promise<GroupBonusResult> {
   await ensureTelegramTables();
 
