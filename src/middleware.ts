@@ -137,10 +137,52 @@ function playerPart(token: string): string {
   return body.startsWith("tg.") ? body.slice(3) : body;
 }
 
+/**
+ * لاگ دسترسی — تنها جایی که **هر** درخواست API از آن رد می‌شود.
+ *
+ * ── چرا اینجا و نه در تک‌تک روت‌ها ──
+ * پلتفرم ۵۲ روت دارد و بیشترشان فقط می‌خوانند. ابزارگذاری دستی در همه، هم
+ * پرهزینه است و هم دیر یا زود یکی جا می‌افتد — و همان یکی می‌شود جایی که
+ * سوءاستفاده اتفاق می‌افتد و دیده نمی‌شود. یک نقطه یعنی پوشش بدون استثنا.
+ *
+ * ── چرا نوشتن `info` و خواندن `debug` ──
+ * مینی‌اپ فهرست بازارها را مرتب می‌خواند؛ اگر آن هم `info` بود، لاگ
+ * پروداکشن پر می‌شد از GET و همان چیزی که دنبالش بودیم گم می‌شد — همان
+ * درسی که «لاگی که دیده نشود» می‌گوید. پس هر درخواستِ **تغییردهنده**
+ * همیشه ثبت می‌شود و خواندن‌ها با `LOG_LEVEL=debug` روشن می‌شوند.
+ *
+ * ⚠️ بدنه‌ی درخواست هرگز خوانده نمی‌شود: هم مبلغ و آدرس کیف پول آنجاست، و
+ * هم خواندنش در میدل‌ور استریم را مصرف می‌کند و روت چیزی دریافت نمی‌کند.
+ */
+function accessLog(req: NextRequest, path: string, who: string) {
+  const fields = {
+    method: req.method,
+    path,
+    who,
+    // مخاطب ما پشت VPN است، پس آی‌پی مدرک هویت نیست — ولی برای دیدن
+    // الگوی «صد درخواست از یک نقطه» تنها چیزی است که داریم.
+    ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown",
+    ua: req.headers.get("user-agent")?.slice(0, 80),
+  };
+  if (req.method === "GET" || req.method === "HEAD") log.debug("api.read", fields);
+  else log.info("api.write", fields);
+}
+
 export function middleware(req: NextRequest) {
+  const path = req.nextUrl.pathname;
+
+  // ⚠️ لاگ دسترسی **پیش از** هر شرطی زده می‌شود، حتی برای مسیرهای معافِ
+  // سقف نرخ. آن سه مسیر (وبهوک درگاه، وبهوک تلگرام، کرون) دقیقا همان‌هایی
+  // هستند که پول و پیام از آن‌ها می‌گذرد؛ معاف‌بودن از سقف نرخ دلیلی برای
+  // نامرئی‌بودن نیست.
+  const who = identityKey(
+    req,
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown"
+  );
+  accessLog(req, path, who);
+
   if (req.method !== "POST") return NextResponse.next();
 
-  const path = req.nextUrl.pathname;
   if (NEVER_LIMIT.some((p) => p.test(path))) return NextResponse.next();
 
   const rule = RULES.find((r) => r.pattern.test(path));
@@ -148,8 +190,7 @@ export function middleware(req: NextRequest) {
 
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-  const who = rule.by === "identity" ? identityKey(req, ip) : `ip:${ip}`;
-  const key = `${rule.id}:${who}`;
+  const key = `${rule.id}:${rule.by === "identity" ? who : `ip:${ip}`}`;
   const now = Date.now();
   sweep(now);
 

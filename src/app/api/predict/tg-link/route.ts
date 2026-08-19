@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { log } from "@/lib/log";
 import { currentPlayerId } from "@/lib/current-player";
 import { botReady, createLinkCode, getTgStatus } from "@/lib/telegram";
 
@@ -27,5 +28,8 @@ export async function POST() {
     );
   }
   const { deepLink } = await createLinkCode(playerId);
+  // شروع اتصال. با `tg.linked` جفت می‌شود و نشان می‌دهد چند نفر لینک
+  // گرفتند ولی هرگز تمامش نکردند — یعنی جایی از قیف اتصال می‌شکند.
+  log.info("tg.link_started", { playerId });
   return NextResponse.json({ ok: true, deepLink });
 }

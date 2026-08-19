@@ -1,5 +1,6 @@
 // سیستم دعوت — کد اختصاصی هر کاربر، پورسانت MOON از شارژ دعوت‌شده‌ها.
 
+import { log } from "@/lib/log";
 import { db } from "@/lib/db";
 
 export const REFERRAL_PERCENT = 10; // درصد پورسانت از هر شارژ دعوت‌شده
@@ -100,7 +101,11 @@ export async function attachReferral(
   );
   if (!ref.rowCount) return false;
   const referrerId = ref.rows[0].id;
-  if (referrerId === newPlayerId) return false;
+  if (referrerId === newPlayerId) {
+    // خود-ارجاعی مستقیم. بسته است، ولی تلاشش خودش یک سیگنال است.
+    log.warn("referral.self_attempt", { playerId: newPlayerId });
+    return false;
+  }
 
   const client = await pool.connect();
   try {
@@ -111,9 +116,25 @@ export async function attachReferral(
       [referrerId, REFERRAL_BONUS, newPlayerId]
     );
     await client.query("COMMIT");
-    return (upd.rowCount ?? 0) > 0;
-  } catch {
+    const attached = (upd.rowCount ?? 0) > 0;
+    // ⚠️ گراف دعوت با همین یک رویداد قابل بازسازی است: چند حساب زیر یک
+    // دعوت‌کننده، و با چه فاصله‌ی زمانی. ده ثبت‌نام در ده دقیقه زیر یک کد،
+    // الگوی فارم است نه رشد.
+    if (attached) {
+      log.info("referral.attached", {
+        playerId: newPlayerId,
+        referrerId,
+        bonus: REFERRAL_BONUS,
+      });
+    }
+    return attached;
+  } catch (err) {
     await client.query("ROLLBACK").catch(() => {});
+    log.error("referral.attach_failed", {
+      playerId: newPlayerId,
+      referrerId,
+      err: err instanceof Error ? err.message : "error",
+    });
     return false;
   } finally {
     client.release();
@@ -149,7 +170,14 @@ export async function payReferralCommission(
   if (!referrerId || topupCredits <= 0) return { paid: 0, referrerId: null };
   // دعوت‌کننده‌ی بدون تلگرام پورسانت نمی‌گیرد. رابطه‌ی دعوت پاک نمی‌شود —
   // اگر بعدا تلگرامش را وصل کند، از شارژهای بعدی پورسانت می‌گیرد.
-  if (!row.rows[0].referrer_tg) return { paid: 0, referrerId };
+  if (!row.rows[0].referrer_tg) {
+    log.info("referral.commission_skipped", {
+      playerId: referredId,
+      referrerId,
+      reason: "referrer_not_linked",
+    });
+    return { paid: 0, referrerId };
+  }
 
   const commission = Math.floor((topupCredits * REFERRAL_PERCENT) / 100);
   if (commission <= 0) return { paid: 0, referrerId };
@@ -167,9 +195,23 @@ export async function payReferralCommission(
       [referrerId, referredId, topupCredits, commission]
     );
     await client.query("COMMIT");
+    // ⚠️ این MOON **از هیچ ساخته می‌شود** — از کسی کم نمی‌شود. پس مجموعش
+    // در طول زمان، خالص‌ترین سنجه‌ی «چقدر MOON بی‌پشتوانه وارد اقتصاد شده»
+    // است. با `@evt:referral.paid` جمعش را می‌شود درآورد.
+    log.warn("referral.paid", {
+      referrerId,
+      playerId: referredId,
+      topupCredits,
+      commission,
+    });
     return { paid: commission, referrerId };
-  } catch {
+  } catch (err) {
     await client.query("ROLLBACK").catch(() => {});
+    log.error("referral.pay_failed", {
+      referrerId,
+      playerId: referredId,
+      err: err instanceof Error ? err.message : "error",
+    });
     return { paid: 0, referrerId };
   } finally {
     client.release();

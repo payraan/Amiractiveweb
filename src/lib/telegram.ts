@@ -2,6 +2,7 @@
 // وقتی آیدی عددی کاربر ذخیره شد، خود سایت می‌تواند بدون واسطه به او پیام بدهد.
 
 import { randomBytes, timingSafeEqual } from "crypto";
+import { log } from "@/lib/log";
 import { db } from "@/lib/db";
 import { WELCOME_CREDITS } from "@/lib/game";
 import { losePoints, winPoints } from "@/lib/poly-scoring";
@@ -29,6 +30,19 @@ export const BOT_USERNAME = process.env.TG_BOT_USERNAME ?? "";
 // وبهوک هم باید با همان مقدار trim‌شده باشد.
 const WEBHOOK_SECRET = (process.env.TG_WEBHOOK_SECRET ?? "").trim();
 const SITE_URL = (process.env.SITE_URL ?? "").trim().replace(/\/+$/, "");
+
+/**
+ * گروه/کانالی که هدیه‌ی عضویت به آن گره خورده — مثلا `-1002127501102`.
+ *
+ * ⚠️ بدون این مقدار، هدیه **داده نمی‌شود** (fail-closed). تا امروز عکسش
+ * بود: `/bonus` بیست MOON را بی‌هیچ بررسی‌ای می‌داد و کسی که هرگز عضو
+ * نشده بود هم می‌گرفت. چون MOON ارز ورودی چالش است و جایزه‌ی چالش حساب
+ * واقعی، آن یعنی یک شیر باز به سمت پول واقعی.
+ *
+ * ربات باید در آن گروه **عضو** باشد تا `getChatMember` جواب بدهد؛ برای
+ * کانال باید ادمین باشد.
+ */
+const GROUP_ID = (process.env.TG_GROUP_ID ?? "").trim();
 
 /**
  * تلگرام برای secret_token فقط A-Z a-z 0-9 _ - را می‌پذیرد (۱ تا ۲۵۶ کاراکتر).
@@ -71,13 +85,51 @@ export function webhookUrl(): string {
 
 type TgResult<T> = { ok: true; result: T } | { ok: false; error: string };
 
-/** تماس عمومی با Bot API. توکن هرگز از سرور بیرون نمی‌رود. */
+/**
+ * خطاهایی که «عادی»اند و نباید سطح `error` بگیرند.
+ *
+ * اگر اینها هم خطا شمرده شوند، فیلتر `@level:error` در روزهای پخش پر
+ * می‌شود از چیزهایی که هیچ‌کس نمی‌تواند و نباید کاری‌شان بکند — و همان
+ * چیزی که واقعا خراب است، لای آن‌ها گم می‌شود.
+ */
+const EXPECTED_TG_ERRORS =
+  /bot was blocked by the user|message is not modified|user is deactivated|chat not found|message to edit not found|bot was kicked|query is too old|message can't be deleted|PARTICIPANT_ID_INVALID|user not found/i;
+// ⚠️ `PARTICIPANT_ID_INVALID` و `user not found` عمدا اینجایند: تلگرام
+// «این آدم عضو گروه نیست» را به شکل خطای ۴۰۰ جواب می‌دهد، نه پاسخ موفق.
+// یعنی هر `/bonus` از یک غیرعضو — که حالت **عادی** است — یک لاگ سطح
+// error می‌ساخت. در روز لانچ همان چیزی می‌شد که `@level:error` را
+// بی‌فایده می‌کند. `groupMembership` خودش نتیجه را می‌فهمد و ثبت می‌کند.
+
+/** بالاتر از این، تماس کند حساب می‌شود و جدا لاگ می‌گیرد. */
+const TG_SLOW_MS = 2000;
+
+/**
+ * تماس عمومی با Bot API. توکن هرگز از سرور بیرون نمی‌رود.
+ *
+ * ⚠️ **این تنها دروازه‌ی خروجی به تلگرام است، پس ابزار مانیتورینگ هم
+ * همین‌جاست.** هر پیام، ویرایش، دکمه و بررسی عضویت از این تابع رد می‌شود؛
+ * لاگ‌گذاشتن در تک‌تک فراخوان‌ها هم پرهزینه بود و هم دیر یا زود یکی جا
+ * می‌افتاد. یک نقطه یعنی پوشش کامل و بدون استثنا.
+ *
+ * `params` عمدا **لاگ نمی‌شود**: متن پیام کاربر، آدرس کیف پول و کپشن
+ * همه آنجا هستند. فقط متد، مدت، و علت خطا ثبت می‌شود.
+ */
 export async function tgCall<T = unknown>(
   method: string,
   params: Record<string, unknown> = {},
   opts: { timeoutMs?: number } = {}
 ): Promise<TgResult<T>> {
-  if (!BOT_TOKEN) return { ok: false, error: "bot_not_configured" };
+  if (!BOT_TOKEN) {
+    log.error("tg.not_configured", { method });
+    return { ok: false, error: "bot_not_configured" };
+  }
+  const t0 = Date.now();
+  // شناسه‌ی چت تنها فیلدی است که برمی‌داریم — بدون آن، «ارسال ناموفق» را
+  // نمی‌شود به هیچ کاربری نسبت داد و لاگ فقط یک شمارنده می‌شود.
+  const chatId =
+    typeof params.chat_id === "number" || typeof params.chat_id === "string"
+      ? params.chat_id
+      : undefined;
   try {
     const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/${method}`, {
       method: "POST",
@@ -90,11 +142,42 @@ export async function tgCall<T = unknown>(
       ok: boolean;
       result?: T;
       description?: string;
+      parameters?: { retry_after?: number };
     };
-    if (!j.ok) return { ok: false, error: j.description ?? `http_${res.status}` };
+    const ms = Date.now() - t0;
+
+    if (!j.ok) {
+      const error = j.description ?? `http_${res.status}`;
+      const fields = { method, chatId, ms, status: res.status, err: error };
+      // ۴۲۹ همیشه باید دیده شود: یعنی داریم به سقف تلگرام می‌خوریم و
+      // پیام‌ها عقب می‌افتند.
+      if (res.status === 429) {
+        log.warn("tg.rate_limited", {
+          ...fields,
+          retryAfter: j.parameters?.retry_after,
+        });
+      } else if (EXPECTED_TG_ERRORS.test(error)) {
+        log.debug("tg.call_rejected", fields);
+      } else {
+        log.error("tg.call_failed", fields);
+      }
+      return { ok: false, error };
+    }
+
+    if (ms > TG_SLOW_MS) log.warn("tg.slow", { method, chatId, ms });
+    else log.debug("tg.call", { method, chatId, ms });
     return { ok: true, result: j.result as T };
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : "network_error" };
+    const error = err instanceof Error ? err.message : "network_error";
+    // تایم‌اوت و قطعی شبکه، برخلاف خطای منطقیِ تلگرام، همیشه مهم‌اند:
+    // یعنی پیام اصلا نرفته و ما هم نمی‌دانیم رفته یا نه.
+    log.error("tg.network_failed", {
+      method,
+      chatId,
+      ms: Date.now() - t0,
+      err: error,
+    });
+    return { ok: false, error };
   }
 }
 
@@ -220,11 +303,31 @@ export async function consumeLinkCode(
     used_at: string | null;
   }>("SELECT player_id, created_at, used_at FROM tg_link_codes WHERE code=$1", [code]);
 
-  if (!row.rowCount) return { ok: false, error: "bad_code" };
-  if (row.rows[0].used_at) return { ok: false, error: "already_used" };
+  // ⚠️ هر شکستِ اتصال ثبت می‌شود. کد نامعتبرِ پشت‌سرهم از یک آیدی، الگوی
+  // حدس‌زدن کد است — و کدِ درست یعنی تحویل یک حساب کامل.
+  if (!row.rowCount) {
+    log.warn("tg.link_failed", { tgUserId, reason: "bad_code" });
+    return { ok: false, error: "bad_code" };
+  }
+  if (row.rows[0].used_at) {
+    log.warn("tg.link_failed", {
+      tgUserId,
+      playerId: row.rows[0].player_id,
+      reason: "already_used",
+    });
+    return { ok: false, error: "already_used" };
+  }
 
   const ageMin = (Date.now() - new Date(row.rows[0].created_at).getTime()) / 60000;
-  if (ageMin > LINK_CODE_TTL_MIN) return { ok: false, error: "expired" };
+  if (ageMin > LINK_CODE_TTL_MIN) {
+    log.info("tg.link_failed", {
+      tgUserId,
+      playerId: row.rows[0].player_id,
+      reason: "expired",
+      ageMin: Math.round(ageMin),
+    });
+    return { ok: false, error: "expired" };
+  }
 
   const playerId = row.rows[0].player_id;
 
@@ -232,7 +335,16 @@ export async function consumeLinkCode(
     "SELECT id FROM players WHERE tg_user_id=$1 AND id <> $2",
     [tgUserId, playerId]
   );
-  if (taken.rowCount) return { ok: false, error: "tg_taken" };
+  if (taken.rowCount) {
+    // ⚠️ سیگنال چندحسابی: یک تلگرام که می‌خواهد به حساب دومی هم وصل شود.
+    log.warn("tg.link_failed", {
+      tgUserId,
+      playerId,
+      reason: "tg_taken",
+      heldBy: taken.rows[0].id,
+    });
+    return { ok: false, error: "tg_taken" };
+  }
 
   const client = await pool.connect();
   try {
@@ -244,13 +356,19 @@ export async function consumeLinkCode(
     );
     await client.query("UPDATE tg_link_codes SET used_at=now() WHERE code=$1", [code]);
     await client.query("COMMIT");
+    log.info("tg.linked", { playerId, tgUserId });
     return {
       ok: true,
       playerId,
       displayName: upd.rows[0]?.display_name ?? "",
     };
-  } catch {
+  } catch (err) {
     await client.query("ROLLBACK").catch(() => {});
+    log.error("tg.link_error", {
+      playerId,
+      tgUserId,
+      err: err instanceof Error ? err.message : "error",
+    });
     return { ok: false, error: "bad_code" };
   } finally {
     client.release();
@@ -341,6 +459,15 @@ export async function findOrCreateTgPlayer(user: {
   }
 
   if (res.rowCount) {
+    // ⚠️ مهم‌ترین رویداد ضدتقلب: نرخ ساخت حساب. جهش ناگهانی یعنی یا کمپین
+    // گرفته، یا کسی دارد حساب می‌سازد. `handleTaken` نشان می‌دهد هندلی که
+    // آورده قبلا مالِ حساب دیگری بوده.
+    log.info("tg.account_created", {
+      playerId: res.rows[0].id,
+      tgUserId: user.id,
+      withHandle: Boolean(handle),
+      handleTaken: Boolean(handle) && !free,
+    });
     return { id: res.rows[0].id, displayName: res.rows[0].display_name, created: true };
   }
 
@@ -350,22 +477,108 @@ export async function findOrCreateTgPlayer(user: {
   throw new Error("tg_account_create_failed");
 }
 
-/** هدیه‌ی عضویت گروه — فقط یک بار برای هر حساب. */
-export async function grantGroupBonus(
+/** آیا هدیه‌ی عضویت اصلا پیکربندی شده؟ */
+export function groupBonusReady(): boolean {
+  return Boolean(BOT_TOKEN && GROUP_ID);
+}
+
+/**
+ * وضعیت عضویت یک کاربر در گروه هدیه.
+ *
+ * ⚠️ سه حالته و نامتقارن است — دقیقا همان الگوی `probeChat`:
+ *
+ *   • `member`  فقط با پاسخ موفقِ تلگرام و وضعیتِ صریحِ عضویت.
+ *   • `left`    فقط با پاسخ موفق و وضعیت `left`/`kicked`.
+ *   • `unknown` هر چیز دیگر (تایم‌اوت، قطعی تلگرام، ربات ادمین نیست).
+ *
+ * چرا این تفکیک: اگر «هر خطا» را «عضو نیست» بگیریم، یک دقیقه اختلال
+ * تلگرام به همه می‌گوید «تو عضو نیستی» و کاربر واقعی گیج می‌شود. و اگر
+ * برعکس، «هر خطا» را «عضو است» بگیریم، همان شیر بازِ قبلی برمی‌گردد.
+ * پس در حالت مبهم **هیچ‌کاری نمی‌کنیم** و از کاربر می‌خواهیم دوباره
+ * امتحان کند.
+ *
+ * `restricted` یعنی کاربر در گروه هست ولی محدود شده؛ فقط اگر `is_member`
+ * باشد عضو حساب می‌شود — کسی که سکوت گرفته هنوز عضو است، کسی که بیرون
+ * انداخته شده نه.
+ */
+export async function groupMembership(
   tgUserId: number
-): Promise<{ granted: boolean; credits: number }> {
+): Promise<"member" | "left" | "unknown"> {
+  if (!groupBonusReady()) return "unknown";
+  const r = await tgCall<{ status: string; is_member?: boolean }>(
+    "getChatMember",
+    { chat_id: GROUP_ID, user_id: tgUserId },
+    { timeoutMs: 8000 }
+  );
+  if (!r.ok) {
+    // «user not found» یعنی تلگرام قطعا می‌داند این آدم آنجا نیست — تنها
+    // خطایی که معنای قطعی دارد. بقیه‌ی خطاها پیکربندی یا شبکه‌اند.
+    if (/user not found|PARTICIPANT_ID_INVALID/i.test(r.error)) return "left";
+    log.warn("tg.member_check_failed", { tgUserId, err: r.error });
+    return "unknown";
+  }
+  const st = r.result?.status ?? "";
+  if (st === "creator" || st === "administrator" || st === "member") return "member";
+  if (st === "restricted") return r.result?.is_member ? "member" : "left";
+  return "left"; // left | kicked
+}
+
+export type GroupBonusResult =
+  | { ok: true; credits: number; granted: number }
+  | {
+      ok: false;
+      reason: "not_configured" | "no_account" | "already" | "not_member" | "unknown";
+    };
+
+/**
+ * هدیه‌ی عضویت گروه — فقط یک بار برای هر حساب، و **فقط با عضویت واقعی**.
+ *
+ * ترتیب عمدی است و هزینه را کم می‌کند: اول حساب، بعد «قبلا گرفته؟»، و
+ * تازه بعدش تماس با تلگرام. کسی که ده بار `/bonus` بزند فقط یک بار
+ * `getChatMember` می‌سازد.
+ *
+ * ⚠️ اعطا همچنان با همان `UPDATE … WHERE group_bonus_at IS NULL` اتمیک
+ * انجام می‌شود، پس دو `/bonus` هم‌زمان هم دو بار پرداخت نمی‌کند.
+ */
+export async function grantGroupBonus(tgUserId: number): Promise<GroupBonusResult> {
   await ensureTelegramTables();
+
+  if (!groupBonusReady()) {
+    log.warn("bonus.not_configured", { tgUserId });
+    return { ok: false, reason: "not_configured" };
+  }
+
   const pool = await db();
+  const cur = await pool.query<{ id: number; group_bonus_at: string | null }>(
+    "SELECT id, group_bonus_at FROM players WHERE tg_user_id=$1",
+    [tgUserId]
+  );
+  if (!cur.rowCount) return { ok: false, reason: "no_account" };
+  const playerId = cur.rows[0].id;
+  if (cur.rows[0].group_bonus_at) return { ok: false, reason: "already" };
+
+  const state = await groupMembership(tgUserId);
+  if (state !== "member") {
+    log.info("bonus.denied", { playerId, tgUserId, state });
+    return { ok: false, reason: state === "left" ? "not_member" : "unknown" };
+  }
+
   const res = await pool.query<{ credits: number }>(
     `UPDATE players SET credits = credits + $1, group_bonus_at = now()
       WHERE tg_user_id=$2 AND group_bonus_at IS NULL
       RETURNING credits`,
     [GROUP_BONUS_CREDITS, tgUserId]
   );
-  return {
-    granted: (res.rowCount ?? 0) > 0,
-    credits: res.rows[0]?.credits ?? 0,
-  };
+  // صفر ردیف یعنی درخواست هم‌زمانِ دیگری زودتر گرفتش.
+  if (!res.rowCount) return { ok: false, reason: "already" };
+
+  log.info("bonus.granted", {
+    playerId,
+    tgUserId,
+    granted: GROUP_BONUS_CREDITS,
+    credits: res.rows[0].credits,
+  });
+  return { ok: true, credits: res.rows[0].credits, granted: GROUP_BONUS_CREDITS };
 }
 
 /**
@@ -678,12 +891,17 @@ export async function checkTelegramLink(
   const state = await probeChat(tgId);
   if (state === "blocked") {
     await markTelegramBlocked(tgId);
+    // فقط لبه‌ی تغییر لاگ می‌شود، نه هر بار بررسی — وگرنه یک کاربرِ
+    // بلاک‌کرده که صفحه را باز نگه داشته، لاگ را پر می‌کند.
+    if (!stored) log.warn("tg.blocked", { playerId, tgUserId: tgId });
     return { linked: true, blocked: true };
   }
   if (state === "open") {
     await clearTelegramBlocked(tgId);
+    if (stored) log.info("tg.unblocked", { playerId, tgUserId: tgId });
     return { linked: true, blocked: false };
   }
+  log.debug("tg.check_unknown", { playerId, tgUserId: tgId, stored });
   // unknown: زمان بررسی هم به‌روز نمی‌شود تا دفعه‌ی بعد دوباره تلاش شود.
   return { linked: true, blocked: stored };
 }

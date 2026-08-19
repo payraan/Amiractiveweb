@@ -1,3 +1,4 @@
+import { log } from "@/lib/log";
 import { createHmac, timingSafeEqual } from "crypto";
 
 // ═══ درگاه کریپتویی Zovix ═══════════════════════════════════
@@ -53,8 +54,12 @@ async function call<T>(
   method: "GET" | "POST",
   params: Record<string, string> = {}
 ): Promise<{ ok: true; data: T } | { ok: false; error: string; code?: number }> {
-  if (!gatewayReady()) return { ok: false, error: "gateway_not_configured" };
+  if (!gatewayReady()) {
+    log.error("gateway.not_configured", { path });
+    return { ok: false, error: "gateway_not_configured" };
+  }
 
+  const t0 = Date.now();
   const body = encodeBody(params);
   const url =
     method === "GET" && body
@@ -77,16 +82,46 @@ async function call<T>(
       ...(method === "POST" ? { body } : {}),
     });
 
-    const json = (await res.json()) as ZovixRes<T>;
-    if (!res.ok || !json.success) {
-      return {
-        ok: false,
-        error: json.message ?? `http_${res.status}`,
-        code: json.code ?? res.status,
-      };
+    // ⚠️ درگاه پشت Cloudflare است و زیر فشار **HTML** برمی‌گرداند نه JSON.
+    // بدون این، `res.json()` پرتاب می‌کرد و همه‌چیز به شکل «خطای شبکه»
+    // دیده می‌شد — همان تشخیص غلطی که یک بار سه روز وقت برد.
+    const raw = await res.text();
+    const ms = Date.now() - t0;
+    let json: ZovixRes<T>;
+    try {
+      json = JSON.parse(raw) as ZovixRes<T>;
+    } catch {
+      log.error("gateway.non_json", {
+        path,
+        status: res.status,
+        ms,
+        // فقط نشانه، نه محتوا: برای فهمیدن اینکه چالش Cloudflare بوده یا نه.
+        looksLikeHtml: /^\s*</.test(raw),
+      });
+      return { ok: false, error: `bad_response_${res.status}`, code: res.status };
     }
+
+    if (!res.ok || !json.success) {
+      const error = json.message ?? `http_${res.status}`;
+      log.error("gateway.rejected", {
+        path,
+        status: res.status,
+        code: json.code ?? res.status,
+        ms,
+        err: error,
+      });
+      return { ok: false, error, code: json.code ?? res.status };
+    }
+    // مسیر پول است: کندیِ درگاه باید پیش از شکایت کاربر دیده شود.
+    if (ms > 5000) log.warn("gateway.slow", { path, ms });
+    else log.debug("gateway.call", { path, ms });
     return { ok: true, data: json.data as T };
   } catch (err) {
+    log.error("gateway.network_failed", {
+      path,
+      ms: Date.now() - t0,
+      err: err instanceof Error ? err.message : "network_error",
+    });
     return {
       ok: false,
       error: err instanceof Error ? err.message : "network_error",

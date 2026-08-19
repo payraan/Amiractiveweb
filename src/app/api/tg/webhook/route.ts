@@ -12,6 +12,7 @@ import {
   answerCallback,
   escapeHtml,
   tgCall,
+  type InlineButton,
 } from "@/lib/telegram";
 import {
   MENU,
@@ -40,6 +41,8 @@ import {
   WITHDRAW_ERROR,
 } from "@/lib/bot-wallet";
 import { db } from "@/lib/db";
+import { LINKS } from "@/config/site";
+import { log } from "@/lib/log";
 import { approveMarket, rejectMarket } from "@/lib/ir-moderation";
 import {
   isTgAdmin,
@@ -50,6 +53,7 @@ import {
   progressText,
   jobKeyboard,
   attachCard,
+  kickBroadcastChain,
 } from "@/lib/broadcast";
 import {
   getFlow,
@@ -286,18 +290,62 @@ async function handleLink(tg: TgUser, chatId: number, code: string) {
   await sendTelegram(chatId, `⚠️ ${reason[r.error]}`);
 }
 
-/** `/bonus` — هدیه‌ی عضویت گروه. */
+/**
+ * `/bonus` — هدیه‌ی عضویت گروه.
+ *
+ * ⚠️ عضویت **واقعا** از تلگرام پرسیده می‌شود. تا پیش از این هیچ بررسی‌ای
+ * نبود و هر کسی با زدن این دستور بیست MOON می‌گرفت، حتی اگر هرگز عضو
+ * نشده بود — و MOON ارز ورودی چالش است که جایزه‌اش حساب واقعی است.
+ *
+ * هر شاخه پیام خودش را دارد: کاربر باید بداند چرا نگرفت و چه کار کند،
+ * وگرنه فقط فکر می‌کند خراب است.
+ */
 async function handleBonus(tg: TgUser, chatId: number, player: Player | null) {
   if (!player) {
-    await sendTelegram(chatId, "ابتدا باید حسابتان را از سایت به تلگرام متصل کنید.");
+    await sendScreen(chatId, guestScreen());
     return;
   }
+
+  const joinRow: InlineButton[][] = [
+    [{ text: "📣 عضویت در کانال", url: LINKS.telegramChannel }],
+    [{ text: "🎁 گرفتن هدیه", callback_data: MENU.bonus }],
+  ];
+
   const b = await grantGroupBonus(tg.id);
+  if (b.ok) {
+    await sendTelegram(
+      chatId,
+      `🎁 <b>${b.granted} MOON</b> به حسابت اضافه شد.\n\n` +
+        `موجودی MOON: <b>${b.credits}</b>`
+    );
+    return;
+  }
+
+  if (b.reason === "already") {
+    await sendTelegram(chatId, "این هدیه قبلا به حسابت اضافه شده است.");
+    return;
+  }
+  if (b.reason === "not_member") {
+    await sendTelegram(
+      chatId,
+      `📣 <b>هنوز عضو کانال نیستی.</b>\n\n` +
+        `اول عضو شو، بعد همین‌جا دکمه‌ی «گرفتن هدیه» را بزن.\n\n` +
+        `<i>اگر همین الان عضو شدی و باز این پیام را دیدی، چند ثانیه صبر کن ` +
+        `و دوباره امتحان کن.</i>`,
+      joinRow
+    );
+    return;
+  }
+  if (b.reason === "not_configured") {
+    await sendTelegram(chatId, "این هدیه فعلا در دسترس نیست. کمی بعد دوباره امتحان کن.");
+    return;
+  }
+  // unknown — تلگرام جواب روشنی نداد. عمدا هدیه نمی‌دهیم، ولی کاربر را هم
+  // متهم نمی‌کنیم: ممکن است واقعا عضو باشد و مشکل از سمت ما باشد.
   await sendTelegram(
     chatId,
-    b.granted
-      ? `🎁 هدیه به حسابتان اضافه شد. موجودی MOON: <b>${b.credits}</b>`
-      : "این هدیه قبلا به حسابتان اضافه شده است."
+    "الان نتوانستم عضویتت را بررسی کنم. چند لحظه بعد دوباره امتحان کن.",
+    joinRow
   );
 }
 
@@ -581,7 +629,7 @@ async function handleBroadcastButton(
     await answerCallback(cbId, "ارسال شروع شد");
     await startJob(jobId);
     // زنجیره را همین‌جا راه می‌اندازیم تا ادمین منتظر کرون بعدی نماند.
-    kickBroadcast();
+    kickBroadcastChain();
   } else if (op === "no") {
     await answerCallback(cbId, "متوقف شد");
     await cancelJob(jobId);
@@ -591,18 +639,6 @@ async function handleBroadcastButton(
 
   const s = await jobStats(jobId);
   if (s) await editTelegram(chatId, messageId, progressText(s), jobKeyboard(s));
-}
-
-/** اولین تیک را بدون انتظار صدا می‌زند؛ خودِ روت بقیه را زنجیر می‌کند. */
-function kickBroadcast() {
-  const base = (process.env.SITE_URL ?? "").replace(/\/+$/, "");
-  const key = process.env.SETTLE_KEY;
-  if (!base || !key) return;
-  fetch(`${base}/api/bot/broadcast`, {
-    method: "POST",
-    headers: { "x-settle-key": key },
-    cache: "no-store",
-  }).catch(() => {});
 }
 
 /** دکمه‌های کیف پول: `w:*` */
@@ -740,6 +776,13 @@ async function handleMenu(
     return;
   }
 
+  // ⚠️ هدیه پیام تازه می‌فرستد و کارت را ویرایش نمی‌کند: کاربر اینجا از
+  // کانال برگشته و باید نتیجه را ببیند، نه اینکه کارتِ بالای چت بی‌صدا
+  // عوض شود و او نفهمد چیزی اتفاق افتاده.
+  if (action === MENU.bonus) {
+    await handleBonus(tg, chatId, player);
+    return;
+  }
   if (action === MENU.home) {
     await editScreen(chatId, messageId, homeScreen(player.displayName));
     return;
@@ -806,6 +849,13 @@ async function handleVote(
 
 export async function POST(req: Request) {
   if (!webhookSecretValid(req.headers.get("x-telegram-bot-api-secret-token"))) {
+    // ⚠️ آدرس این روت عمومی است. تلاش با رمز غلط یعنی یا کسی دارد
+    // می‌سنجدش، یا رمز ما و رمز تلگرام از هم جدا شده‌اند (مثلا بعد از
+    // تغییر SITE_URL و ثبت نشدن دوباره‌ی وبهوک) — و آن یعنی **همه‌ی**
+    // پیام‌های کاربران بی‌صدا دور ریخته می‌شوند.
+    log.warn("tg.webhook_unauthorized", {
+      headerPresent: Boolean(req.headers.get("x-telegram-bot-api-secret-token")),
+    });
     return NextResponse.json({ ok: false }, { status: 401 });
   }
 
@@ -813,14 +863,42 @@ export async function POST(req: Request) {
   try {
     update = await req.json();
   } catch {
+    log.warn("tg.webhook_bad_json", {});
     return NextResponse.json({ ok: true, ignored: "bad_json" });
   }
+
+  const t0 = Date.now();
+  // ⚠️ شناسه‌ی آپدیت را نگه می‌داریم تا اگر تلگرام یکی را دوباره فرستاد
+  // (که موقع تایم‌اوت می‌فرستد) بشود در لاگ تشخیصش داد.
+  const who = update.message?.from ?? update.callback_query?.from;
+  const kind = update.message ? "message" : update.callback_query ? "callback" : "other";
+  // ⚠️ متنِ پیام لاگ نمی‌شود — آدرس کیف پول و مبلغ برداشت از همین‌جا
+  // می‌گذرند. فقط **نوعِ** کنش ثبت می‌شود: دستور یا پیشوند دکمه.
+  const action = update.message?.text?.startsWith("/")
+    ? update.message.text.trim().split(/\s+/)[0].toLowerCase().split("@")[0]
+    : update.callback_query?.data?.split(":").slice(0, 2).join(":");
+
+  // ⚠️ **همه‌ی مسیرها باید از یک نقطه خارج شوند.**
+  //
+  // مسیرهای دکمه‌ای (بازبینی بازار، پخش، کیف پول، منو) هرکدام زودتر
+  // برمی‌گشتند و از لاگ خلاصه رد می‌شدند — یعنی دقیقا پرترافیک‌ترین بخش
+  // ربات در مانیتورینگ نامرئی بود. حالا هر خروجی از همین‌جا می‌گذرد.
+  const done = (handled = true) => {
+    log.info("tg.update", {
+      kind,
+      action,
+      handled,
+      tgUserId: who?.id,
+      chatType: update.message?.chat.type,
+      ms: Date.now() - t0,
+    });
+    return NextResponse.json({ ok: true });
+  };
 
   try {
     // هر آپدیتی از یک کاربر یعنی چت با ربات باز است، پس اگر قبلا «بلاک»
     // علامت خورده بود همین‌جا برداشته می‌شود. مسیر اصلی بازگشت همین است و
     // هیچ تماسی با تلگرام لازم ندارد.
-    const who = update.message?.from ?? update.callback_query?.from;
     if (who) await clearTelegramBlocked(who.id);
 
     const msg = update.message;
@@ -853,7 +931,7 @@ export async function POST(req: Request) {
           cb.message.message_id,
           cb.data
         );
-        return NextResponse.json({ ok: true });
+        return done();
       }
       if (cb.data.startsWith("b:") && cb.message) {
         await handleBroadcastButton(
@@ -863,7 +941,7 @@ export async function POST(req: Request) {
           cb.message.message_id,
           cb.data
         );
-        return NextResponse.json({ ok: true });
+        return done();
       }
       // ⚠️ **کیف پول و پروفایل فقط در چت خصوصی.**
       //
@@ -887,7 +965,7 @@ export async function POST(req: Request) {
           "این بخش فقط در چت خصوصی با ربات باز می‌شود.",
           true
         );
-        return NextResponse.json({ ok: true });
+        return done();
       }
 
       if (cb.data.startsWith("w:") && cb.message) {
@@ -898,11 +976,11 @@ export async function POST(req: Request) {
           cb.message.message_id,
           cb.data
         );
-        return NextResponse.json({ ok: true });
+        return done();
       }
       if ((cb.data.startsWith("m:") || cb.data.startsWith("h:")) && cb.message) {
         await handleMenu(cb.id, cb.from, cb.message.chat.id, cb.message.message_id, cb.data);
-        return NextResponse.json({ ok: true });
+        return done();
       }
       // `v:` بازار ایران (شناسه‌ی عددی) · `t:` بازار ترید (شناسه‌ی رشته‌ای).
       // جدا بودنشان لازم است: شناسه‌ی ۴۲ در دو اقتصاد دو بازار متفاوت است.
@@ -921,9 +999,24 @@ export async function POST(req: Request) {
         await answerCallback(cb.id, "");
       }
     }
-  } catch {
-    // خطای ما نباید باعث شود تلگرام همان آپدیت را بی‌پایان دوباره بفرستد.
+  } catch (err) {
+    // ⚠️ **این `catch` تا امروز کاملا خالی بود.**
+    //
+    // به تلگرام همچنان ۲۰۰ می‌دهیم — خطای ۵xx فقط باعث می‌شود همان آپدیت
+    // بی‌پایان دوباره بیاید. ولی «نبلعیدنِ خطا» یعنی خودمان باید ببینیمش:
+    // پیش از این، هر شکستی در کل لایه‌ی ربات بی‌صدا ناپدید می‌شد و تنها
+    // نشانه‌اش این بود که کاربر می‌گفت «کار نکرد».
+    log.error("tg.update_failed", {
+      kind,
+      action,
+      tgUserId: who?.id,
+      ms: Date.now() - t0,
+      err: err instanceof Error ? err.message : "error",
+    });
+    return NextResponse.json({ ok: true, handled: false });
   }
 
-  return NextResponse.json({ ok: true });
+  // خلاصه‌ی هر آپدیت. با `@evt:tg.update` کل ترافیک ربات دیده می‌شود و با
+  // `@action:/bonus` یا `@action:w:` مسیر یک قابلیت خاص.
+  return done();
 }

@@ -66,6 +66,8 @@ export const MENU = {
   profile: "m:profile",
   support: "m:support",
   help: "m:help",
+  /** «گرفتن هدیه» — بعد از عضویت در کانال، بدون تایپ دستور. */
+  bonus: "m:bonus",
 } as const;
 
 const money = (n: number) =>

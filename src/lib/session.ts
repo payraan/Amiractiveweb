@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "crypto";
+import { log } from "@/lib/log";
 
 // Sessions are a signed "playerId.expiry.signature" token stored in a cookie.
 //
@@ -12,10 +13,10 @@ import { createHmac, timingSafeEqual } from "crypto";
 const SECRET = process.env.SESSION_SECRET ?? "";
 
 if (!SECRET) {
-  console.error(
-    "[session] SESSION_SECRET is not set — all sessions are rejected. " +
-      "Set it in Railway (openssl rand -hex 32)."
-  );
+  // ⚠️ خرابیِ تمام‌عیار: هیچ‌کس نمی‌تواند وارد شود. با `@level:error` در
+  // همان ثانیه‌ی اول دیده می‌شود، به‌جای اینکه به شکل «سایت کار نمی‌کند»
+  // از زبان کاربر برسد.
+  log.error("config.session_secret_missing", {});
 }
 
 const MAX_AGE_S = 60 * 60 * 24 * 30; // 30 days

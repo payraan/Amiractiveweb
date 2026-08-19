@@ -1,4 +1,5 @@
 import { Pool } from "pg";
+import { log } from "@/lib/log";
 
 declare global {
   // eslint-disable-next-line no-var
@@ -58,6 +59,14 @@ const pool =
     idleTimeoutMillis: 30_000,
     ssl: needsSsl(conn) ? { rejectUnauthorized: false } : undefined,
   });
+
+// ⚠️ خطای یک اتصالِ بی‌کار در استخر، هیچ‌کدام از `try/catch`های روت‌ها را
+// فعال نمی‌کند — چون به هیچ درخواستی وصل نیست. بدون این شنونده، قطع شدن
+// دیتابیس فقط به شکل کندی و تایم‌اوت دیده می‌شود و علتش هرگز معلوم
+// نمی‌شود. (نود هم برای رویداد `error` بدون شنونده، پروسه را می‌کشد.)
+pool.on("error", (err) => {
+  log.error("db.pool_error", { err: err.message });
+});
 
 if (process.env.NODE_ENV !== "production") global.__pgPool = pool;
 

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { log } from "@/lib/log";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { verifyAdmin, ADMIN_COOKIE } from "@/lib/admin";
@@ -49,6 +50,10 @@ export async function POST(req: Request) {
   if (!r.rowCount) {
     return NextResponse.json({ ok: false, error: "not_linked" }, { status: 409 });
   }
+  // ⚠️ این کنش لنگر هویت را باز می‌کند **و هدیه‌ی کانال را هم صفر می‌کند**،
+  // یعنی همان حساب می‌تواند دوباره ۲۰ MOON بگیرد. مسیر درستِ ادغام حساب
+  // است، ولی دقیقا به همین دلیل باید ردِ حسابرسی داشته باشد.
+  log.warn("admin.unlink_telegram", { playerId: id, tgUserId: r.rows[0].tg_user_id });
   return NextResponse.json({ ok: true });
 }
 

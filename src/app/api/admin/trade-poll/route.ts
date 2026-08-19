@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { log } from "@/lib/log";
 import { cookies } from "next/headers";
 import { verifyAdmin, ADMIN_COOKIE } from "@/lib/admin";
 import { botReady } from "@/lib/telegram";
@@ -41,10 +42,12 @@ export async function POST(req: Request) {
 
   const sent = await postTradeMarket(marketId, chatId, mode);
   if (!sent.ok) {
+    log.error("admin.trade_poll_failed", { marketId, chatId, mode, err: sent.error });
     const status =
       sent.error === "not_found" ? 404 : sent.error === "bad_market_id" ? 400 : 502;
     return NextResponse.json({ ok: false, error: sent.error }, { status });
   }
 
+  log.info("admin.trade_poll", { marketId, chatId, mode });
   return NextResponse.json({ ok: true });
 }

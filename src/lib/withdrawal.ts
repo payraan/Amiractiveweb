@@ -96,7 +96,13 @@ export async function requestWithdrawal(
   const toAddress = String(rawAddress ?? "").trim();
 
   const bad = checkWithdrawInput(amount, toAddress);
-  if (bad) return { ok: false, error: bad };
+  if (bad) {
+    // ورودی غلطِ پشت‌سرهم روی برداشت یعنی یا فرم با سرور نمی‌خواند (همان
+    // باگی که سه بار تکرار شد)، یا کسی دارد مرزها را می‌سنجد. هر دو باید
+    // دیده شوند.
+    log.info("withdraw.rejected", { playerId, amount, reason: bad });
+    return { ok: false, error: bad };
+  }
 
   await ensureIrTables();
   await ensureWithdrawalsTable();
@@ -108,6 +114,7 @@ export async function requestWithdrawal(
     [playerId, String(WINDOW_MIN)]
   );
   if (Number(recent.rows[0]?.n ?? 0) >= MAX_PER_WINDOW) {
+    log.warn("withdraw.rejected", { playerId, amount, reason: "rate_limited" });
     return { ok: false, error: "rate_limited" };
   }
 
@@ -129,6 +136,12 @@ export async function requestWithdrawal(
     );
     if (!pl.rowCount || Number(pl.rows[0].usdt_balance) < amount) {
       await client.query("ROLLBACK");
+      log.info("withdraw.rejected", {
+        playerId,
+        amount,
+        have: Number(pl.rows[0]?.usdt_balance ?? 0),
+        reason: "insufficient_funds",
+      });
       return { ok: false, error: "insufficient_funds" };
     }
 
@@ -141,9 +154,16 @@ export async function requestWithdrawal(
       [playerId, uniqueParam, amount, toAddress, USDT_NETWORK]
     );
     await client.query("COMMIT");
-  } catch {
+  } catch (err) {
     await client.query("ROLLBACK").catch(() => {});
     client.release();
+    // ⚠️ شکست اینجا یعنی کسرِ پول انجام نشد — که درست است — ولی علتش باید
+    // معلوم باشد، وگرنه کاربر «خطای سرور» می‌بیند و ما هیچ.
+    log.error("withdraw.hold_failed", {
+      playerId,
+      amount,
+      err: err instanceof Error ? err.message : "error",
+    });
     return { ok: false, error: "server_error" };
   }
   client.release();

@@ -1,3 +1,4 @@
+import { log } from "@/lib/log";
 import { db } from "@/lib/db";
 import { ensureIrTables, moveFunds, recordRevenue } from "@/lib/iran";
 
@@ -22,6 +23,9 @@ export async function approveMarket(id: number): Promise<ModerationResult> {
     "UPDATE ir_markets SET status='open' WHERE id=$1 AND status='pending' RETURNING id",
     [id]
   );
+  // انتشار یعنی از این لحظه پول واقعی روی این سؤال می‌آید — تصمیم انسانی‌ای
+  // که باید رد داشته باشد.
+  if (r.rowCount) log.warn("ir.market_approved", { marketId: id });
   return r.rowCount ? { ok: true } : { ok: false, error: "not_pending" };
 }
 
@@ -87,9 +91,19 @@ export async function rejectMarket(
     }
 
     await client.query("COMMIT");
+    log.warn("ir.market_rejected", {
+      marketId: id,
+      creatorId: row.creator_id,
+      refunded: Number(row.fee_usdt),
+      reason,
+    });
     return { ok: true };
-  } catch {
+  } catch (err) {
     await client.query("ROLLBACK").catch(() => {});
+    log.error("ir.market_reject_failed", {
+      marketId: id,
+      err: err instanceof Error ? err.message : "error",
+    });
     return { ok: false, error: "server_error" };
   } finally {
     client.release();

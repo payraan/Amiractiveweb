@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { log } from "@/lib/log";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { verifyAdmin, ADMIN_COOKIE } from "@/lib/admin";
@@ -116,6 +117,14 @@ export async function POST(req: Request) {
 
   await ensureIrTables();
   const pool = await db();
+
+  // ⚠️ **هر کنش ادمین روی بازار ثبت می‌شود، پیش از اجرا.**
+  //
+  // `resolve` تعیین می‌کند پول به کدام طرف برود و `finalize` پرداختش
+  // می‌کند — یعنی این روت پرقدرت‌ترین نقطه‌ی پلتفرم است. اگر روزی نتیجه‌ای
+  // مورد اعتراض قرار بگیرد، این خط تنها سند بی‌طرفِ «چه‌کسی، کِی، چه
+  // تصمیمی گرفت» است.
+  log.warn("admin.ir_action", { action, marketId: id });
 
   // تأیید و رد از `lib/ir-moderation.ts` می‌آیند چون ربات هم همان‌ها را
   // صدا می‌زند. رد کردن پول برمی‌گرداند؛ دو پیاده‌سازی موازی روی مسیر پول

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { log } from "@/lib/log";
 import { db, touchActivity } from "@/lib/db";
 import { currentPlayerId } from "@/lib/current-player";
 import { ensureIrTables, moveFunds, MIN_STAKE_USDT } from "@/lib/iran";
@@ -113,10 +114,26 @@ export async function POST(req: Request) {
     await touchActivity(client, playerId);
 
     await client.query("COMMIT");
+    // ⚠️ تنها بازیِ پلتفرم که پول واقعی جابه‌جا می‌کند. `demo` سهم بونوس
+    // را جدا نگه می‌دارد، پس با `@evt:ir.bet` می‌شود گفت چقدر از حجم
+    // بازارها پول واقعی بوده و چقدر هدیه‌ی خودمان.
+    log.info("ir.bet", {
+      playerId,
+      marketId,
+      side,
+      stake,
+      demo: spent.demoPart,
+      firstOnMarket: !prev.rowCount,
+    });
     return NextResponse.json({ ok: true });
   } catch (err) {
     await client.query("ROLLBACK").catch(() => {});
     const msg = err instanceof Error ? err.message : "error";
+    if (msg === "insufficient_funds") {
+      log.info("ir.bet_rejected", { playerId, marketId, stake, reason: msg });
+    } else {
+      log.error("ir.bet_failed", { playerId, marketId, stake, err: msg });
+    }
     return NextResponse.json(
       { ok: false, error: msg === "insufficient_funds" ? msg : "server_error" },
       { status: msg === "insufficient_funds" ? 402 : 500 }

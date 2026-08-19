@@ -227,6 +227,45 @@ export async function createJob(
   return (await jobStats(jobId))!;
 }
 
+/**
+ * زنجیره‌ی ارسال را بدون انتظار راه می‌اندازد.
+ *
+ * ⚠️ **این با `runBroadcastTick` مستقیم یکی نیست و تفاوتشان مهم است.**
+ * تیک مستقیم فقط یک دسته می‌فرستد و تمام؛ ادامه‌اش می‌افتد گردن کرون هر ۱۵
+ * دقیقه که بودجه‌اش ۱۰ ثانیه است — یعنی حدود ۲۵۰ پیام در ربع ساعت. ولی
+ * `/api/bot/broadcast` بعد از هر تیک ۴۵ ثانیه‌ای **خودش تیک بعدی را صدا
+ * می‌زند**، پس ارسال با سرعت واقعی ۲۵ پیام در ثانیه پیوسته جلو می‌رود.
+ *
+ * تفاوتش برای ۵۰ هزار مخاطب: حدود نیم‌ساعت در برابر چند روز.
+ *
+ * `false` یعنی پیکربندی ناقص است و فراخوان باید خودش یک تیک بزند — وگرنه
+ * پخش تا کرون بعدی هیچ حرکتی نمی‌کند.
+ */
+export function kickBroadcastChain(): boolean {
+  const base = (process.env.SITE_URL ?? "").replace(/\/+$/, "");
+  const key = process.env.SETTLE_KEY;
+  if (!base || !key) {
+    // نامِ فیلد عمدا `missing` است و نه `hasKey`: فیلترِ رازِ لاگر هر نامی
+    // را که «key» در آن باشد حذف می‌کند، و نتیجه‌اش یک لاگ تشخیصی می‌شد
+    // که خودش [redacted] است.
+    log.warn("broadcast.chain_unavailable", {
+      missing: !base && !key ? "both" : !base ? "site_url" : "settle_key",
+    });
+    return false;
+  }
+  // بدون await: فراخوان معطل نمی‌ماند و خودِ روت زنجیره را ادامه می‌دهد.
+  fetch(`${base}/api/bot/broadcast`, {
+    method: "POST",
+    headers: { "x-settle-key": key },
+    cache: "no-store",
+  }).catch((err) => {
+    log.warn("broadcast.chain_kick_failed", {
+      err: err instanceof Error ? err.message : "error",
+    });
+  });
+  return true;
+}
+
 export async function startJob(jobId: number): Promise<void> {
   await ensureBroadcastTables();
   const pool = await db();

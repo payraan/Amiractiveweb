@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { log } from "@/lib/log";
 import { db } from "@/lib/db";
 import { currentPlayerId } from "@/lib/current-player";
 import { ensureIrTables, DISPUTE_HOURS } from "@/lib/iran";
@@ -75,6 +76,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "already_disputed" }, { status: 409 });
   }
 
+  // اعتراض تسویه را **قفل می‌کند**، پس هم ابزار سالمِ کاربر است و هم اهرم
+  // آزار: چند اعتراض روی بازارهای مختلف از یک نفر یعنی باید نگاه کرد.
+  log.warn("ir.dispute_filed", { playerId, marketId, disputeId: ins.rows[0].id });
   return NextResponse.json({ ok: true, id: ins.rows[0].id });
 }
 

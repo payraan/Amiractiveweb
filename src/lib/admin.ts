@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual, scrypt, randomBytes } from "crypto";
+import { log } from "@/lib/log";
 import { db } from "@/lib/db";
 
 // ── Admin session (separate from player sessions) ──────────────
@@ -8,10 +9,7 @@ import { db } from "@/lib/db";
 const SECRET = process.env.ADMIN_SECRET || process.env.SESSION_SECRET || "";
 
 if (!SECRET) {
-  console.error(
-    "[admin] neither ADMIN_SECRET nor SESSION_SECRET is set — " +
-      "all admin sessions are rejected."
-  );
+  log.error("config.admin_secret_missing", {});
 }
 
 const MAX_AGE_S = 60 * 60 * 12; // 12h admin sessions

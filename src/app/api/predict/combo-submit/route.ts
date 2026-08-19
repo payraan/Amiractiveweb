@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { log } from "@/lib/log";
 import { db, touchActivity } from "@/lib/db";
 import { currentPlayerId } from "@/lib/current-player";
 import { getCuratedMarkets, findMarket } from "@/lib/poly";
@@ -152,6 +153,7 @@ export async function POST(req: Request) {
 
     await touchActivity(client, playerId);
     await client.query("COMMIT");
+    log.info("combo.submitted", { playerId, legs: legs.length, charged: cost, prob });
     return NextResponse.json({ ok: true, charged: cost, prob });
   } catch (err) {
     await client.query("ROLLBACK").catch(() => {});

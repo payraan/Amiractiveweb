@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { log } from "@/lib/log";
 import { currentPlayerId } from "@/lib/current-player";
 import { CHALLENGES, getChallengeState, startChallenge } from "@/lib/challenge";
 import { requireLinkedTelegram } from "@/lib/money-guard";
@@ -54,7 +55,12 @@ export async function POST(req: Request) {
       insufficient_credits: 402,
       not_authed: 401,
     };
+    log.info("challenge.rejected", { playerId, tier: body.tierId, reason: result.error });
     return NextResponse.json(result, { status: codes[result.error ?? ""] ?? 500 });
   }
+  // ⚠️ ورودی با MOON، جایزه با حساب واقعی — یعنی این تنها نقطه‌ای است که
+  // MOON به پول واقعی راه دارد. هر ورود باید رد داشته باشد تا اگر کسی با
+  // MOONِ رفرال/هدیه وارد شد، از روی لاگ قابل ردیابی باشد.
+  log.warn("challenge.entered", { playerId, tier: body.tierId });
   return NextResponse.json(result);
 }

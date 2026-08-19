@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { log } from "@/lib/log";
 import { cookies } from "next/headers";
 import { verifyAdmin, ADMIN_COOKIE } from "@/lib/admin";
 import { botReady } from "@/lib/telegram";
@@ -44,10 +45,14 @@ export async function POST(req: Request) {
 
   const sent = await postMarket(marketId, chatId, mode);
   if (!sent.ok) {
+    // انتشار نشدن کارت در کانال، بی‌صدا شکست می‌خورد و ادمین فقط یک خطای
+    // کوتاه می‌بیند. علتِ واقعی (ادمین‌نبودن ربات، کانال اشتباه) اینجاست.
+    log.error("admin.ir_poll_failed", { marketId, chatId, mode, err: sent.error });
     const status =
       sent.error === "not_found" ? 404 : sent.error === "market_not_open" ? 409 : 502;
     return NextResponse.json({ ok: false, error: sent.error }, { status });
   }
 
+  log.info("admin.ir_poll", { marketId, chatId, mode });
   return NextResponse.json({ ok: true });
 }

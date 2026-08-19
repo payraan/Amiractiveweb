@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { log } from "@/lib/log";
 import { db } from "@/lib/db";
 import { currentPlayerId } from "@/lib/current-player";
 import { requireLinkedTelegram } from "@/lib/money-guard";
@@ -96,6 +97,18 @@ export async function POST(req: Request) {
       commission = 0;
     }
 
+    // ⚠️ تنها مسیرِ ورودِ MOON با پشتوانه. `demo` می‌گوید چقدرش با بونوس
+    // خریده شده — یعنی MOONـی که پول واقعی پشتش نیست.
+    log.info("credits.purchased", {
+      playerId,
+      pack: pack.id,
+      spent: pack.priceUsdt,
+      gained: pack.credits,
+      demo: paid.demoPart,
+      credits: upd.rows[0].credits,
+      referralCommission: commission,
+    });
+
     return NextResponse.json({
       ok: true,
       credits: upd.rows[0].credits,
@@ -106,6 +119,9 @@ export async function POST(req: Request) {
   } catch (err) {
     await client.query("ROLLBACK").catch(() => {});
     const msg = err instanceof Error ? err.message : "server_error";
+    if (msg !== "insufficient_funds") {
+      log.error("credits.purchase_failed", { playerId, err: msg });
+    }
     return NextResponse.json(
       { ok: false, error: msg === "insufficient_funds" ? msg : "server_error" },
       { status: msg === "insufficient_funds" ? 402 : 500 }

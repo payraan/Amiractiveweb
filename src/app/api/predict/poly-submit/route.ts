@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { log } from "@/lib/log";
 import { db, touchActivity } from "@/lib/db";
 import { currentPlayerId } from "@/lib/current-player";
 import {
@@ -109,6 +110,9 @@ export async function POST(req: Request) {
 
     await touchActivity(client, playerId);
     await client.query("COMMIT");
+    // `charged=0` یعنی از سهمیه‌ی رایگان روزانه رفته. نسبت این دو، خالص‌ترین
+    // سنجه‌ی «آیا MOON واقعا خرج می‌شود یا همه از سهمیه‌ی مجانی است».
+    log.info("trade.submitted", { playerId, marketId, choice, prob, charged: cost });
     return NextResponse.json({ ok: true, charged: cost });
   } catch (err) {
     await client.query("ROLLBACK").catch(() => {});

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { log } from "@/lib/log";
 import { isTgAdmin } from "@/lib/broadcast";
 import { db, touchActivity } from "@/lib/db";
 import { currentPlayerId } from "@/lib/current-player";
@@ -94,6 +95,7 @@ export async function POST(req: Request) {
     );
     if (pending.rows[0].n >= MAX_PENDING) {
       await client.query("ROLLBACK");
+      log.info("ir.propose_rejected", { playerId, reason: "too_many_pending" });
       return NextResponse.json({ ok: false, error: "too_many_pending" }, { status: 429 });
     }
 
@@ -138,6 +140,13 @@ export async function POST(req: Request) {
 
     // لینک کاور را **سرور** می‌سازد چون نام ربات فقط اینجاست. اگر کلاینت
     // می‌ساختش، نام ربات باید NEXT_PUBLIC می‌شد و یک مقدار در دو جا.
+    log.info("ir.proposed", {
+      playerId,
+      marketId: ins.rows[0].id,
+      fee,
+      category,
+    });
+
     const bot = (process.env.TG_BOT_USERNAME ?? "").replace(/^@/, "");
     return NextResponse.json({
       ok: true,
@@ -145,8 +154,12 @@ export async function POST(req: Request) {
       marketId: ins.rows[0].id,
       coverUrl: bot ? `https://t.me/${bot}?start=cover_${ins.rows[0].id}` : null,
     });
-  } catch {
+  } catch (err) {
     await client.query("ROLLBACK").catch(() => {});
+    log.error("ir.propose_failed", {
+      playerId,
+      err: err instanceof Error ? err.message : "error",
+    });
     return NextResponse.json({ ok: false, error: "server_error" }, { status: 500 });
   } finally {
     client.release();

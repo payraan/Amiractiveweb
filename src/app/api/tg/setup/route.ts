@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { log } from "@/lib/log";
 import { cookies } from "next/headers";
 import { verifyAdmin, ADMIN_COOKIE } from "@/lib/admin";
 import {
@@ -81,8 +82,13 @@ export async function POST() {
 
   const r = await registerWebhook();
   if (!r.ok) {
+    log.error("tg.webhook_register_failed", { url: webhookUrl(), err: r.error });
     return NextResponse.json({ ok: false, error: r.error }, { status: 400 });
   }
+  // ⚠️ ثبت وبهوک، لحظه‌ای است که ربات زنده یا مرده می‌شود. بعد از هر تغییر
+  // SITE_URL باید دوباره زده شود؛ اگر یادش برود، همه‌ی پیام‌ها به آدرس
+  // قدیمی می‌روند و بی‌صدا گم می‌شوند.
+  log.warn("tg.webhook_registered", { url: webhookUrl() });
   // شکست ثبت دستورها نباید ثبت موفق وبهوک را «ناموفق» نشان دهد — وبهوک
   // چیزی است که ربات بدون آن اصلا کار نمی‌کند، فهرست دستورها فقط آرایش است.
   const cmds = await setBotCommands(COMMANDS);

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { log } from "@/lib/log";
 import { payReferralCommission } from "@/lib/referral";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
@@ -110,6 +111,17 @@ export async function POST(req: Request) {
         { creditDemo: amount > 0 ? amount : 0 }
       );
       await client.query("COMMIT");
+      // ⚠️ **هر دست‌کاری دستی موجودی باید رد داشته باشد.** این تنها راهی
+      // است که پول بدون واریز درگاه وارد سیستم می‌شود؛ اگر روزی موجودی
+      // کل با دفترکل درگاه نخواند، اولین جایی که باید نگاه کرد همین است.
+      log.warn("admin.topup", {
+        playerId: pl.id,
+        username,
+        currency: "usdt",
+        amount,
+        newUsdt: after.real,
+        newDemo: after.demo,
+      });
       return NextResponse.json({
         ok: true,
         username,
@@ -119,6 +131,7 @@ export async function POST(req: Request) {
     } catch (err) {
       await client.query("ROLLBACK").catch(() => {});
       const msg = err instanceof Error ? err.message : "server_error";
+      log.error("admin.topup_failed", { username, currency: "usdt", amount, err: msg });
       // moveFunds اگر موجودی منفی شود خطا می‌دهد
       return NextResponse.json(
         { ok: false, error: msg === "insufficient_funds" ? msg : "server_error" },
@@ -164,6 +177,15 @@ export async function POST(req: Request) {
       }
     }
 
+    log.warn("admin.topup", {
+      playerId,
+      username,
+      currency: "moon",
+      amount,
+      newCredits: upd.rows[0].credits,
+      referralCommission: commission,
+    });
+
     return NextResponse.json({
       ok: true,
       username,
@@ -172,8 +194,10 @@ export async function POST(req: Request) {
     });
   } catch (err) {
     await client.query("ROLLBACK").catch(() => {});
+    const msg = err instanceof Error ? err.message : "server_error";
+    log.error("admin.topup_failed", { username, currency: "moon", amount, err: msg });
     return NextResponse.json(
-      { ok: false, error: err instanceof Error ? err.message : "server_error" },
+      { ok: false, error: msg },
       { status: 500 }
     );
   } finally {

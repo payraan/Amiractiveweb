@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { log } from "@/lib/log";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { verifyAdmin, ADMIN_COOKIE } from "@/lib/admin";
@@ -84,6 +85,7 @@ export async function POST(req: Request) {
   // خودِ refundWithdrawal اتمیک است: وضعیت را با همان UPDATE ادعا می‌کند،
   // پس دو کلیک هم‌زمان ادمین هم دوبار پول برنمی‌گرداند.
   const ok = await refundWithdrawal(id, `admin: ${note.slice(0, 120)}`);
+  log.warn("admin.withdraw_refund", { withdrawalId: id, ok, note: note.slice(0, 120) });
   return ok
     ? NextResponse.json({ ok: true })
     : NextResponse.json({ ok: false, error: "not_refundable" }, { status: 409 });

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { log } from "@/lib/log";
 import { db } from "@/lib/db";
 import { hashPassword, verifyPassword, normalizeUsername } from "@/lib/auth";
 import { signSession, SESSION_COOKIE, SESSION_MAX_AGE } from "@/lib/session";
@@ -25,7 +26,19 @@ function setCookie(res: NextResponse, token: string) {
   });
 }
 
+/**
+ * آی‌پی درخواست — فقط برای لاگ.
+ *
+ * ⚠️ مخاطب ما پشت VPN است و ده‌ها نفر از یک آی‌پی خروجی می‌آیند، پس این
+ * **مدرک چندحسابی نیست**؛ فقط یک سرنخ است. سقف نرخ هم عمدا روی هویت
+ * می‌شمارد نه آی‌پی، به همین دلیل.
+ */
+function ipOf(req: Request): string {
+  return req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+}
+
 export async function POST(req: Request) {
+  const ip = ipOf(req);
   let body: Body;
   try {
     body = await req.json();
@@ -59,6 +72,7 @@ export async function POST(req: Request) {
       username,
     ]);
     if (existing.rowCount) {
+      log.info("auth.register_rejected", { username, ip, reason: "username_taken" });
       return NextResponse.json({ ok: false, error: "username_taken" }, { status: 409 });
     }
     const password_hash = await hashPassword(password);
@@ -84,6 +98,19 @@ export async function POST(req: Request) {
       }
     }
 
+    // ⚠️ **کلیدی‌ترین رویداد ضدتقلب.** این مسیر هیچ اثبات هویتی ندارد
+    // (یافته‌ی باز F) — هرکسی با هر یوزرنیمی حساب می‌سازد. تا وقتی بسته
+    // نشده، دست‌کم باید *دیده* شود: چند حساب، از کدام آی‌پی، با کدام کد
+    // دعوت. سه ثبت‌نام پشت‌سرهم با یک `ref` از یک آی‌پی، همان الگوی فارم
+    // رفرال است.
+    log.warn("auth.registered", {
+      playerId: rows[0].id,
+      username,
+      ip,
+      viaRef: body.ref ? true : false,
+      source: "site",
+    });
+
     const res = NextResponse.json({
       ok: true,
       player: { id: rows[0].id, displayName: rows[0].display_name, credits },
@@ -98,6 +125,7 @@ export async function POST(req: Request) {
       [username]
     );
     if (!rows.length) {
+      log.info("auth.login_failed", { username, ip, reason: "not_found" });
       return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
     }
     // حساب تلگرام‌زاد رمز ندارد و هرگز نباید از مسیر رمز وارد شود.
@@ -111,8 +139,17 @@ export async function POST(req: Request) {
     }
     const okPass = await verifyPassword(password, rows[0].password_hash);
     if (!okPass) {
+      // ⚠️ رمز غلطِ پشت‌سرهم روی یک حساب = تلاش برای تصاحب. سقف نرخ این
+      // مسیر آی‌پی‌محور است، پس لاگ تنها راه دیدن الگوی توزیع‌شده است.
+      log.warn("auth.login_failed", {
+        playerId: rows[0].id,
+        username,
+        ip,
+        reason: "bad_password",
+      });
       return NextResponse.json({ ok: false, error: "bad_credentials" }, { status: 401 });
     }
+    log.info("auth.login", { playerId: rows[0].id, username, ip, source: "site" });
     const res = NextResponse.json({
       ok: true,
       player: { id: rows[0].id, displayName: rows[0].display_name, credits: rows[0].credits },

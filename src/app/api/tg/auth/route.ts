@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { log } from "@/lib/log";
 import { db } from "@/lib/db";
 import { findOrCreateTgPlayer } from "@/lib/telegram";
 import { attachReferral } from "@/lib/referral";
@@ -31,6 +32,14 @@ export async function POST(req: Request) {
   const check = verifyTelegramInitData(String(body.initData ?? ""));
   if (!check.ok) {
     const status = check.error === "not_configured" ? 503 : 401;
+    // ⚠️ `bad_hash` یعنی یا کسی امضا جعل کرده، یا توکن ربات عوض شده و
+    // **هیچ‌کس** نمی‌تواند وارد شود. دومی خرابیِ تمام‌عیارِ لانچ است و
+    // بدون لاگ فقط به شکل «اپ باز نمی‌شود» دیده می‌شود.
+    if (check.error === "bad_hash" || check.error === "not_configured") {
+      log.error("tg.auth_rejected", { reason: check.error, fields: check.fields });
+    } else {
+      log.info("tg.auth_rejected", { reason: check.error });
+    }
     // فقط نام فیلدها، بدون هیچ مقداری — تا اگر امضا نخواند بشود فهمید
     // تلگرام واقعا چه فرستاده، بدون اینکه داده‌ی کاربر جایی نشت کند.
     return NextResponse.json(
@@ -42,9 +51,21 @@ export async function POST(req: Request) {
   let player;
   try {
     player = await findOrCreateTgPlayer(check.user);
-  } catch {
+  } catch (err) {
+    log.error("tg.auth_failed", {
+      tgUserId: check.user.id,
+      err: err instanceof Error ? err.message : "error",
+    });
     return NextResponse.json({ ok: false, error: "server_error" }, { status: 500 });
   }
+  log.info("tg.auth", {
+    playerId: player.id,
+    tgUserId: check.user.id,
+    created: player.created,
+    // مقصد deep link: نشان می‌دهد کاربر از کدام کارت/کانال آمده — یعنی
+    // اندازه‌گیری واقعیِ اینکه کدام بازار ترافیک می‌آورد.
+    start: check.startParam ?? undefined,
+  });
 
   // دعوت فقط برای حساب تازه‌ساخته معنا دارد؛ وگرنه هر کاربر قدیمی می‌توانست
   // با باز کردن یک لینک دعوت، خودش را به دعوت‌کننده‌ی تازه بچسباند.

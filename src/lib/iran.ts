@@ -1,4 +1,5 @@
 import type { RevenueKind } from "@/lib/revenue-kinds";
+import { log } from "@/lib/log";
 import { db } from "@/lib/db";
 
 // ═══ بازار ایران — اقتصاد پولی ═══════════════════════════════
@@ -618,6 +619,12 @@ export async function settleIrMarket(
         [marketId]
       );
       await client.query("COMMIT");
+      log.warn("ir.settled", {
+        marketId,
+        result: "void_low_odds",
+        pool: yes + no,
+        bets: bets.rowCount,
+      });
       return { ok: true, voided: true };
     }
 
@@ -654,6 +661,13 @@ export async function settleIrMarket(
         marketId,
         demoAmount: keptDemo,
         note: `استخر ${(yes + no).toFixed(2)}؛ هیچ‌کس روی گزینه‌ی برنده پیش‌بینی نکرد`,
+      });
+      log.warn("ir.settled", {
+        marketId,
+        result: "void_no_winners",
+        pool: yes + no,
+        kept,
+        bets: bets.rowCount,
       });
       await client.query(
         "UPDATE ir_markets SET status='void', void_reason='no_winners' WHERE id=$1",
@@ -711,10 +725,28 @@ export async function settleIrMarket(
       marketId,
     ]);
     await client.query("COMMIT");
+    // ⚠️ برگشت‌ناپذیرترین رویداد پلتفرم: پول واقعی از استخر بیرون رفت.
+    // `commission` از روی همان پرداخت واقعی حساب می‌شود، پس این خط تنها
+    // جایی است که می‌شود درآمد هر بازار را بدون کوئری دیتابیس دید.
+    log.warn("ir.settled", {
+      marketId,
+      result: "paid",
+      outcome,
+      pool: yes + no,
+      paid,
+      commission: yes + no - paid,
+      demoIn,
+      demoOut,
+      bets: bets.rowCount,
+    });
     return { ok: true, paid };
   } catch (err) {
     await client.query("ROLLBACK").catch(() => {});
-    return { ok: false, error: err instanceof Error ? err.message : "error" };
+    const msg = err instanceof Error ? err.message : "error";
+    // ⚠️ شکستِ تسویه یعنی پول کاربران در وضعیت `settling` قفل مانده. این
+    // بدترین حالت ممکن است و باید فورا دیده شود.
+    log.error("ir.settle_failed", { marketId, err: msg });
+    return { ok: false, error: msg };
   } finally {
     client.release();
   }

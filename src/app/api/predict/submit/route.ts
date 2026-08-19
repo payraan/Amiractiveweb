@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { log } from "@/lib/log";
 import { db, touchActivity } from "@/lib/db";
 import { currentPlayerId } from "@/lib/current-player";
 import { getOrCreateRound, isClosed } from "@/lib/rounds";
@@ -125,6 +126,14 @@ export async function POST(req: Request) {
 
     await touchActivity(client, playerId);
     await client.query("COMMIT");
+    log.info("pulse.submitted", {
+      playerId,
+      roundId: round.id,
+      asset,
+      timeframe: tf,
+      charged: cost,
+      credits: remaining,
+    });
     return NextResponse.json({ ok: true, roundId: round.id, charged: cost, credits: remaining });
   } catch (err) {
     await client.query("ROLLBACK").catch(() => {});
