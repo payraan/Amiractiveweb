@@ -1252,12 +1252,33 @@ export async function editScreen(
 export async function setBotCommands(
   commands: { command: string; description: string }[]
 ): Promise<{ ok: boolean; error?: string }> {
-  const r = await tgCall("setMyCommands", {
+  // ⚠️ **هم فهرست فارسی و هم فهرست پیش‌فرض.**
+  //
+  // تلگرام فهرست دستورها را به تفکیک زبانِ کلاینت نگه می‌دارد. تا امروز
+  // فقط `language_code: "fa"` ثبت می‌شد، پس کسی که تلگرامش انگلیسی است —
+  // که بین مخاطب ما کم نیست — فهرست پیش‌فرض را می‌دید که از یک دیپلوی
+  // قدیمی مانده بود و پنج دستور کمتر داشت. دستورها کار می‌کردند ولی هیچ‌جا
+  // دیده نمی‌شدند.
+  //
+  // توضیح‌ها فارسی‌اند و همان‌ها در فهرست پیش‌فرض هم می‌نشینند: مخاطب
+  // فارسی‌زبان است و زبانِ کلاینتش لزوما زبانِ خودش نیست.
+  const fa = await tgCall("setMyCommands", {
     commands,
     scope: { type: "all_private_chats" },
     language_code: "fa",
   });
-  return r.ok ? { ok: true } : { ok: false, error: r.error };
+  const def = await tgCall("setMyCommands", {
+    commands,
+    scope: { type: "all_private_chats" },
+  });
+
+  // شکست هر کدام یعنی بخشی از کاربران فهرست ناقص می‌بینند — پس هر دو باید
+  // موفق باشند تا نتیجه «موفق» گزارش شود.
+  if (fa.ok && def.ok) return { ok: true };
+  // TypeScript اتحاد تفکیک‌شده را فقط با بررسی مستقیم باریک می‌کند.
+  if (!fa.ok) return { ok: false, error: fa.error };
+  if (!def.ok) return { ok: false, error: def.error };
+  return { ok: true };
 }
 
 export async function answerCallback(
