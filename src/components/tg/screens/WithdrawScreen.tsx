@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { BackLink } from "@/components/tg/ui";
 import { api, ApiError } from "@/components/tg/api";
 import { haptic, hasMainButton, showBackButton } from "@/components/tg/telegram";
 import { useMainButton } from "@/components/tg/useMainButton";
@@ -92,6 +93,7 @@ export default function WithdrawScreen({
 
   return (
     <div>
+      <BackLink label={"بازگشت به کیف پول"} onClick={onBack} />
       <h2 className="mb-1 font-display text-lg font-black text-cream">برداشت تتر</h2>
       <p className="mb-4 text-[11px] text-muted">شبکه‌ی {network}</p>
 

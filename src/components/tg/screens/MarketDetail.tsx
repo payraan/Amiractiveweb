@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { BackLink } from "@/components/tg/ui";
 import { api, ApiError } from "@/components/tg/api";
 import { haptic, hasMainButton, openTelegramChat, showBackButton } from "@/components/tg/telegram";
 import { shareText } from "@/components/tg/share";
@@ -228,6 +229,7 @@ export default function MarketDetail({
 
   return (
     <div>
+      <BackLink label={"بازگشت به بازار ایران"} onClick={onBack} />
       <p className="text-[15px] font-bold leading-[2] text-cream">{market.question}</p>
 
       <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px] text-muted">

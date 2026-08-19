@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { BackLink } from "@/components/tg/ui";
 import { api, ApiError } from "@/components/tg/api";
 import { winPoints, losePoints } from "@/lib/poly-scoring";
 import { haptic, hasMainButton, showBackButton } from "@/components/tg/telegram";
@@ -105,6 +106,7 @@ export default function TradeDetail({
 
   return (
     <div>
+      <BackLink label={"بازگشت به ترید"} onClick={onBack} />
       {market.eventTitle && (
         <div className="mb-1.5 text-[10px] text-muted">{market.eventTitle}</div>
       )}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { BackLink } from "@/components/tg/ui";
 import { api, ApiError } from "@/components/tg/api";
 import { haptic, hasMainButton, showBackButton } from "@/components/tg/telegram";
 import { useMainButton } from "@/components/tg/useMainButton";
@@ -145,6 +146,7 @@ export default function PulseDetail({
 
   return (
     <div>
+      <BackLink label={"بازگشت به نبض بازار"} onClick={onBack} />
       <div className="flex items-center gap-3">
         <AssetBadge id={market.asset} />
         <div className="min-w-0">

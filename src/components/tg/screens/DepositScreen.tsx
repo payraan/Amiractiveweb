@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { BackLink } from "@/components/tg/ui";
 import { showBackButton, haptic } from "@/components/tg/telegram";
 
 // واریز تتر — آدرس از همان /api/wallet می‌آید که کیف پول قبلا گرفته.
@@ -39,6 +40,7 @@ export default function DepositScreen({
 
   return (
     <div>
+      <BackLink label={"بازگشت به کیف پول"} onClick={onBack} />
       <h2 className="mb-1 font-display text-lg font-black text-cream">واریز تتر</h2>
       <p className="mb-4 text-[11px] text-muted">
         شبکه‌ی {network}؛ پس از تأیید شبکه، موجودی خودکار شارژ می‌شود

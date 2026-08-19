@@ -1,6 +1,7 @@
 "use client";
 
 import { LINKS } from "@/config/site";
+import { BackLink } from "@/components/tg/ui";
 import { useCallback, useEffect, useState } from "react";
 import { api, ApiError } from "@/components/tg/api";
 import { IR_CATEGORIES } from "@/lib/ir-categories";
@@ -107,6 +108,7 @@ export default function ProposeScreen({
 
   return (
     <div>
+      <BackLink label={"بازگشت به بازار ایران"} onClick={onBack} />
       <h2 className="mb-1 font-display text-lg font-black text-cream">ساخت بازار</h2>
       <p className="mb-4 text-[11px] text-muted">
         پس از بررسی انسانی منتشر می‌شود

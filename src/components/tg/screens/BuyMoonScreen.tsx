@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { BackLink } from "@/components/tg/ui";
 import { api, ApiError } from "@/components/tg/api";
 import { CREDIT_PACKS } from "@/lib/game";
 import { haptic, showBackButton } from "@/components/tg/telegram";
@@ -66,6 +67,7 @@ export default function BuyMoonScreen({
 
   return (
     <div>
+      <BackLink label={"بازگشت به کیف پول"} onClick={onBack} />
       <h2 className="mb-1 font-display text-lg font-black text-cream">خرید MOON</h2>
       <p className="mb-4 text-[11px] text-muted">
         از موجودی تتر؛ موجودی فعلی{" "}

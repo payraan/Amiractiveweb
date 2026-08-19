@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useResource } from "@/components/tg/useResource";
-import { EmptyState, ErrorState, ScreenTitle, Skeleton, Stat } from "@/components/tg/ui";
+import {
+  BackLink, EmptyState, ErrorState, ScreenTitle, Skeleton, Stat } from "@/components/tg/ui";
 import { haptic, showBackButton } from "@/components/tg/telegram";
 
 // ── کارنامه‌ی پیش‌بینی‌های بازار ایران، نسخه‌ی مینی‌اپ ─────────
@@ -83,6 +84,7 @@ export default function MyBetsScreen({
 
   return (
     <div>
+      <BackLink label={"بازگشت به بازار ایران"} onClick={onBack} />
       <ScreenTitle
         title="پیش‌بینی‌های من"
         subtitle="هرچه گذاشته‌ای و هرچه گرفته‌ای، دقیق"

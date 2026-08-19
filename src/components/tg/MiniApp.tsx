@@ -12,7 +12,7 @@ import ChallengeScreen from "@/components/tg/screens/ChallengeScreen";
 import WalletScreen from "@/components/tg/screens/WalletScreen";
 import ProfileScreen from "@/components/tg/screens/ProfileScreen";
 import ReferralScreen from "@/components/tg/screens/ReferralScreen";
-import { Skeleton } from "@/components/tg/ui";
+import { BackLink, Skeleton } from "@/components/tg/ui";
 import { TermsGate, TourGate } from "@/components/tg/screens/Gate";
 import Logo from "@/components/Logo";
 
@@ -310,12 +310,10 @@ export default function MiniApp({
               {tab === "profile" &&
                 (showReferral ? (
                   <div>
-                    <button
+                    <BackLink
+                      label="بازگشت به پروفایل"
                       onClick={() => setShowReferral(false)}
-                      className="mb-3 text-[11px] text-muted transition active:text-cream"
-                    >
-                      ‹ بازگشت به پروفایل
-                    </button>
+                    />
                     <ReferralScreen botUsername={botUsername} />
                   </div>
                 ) : (
