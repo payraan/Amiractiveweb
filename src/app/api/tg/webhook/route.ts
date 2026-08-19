@@ -6,6 +6,7 @@ import {
   grantGroupBonus,
   clearTelegramBlocked,
   sendTelegram,
+  notifyPlayer,
   sendScreen,
   editScreen,
   editTelegram,
@@ -24,6 +25,8 @@ import {
   helpTopicScreen,
   profileScreen,
   inviteScreen,
+  channelsScreen,
+  channelAskScreen,
   appUrl,
   backRow,
   keyboardCommand,
@@ -45,6 +48,7 @@ import { db } from "@/lib/db";
 import { LINKS } from "@/config/site";
 import { log } from "@/lib/log";
 import { approveMarket, rejectMarket, lockMarket } from "@/lib/ir-moderation";
+import { notifyAdminsNewChannel } from "@/lib/ir-review-notify";
 import {
   isTgAdmin,
   createJob,
@@ -63,7 +67,10 @@ import {
   claimConfirmedFlow,
   setCoverFlow,
   claimCoverFlow,
+  setChannelFlow,
+  claimChannelFlow,
 } from "@/lib/bot-flow";
+import { registerChannel, reviewChannel } from "@/lib/ir-channels";
 import { requestWithdrawal } from "@/lib/withdrawal";
 import { requireLinkedTelegram } from "@/lib/money-guard";
 import { MIN_WITHDRAW } from "@/lib/wallet-rules";
@@ -233,6 +240,35 @@ async function handleReviewButton(
   // ⚠️ «بستن» پیش از تأیید/رد سنجیده می‌شود چون معنایش کاملا فرق دارد:
   // آن دو روی بازارِ **در انتظار** کار می‌کنند، این یکی روی بازارِ **باز**.
   // یک هندلر مشترک برای هر سه، دیر یا زود شرط‌ها را قاطی می‌کرد.
+  const ch = /^ch:(ok|no):(\d+)$/.exec(data);
+  if (ch) {
+    const id = Number(ch[2]);
+    const approve = ch[1] === "ok";
+    await answerCallback(cbId, approve ? "در حال تأیید…" : "در حال رد کردن…");
+    const r = await reviewChannel(id, approve);
+    await editTelegram(
+      chatId,
+      messageId,
+      r.ok
+        ? approve
+          ? `✅ <b>${escapeHtml(r.title || "کانال")} تأیید شد.</b>\n\nساخت بازار برای این حساب رایگان شد.`
+          : `❌ <b>${escapeHtml(r.title || "کانال")} رد شد.</b>`
+        : `⚠️ این کانال دیگر در انتظار نیست — احتمالا قبلا تعیین تکلیف شده.`
+    );
+    // نتیجه باید به خودِ ادمین کانال هم برسد، وگرنه منتظر می‌ماند و
+    // نمی‌داند رد شده یا هنوز در صف است.
+    if (r.ok) {
+      await notifyPlayer(
+        r.ownerId,
+        approve
+          ? `✅ کانال <b>${escapeHtml(r.title || "")}</b> تأیید شد.\n\n` +
+              `از این پس ساخت بازار برایت <b>رایگان</b> است.`
+          : `❌ ثبت کانال <b>${escapeHtml(r.title || "")}</b> تأیید نشد.`
+      );
+    }
+    return;
+  }
+
   const lk = /^ir:lk:(\d+)$/.exec(data);
   if (lk) {
     const id = Number(lk[1]);
@@ -403,6 +439,9 @@ async function handleMessage(
     // عکس، پیش از ورودی برداشت سنجیده می‌شود: کاربری که منتظر کاور است
     // عدد نمی‌فرستد، عکس می‌فرستد.
     if (photo?.length && (await handleCoverPhoto(tg, chatId, photo, p))) return;
+    // آدرس کانال، پیش از ورودی برداشت: کسی که منتظر ثبت کانال است عدد
+    // نمی‌فرستد، یک @username می‌فرستد.
+    if (text.trim() && (await handleChannelInput(tg, chatId, text, p))) return;
     // عکسی که کاور نبود، ورودی برداشت هم نیست. بدون این، کاربری که یک عکس
     // بی‌ربط می‌فرستد «مبلغ نامعتبر» می‌گیرد.
     if (!text.trim()) return;
@@ -490,6 +529,48 @@ async function handleMessage(
 /** دستوری که حساب لازم دارد، ولی کاربر هنوز وصل نیست. */
 async function needAccount(chatId: number) {
   await sendScreen(chatId, guestScreen());
+}
+
+/**
+ * پیام متنی وقتی کاربر منتظرِ فرستادن آدرس کانال است.
+ *
+ * `true` یعنی این پیام مصرف شد و نباید به‌عنوان ورودی برداشت هم خوانده
+ * شود.
+ */
+async function handleChannelInput(
+  tg: TgUser,
+  chatId: number,
+  text: string,
+  player: Player
+): Promise<boolean> {
+  if (!(await claimChannelFlow(tg.id))) return false;
+
+  const r = await registerChannel(player.id, tg.id, text);
+  if (r.ok) {
+    await sendTelegram(
+      chatId,
+      `✅ <b>${escapeHtml(r.title || "کانال")}</b> ثبت شد.\n\n` +
+        `👥 ${r.members} عضو\n\n` +
+        `پس از بررسی ما، ساخت بازار برایت رایگان می‌شود. نتیجه را همین‌جا ` +
+        `اطلاع می‌دهیم.`
+    );
+    await notifyAdminsNewChannel(r.id);
+    return true;
+  }
+
+  // هر علت پیام خودش را دارد — «خطا» به کاربر نمی‌گوید چه کار کند.
+  const why: Record<string, string> = {
+    bad_input: "این آدرس درست نیست. چیزی مثل <code>@MyChannel</code> بفرست.",
+    not_found: "چنین کانالی پیدا نشد. آدرس را دوباره بررسی کن.",
+    not_a_channel: "این یک کانال یا گروه نیست.",
+    not_owner: "تو در این کانال ادمین نیستی. فقط سازنده یا ادمین می‌تواند ثبتش کند.",
+    bot_not_member:
+      `ربات هنوز در آن کانال ادمین نیست. اول اضافه‌اش کن، بعد دوباره امتحان کن.`,
+    already_registered: "این کانال قبلا ثبت شده است.",
+    server_error: "خطای سرور. کمی بعد دوباره امتحان کن.",
+  };
+  await sendTelegram(chatId, `⚠️ ${why[r.error] ?? "ثبت انجام نشد."}`);
+  return true;
 }
 
 /**
@@ -822,6 +903,15 @@ async function handleMenu(
     await editScreen(chatId, messageId, await inviteScreen(player.id));
     return;
   }
+  if (action === MENU.channels) {
+    await editScreen(chatId, messageId, await channelsScreen(player.id));
+    return;
+  }
+  if (action === MENU.channelAdd) {
+    await setChannelFlow(tg.id);
+    await editScreen(chatId, messageId, channelAskScreen());
+    return;
+  }
   if (action === MENU.wallet) {
     await editScreen(chatId, messageId, await walletHomeScreen(player.id));
     return;
@@ -954,7 +1044,7 @@ export async function POST(req: Request) {
     if (cb?.data) {
       // بازبینی بازار — فقط ادمین‌ها. پیش از هر مسیر دیگری، چون این
       // دکمه‌ها فقط در چت خصوصیِ ادمین می‌نشینند.
-      if (cb.data.startsWith("ir:") && cb.message) {
+      if ((cb.data.startsWith("ir:") || cb.data.startsWith("ch:")) && cb.message) {
         await handleReviewButton(
           cb.id,
           cb.from,

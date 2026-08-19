@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { sendTelegram, escapeHtml, type InlineButton } from "@/lib/telegram";
 import { broadcastAdmins } from "@/lib/broadcast";
 import { IR_CATEGORIES } from "@/lib/ir-categories";
+import { CH_REVIEW, listPendingChannels } from "@/lib/ir-channels";
 
 // ── اعلان بازار تازه به ادمین ────────────────────────────────
 //
@@ -90,6 +91,48 @@ export async function notifyAdminsNewMarket(marketId: number): Promise<void> {
       await sendTelegram(admin, text, buttons);
     } catch {
       /* اعلان از دست رفت — بازار همچنان در پنل ادمین هست */
+    }
+  }
+}
+
+
+/**
+ * خبر دادن کانالِ تازه‌ی ثبت‌شده به ادمین‌ها.
+ *
+ * ⚠️ اعداد پیش از تأیید نشان داده می‌شوند — تعداد اعضا و نقش ثبت‌کننده —
+ * چون تصمیم «معافیت بدهم یا نه» بدون آن‌ها معنا ندارد. کانال ۲۰ نفره و
+ * کانال ۲۰ هزار نفره یک چیز نیستند.
+ */
+export async function notifyAdminsNewChannel(channelId: number): Promise<void> {
+  const admins = broadcastAdmins();
+  if (!admins.length) return;
+
+  const pending = await listPendingChannels();
+  const c = pending.find((x) => x.id === channelId);
+  if (!c) return;
+
+  const text =
+    `📣 <b>کانال تازه در انتظار تأیید</b>\n\n` +
+    `<b>${escapeHtml(c.title || "—")}</b>\n` +
+    (c.username ? `<code>@${escapeHtml(c.username)}</code>\n` : "") +
+    `👥 اعضا: <b>${c.members.toLocaleString("fa-IR")}</b>\n` +
+    `👤 ثبت‌کننده: ${escapeHtml(c.ownerName ?? "—")}\n\n` +
+    `<i>تأیید یعنی ساخت بازار برای این حساب رایگان می‌شود. مالکیت و ` +
+    `ادمین‌بودنش از تلگرام تأیید شده — این تصمیم فقط درباره‌ی ارزش کانال ` +
+    `است.</i>`;
+
+  const buttons: InlineButton[][] = [
+    [
+      { text: "✅ تأیید و معافیت", callback_data: CH_REVIEW.approve(channelId), style: "success" },
+      { text: "❌ رد", callback_data: CH_REVIEW.reject(channelId), style: "danger" },
+    ],
+  ];
+
+  for (const admin of admins) {
+    try {
+      await sendTelegram(admin, text, buttons);
+    } catch {
+      /* اعلان از دست رفت — کانال همچنان در پنل ادمین هست */
     }
   }
 }

@@ -23,6 +23,7 @@ import {
   REFERRAL_BONUS,
   getReferralStats,
 } from "@/lib/referral";
+import { listPlayerChannels } from "@/lib/ir-channels";
 import {
   CHALLENGES,
   CONSISTENCY_PCT,
@@ -75,6 +76,10 @@ export const MENU = {
   bonus: "m:bonus",
   /** پنل دعوت — کد، لینک، و آمار پورسانت. */
   invite: "m:invite",
+  /** کانال‌های ثبت‌شده‌ی سازنده و معافیت کارمزد. */
+  channels: "m:channels",
+  /** شروع گفت‌وگوی ثبت کانال تازه. */
+  channelAdd: "m:chadd",
 } as const;
 
 const money = (n: number) =>
@@ -140,6 +145,7 @@ export function mainKeyboard(): InlineButton[][] {
 
   rows.push([
     { text: "🎁 دعوت دوستان", callback_data: MENU.invite, style: "success" },
+    { text: "📣 کانال من", callback_data: MENU.channels },
   ]);
   rows.push([
     { text: "❓ راهنما", callback_data: MENU.help },
@@ -626,6 +632,79 @@ export async function inviteScreen(playerId: number): Promise<Screen> {
   return { media: media("profile.jpg"), text, buttons };
 }
 
+/**
+ * کانال‌های سازنده و وضعیت معافیت کارمزد.
+ *
+ * ⚠️ متن عمدا **مزیت** را جلو می‌اندازد و نه فرایند را: ادمینی که این صفحه
+ * را باز می‌کند باید در سه ثانیه بفهمد چه چیزی گیرش می‌آید. توضیح اینکه
+ * ربات باید ادمین شود، بعد از آن می‌آید.
+ */
+export async function channelsScreen(playerId: number): Promise<Screen> {
+  const list = await listPlayerChannels(playerId);
+  const approved = list.filter((c) => c.status === "approved");
+
+  const label: Record<string, string> = {
+    pending: "⏳ در انتظار بررسی",
+    approved: "✅ تأیید شده",
+    rejected: "❌ رد شده",
+  };
+
+  let text =
+    `📣 <b>کانال من</b>\n\n` +
+    `کانال یا گروهت را ثبت کن. بعد از تأیید، ساخت بازار برایت ` +
+    `<b>رایگان</b> می‌شود — به‌جای ${money(PROPOSE_FEE_USDT)} تتر برای هر بازار.\n\n`;
+
+  if (!list.length) {
+    // ⚠️ حالت خالی اجباری است: فهرستی که فقط با داده رندر شود، برای کاربر
+    // تازه یعنی «این قابلیت وجود ندارد».
+    text +=
+      `هنوز کانالی ثبت نکرده‌ای.\n\n` +
+      `<b>سه قدم</b>\n` +
+      `۱. ربات <code>@${escapeHtml(BOT_USERNAME.replace(/^@/, ""))}</code> را در ` +
+      `کانالت ادمین کن.\n` +
+      `۲. دکمه‌ی پایین را بزن و آدرس کانالت را بفرست.\n` +
+      `۳. بعد از تأیید ما، بازارهایت رایگان ساخته می‌شوند.`;
+  } else {
+    text += list
+      .map(
+        (c) =>
+          `${label[c.status] ?? c.status} <b>${escapeHtml(c.title || "—")}</b>` +
+          (c.username ? `\n<code>@${escapeHtml(c.username)}</code>` : "") +
+          `\n👥 ${num(c.members)} عضو` +
+          (c.reviewNote ? `\n<i>${escapeHtml(c.reviewNote)}</i>` : "")
+      )
+      .join("\n\n");
+    text += approved.length
+      ? `\n\n✅ <b>ساخت بازار برای تو رایگان است.</b>`
+      : `\n\nتا تأیید، کارمزد ساخت بازار ${money(PROPOSE_FEE_USDT)} تتر است.`;
+  }
+
+  return {
+    media: media("profile.jpg"),
+    text,
+    buttons: [
+      [{ text: "➕ ثبت کانال تازه", callback_data: MENU.channelAdd, style: "primary" }],
+      backRow(),
+    ],
+  };
+}
+
+/** راهنمای گام‌به‌گام وقتی کاربر دکمه‌ی ثبت را زد. */
+export function channelAskScreen(): Screen {
+  return {
+    media: null,
+    text:
+      `📣 <b>ثبت کانال</b>\n\n` +
+      `آدرس کانال یا گروهت را بفرست — مثلا <code>@MyChannel</code>.\n\n` +
+      `<b>پیش از فرستادن مطمئن شو:</b>\n` +
+      `• ربات <code>@${escapeHtml(BOT_USERNAME.replace(/^@/, ""))}</code> آنجا ` +
+      `<b>ادمین</b> است.\n` +
+      `• خودت آنجا سازنده یا ادمین هستی.\n\n` +
+      `<i>اگر منصرف شدی، هر دستوری بفرست تا لغو شود.</i>`,
+    buttons: [backRow()],
+  };
+}
+
 export async function profileScreen(playerId: number): Promise<Screen> {
   const p = await loadProfile(playerId);
   if (!p) {
@@ -675,6 +754,7 @@ export async function profileScreen(playerId: number): Promise<Screen> {
     { text: "🎁 دعوت دوستان", callback_data: MENU.invite },
     { text: "👛 کیف پول", callback_data: MENU.wallet },
   ]);
+  buttons.push([{ text: "📣 کانال من", callback_data: MENU.channels }]);
   buttons.push(backRow());
   return { media: media("profile.jpg"), text, buttons };
 }

@@ -144,6 +144,46 @@ export async function clearFlow(tgUserId: number): Promise<void> {
 // ⚠️ توابع برداشت عمدا `flow='withdraw'` را در شرط دارند، پس این دو هرگز
 // داده‌ی هم را نمی‌بینند.
 
+// ── گفت‌وگوی ثبت کانال ────────────────────────────────────────
+//
+// روی همان جدول با `flow='channel'`. چون کلید اصلی `tg_user_id` است،
+// کاربر هم‌زمان نمی‌تواند وسط برداشت و وسط ثبت کانال باشد — که همان چیزی
+// است که می‌خواهیم: `@username`ای که وسط برداشت فرستاده می‌شود نباید
+// به‌عنوان کانال خوانده شود.
+
+/** آغاز انتظار برای آدرس کانال. */
+export async function setChannelFlow(tgUserId: number): Promise<void> {
+  await ensureFlowTable();
+  const pool = await db();
+  await pool.query(
+    `INSERT INTO tg_flows (tg_user_id, flow, step, amount, address, message_id, updated_at)
+     VALUES ($1,'channel','ask',NULL,NULL,NULL, now())
+     ON CONFLICT (tg_user_id) DO UPDATE
+        SET flow='channel', step='ask', amount=NULL, address=NULL,
+            message_id=NULL, updated_at=now()`,
+    [tgUserId]
+  );
+}
+
+/**
+ * برداشتنِ انتظارِ ثبت کانال — یک‌بار و فقط یک‌بار.
+ *
+ * همان الگوی `claimConfirmedFlow`: خواندن و حذف در یک دستور، تا دو پیام
+ * پشت‌سرهم دو ثبت نسازند.
+ */
+export async function claimChannelFlow(tgUserId: number): Promise<boolean> {
+  await ensureFlowTable();
+  const pool = await db();
+  const r = await pool.query(
+    `DELETE FROM tg_flows
+      WHERE tg_user_id=$1 AND flow='channel' AND step='ask'
+        AND updated_at > now() - ($2 || ' minutes')::interval
+      RETURNING tg_user_id`,
+    [tgUserId, String(FLOW_TTL_MIN)]
+  );
+  return Boolean(r.rowCount);
+}
+
 /** آغاز انتظار برای عکس کاور یک بازار. */
 export async function setCoverFlow(
   tgUserId: number,

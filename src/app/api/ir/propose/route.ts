@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { log } from "@/lib/log";
 import { isTgAdmin } from "@/lib/broadcast";
+import { hasApprovedChannel } from "@/lib/ir-channels";
 import { db, touchActivity } from "@/lib/db";
 import { currentPlayerId } from "@/lib/current-player";
 import {
@@ -86,8 +87,14 @@ export async function POST(req: Request) {
     // ادمین پلتفرم رایگان بازار می‌سازد. کارمزد یک ابزار ضد اسپم برای
     // کاربر است؛ گرفتنش از خودِ گرداننده فقط پول را از یک جیب به جیب دیگر
     // می‌برد و دفترکل درآمد را با درآمد ساختگی آلوده می‌کند.
+    // ⚠️ و ادمینِ کانالِ تأییدشده هم معاف است. کارمزد یک ابزار ضد اسپم
+    // برای کاربر معمولی است، ولی برای کسی که روزی چند بازار می‌سازد و
+    // برای کانال چند‌هزارنفره‌اش منتشرشان می‌کند، مالیات بر تولید محتواست
+    // — دقیقا روی کسی که بیشترین ارزش را می‌آورد.
     const tgId = Number(pl.rows[0].tg_user_id ?? 0);
-    const fee = tgId && isTgAdmin(tgId) ? 0 : PROPOSE_FEE_USDT;
+    const exempt =
+      (tgId && isTgAdmin(tgId)) || (await hasApprovedChannel(playerId));
+    const fee = exempt ? 0 : PROPOSE_FEE_USDT;
 
     const pending = await client.query(
       "SELECT count(*)::int AS n FROM ir_markets WHERE creator_id=$1 AND status='pending'",
