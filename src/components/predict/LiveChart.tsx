@@ -45,6 +45,10 @@ export default function LiveChart({
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const overlayRef = useRef<ChartOverlay | null>(null);
+  /** آخرین داده‌ی ریخته‌شده — برای تشخیص «فقط کندل آخر عوض شده». */
+  const dataRef = useRef<CandlestickData[]>([]);
+  /** وسط کشیدن خط، نمودار نباید زیر انگشت کاربر تازه شود. */
+  const draggingRef = useRef(false);
   const [loading, setLoading] = useState(true);
   const [empty, setEmpty] = useState(false);
   /** جای عمودی دستگیره، برای ناحیه‌ی لمس. */
@@ -158,16 +162,48 @@ export default function LiveChart({
           low: c.low,
           close: c.close,
         }));
-        seriesRef.current.setData(data);
-        chartRef.current?.timeScale().fitContent();
+        // ── چرا `update` و نه همیشه `setData` ────────────────
+        //
+        // ⚠️ نسخه‌ی قبلی هر ۱۵ ثانیه **کل** سری را دوباره می‌ریخت و
+        // `fitContent()` می‌زد. دو پیامد داشت که کاربر آن‌ها را به‌شکل
+        // «نمودار می‌پرد» می‌دید:
+        //   ۱. زوم و جابه‌جایی کاربر هر ربع‌دقیقه ریست می‌شد.
+        //   ۲. مقیاس قیمت از نو حساب می‌شد و کل نمودار — و خط پیش‌بینی
+        //      روی آن — یک تکان می‌خورد.
+        //
+        // حالا اگر همان سری است و فقط جلو رفته، تنها کندل‌های تازه
+        // به‌روز می‌شوند و مقیاس دست‌نخورده می‌ماند. `fitContent` فقط
+        // یک بار، در اولین بار ریختن داده.
+        const prev = dataRef.current;
+        const continues =
+          prev.length > 0 &&
+          data.length >= prev.length &&
+          prev[0].time === data[0].time;
+
+        if (continues) {
+          const lastKnown = prev[prev.length - 1].time;
+          for (const c of data) {
+            if (c.time >= lastKnown) seriesRef.current.update(c);
+          }
+        } else {
+          seriesRef.current.setData(data);
+          chartRef.current?.timeScale().fitContent();
+        }
+        dataRef.current = data;
         setEmpty(false);
         setLoading(false);
       } catch {
         if (alive) setLoading(false);
       }
     };
+    // دارایی یا بازه که عوض شود، سری از نو ریخته می‌شود.
+    dataRef.current = [];
     load();
-    const id = setInterval(load, 15_000); // live-ish refresh
+    // ⚠️ تازه‌سازی وسط کشیدن رد می‌شود — تکان‌خوردن نمودار زیر انگشت،
+    // بدترین حالت ممکن برای یک کنترل کشیدنی است.
+    const id = setInterval(() => {
+      if (!draggingRef.current) load();
+    }, 15_000);
     return () => {
       alive = false;
       clearInterval(id);
@@ -183,6 +219,7 @@ export default function LiveChart({
     if (!onGuessChange || !boxRef.current) return;
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
+    draggingRef.current = true;
     const box = boxRef.current;
     const move = (ev: PointerEvent) => {
       const y = ev.clientY - box.getBoundingClientRect().top;
@@ -190,6 +227,7 @@ export default function LiveChart({
       if (p != null && Number.isFinite(p) && p > 0) onGuessChange(p);
     };
     const up = () => {
+      draggingRef.current = false;
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
       window.removeEventListener("pointercancel", up);
