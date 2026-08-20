@@ -292,7 +292,10 @@ function GrowthChart({ data }: { data: Growth[] }) {
           />
         )}
       </svg>
-      <div className="mt-1 flex justify-between text-[9px] text-muted">
+      {/* ⚠️ dir="ltr" عمدی — همان اصلاحی که در Analytics شد: محور SVG
+          چپ‌به‌راست است ولی این ردیف در RTL برعکس می‌چید، پس برچسبِ کنارِ
+          ابتدای خط، انتهای بازه را نشان می‌داد. */}
+      <div dir="ltr" className="mt-1 flex justify-between text-[9px] text-muted">
         <span>{faDay(data[0].day)}</span>
         <span className="text-gain">خط سبز: مجموع کاربران — {cum[cum.length - 1]}</span>
         <span>{faDay(data[data.length - 1].day)}</span>

@@ -5,6 +5,7 @@ import IrMarkets from "@/components/admin/IrMarkets";
 import TradePoll from "@/components/admin/TradePoll";
 import Withdrawals from "@/components/admin/Withdrawals";
 import UsersTable from "@/components/admin/UsersTable";
+import Analytics from "@/components/admin/Analytics";
 import RevenueLedger from "@/components/admin/RevenueLedger";
 import BotStatus from "@/components/admin/BotStatus";
 import Translations from "@/components/admin/Translations";
@@ -81,10 +82,11 @@ export default function AdminPanel() {
 /** پوسته‌ی تب‌دار — بخش‌های موجود حفظ شده‌اند و دو بخش تازه اضافه شده. */
 function AdminShell() {
   const [tab, setTab] = useState<
-    "home" | "ir" | "trade" | "wd" | "revenue" | "users" | "bot" | "tr"
+    "home" | "analytics" | "ir" | "trade" | "wd" | "revenue" | "users" | "bot" | "tr"
   >("home");
   const TABS = [
     { id: "home" as const, label: "شارژ و آمار" },
+    { id: "analytics" as const, label: "📊 تحلیل رفتار" },
     { id: "ir" as const, label: "بازار ایران" },
     { id: "trade" as const, label: "کارت ترید" },
     { id: "wd" as const, label: "برداشت‌ها" },
@@ -118,6 +120,7 @@ function AdminShell() {
       </div>
 
       {tab === "home" && <AdminHome />}
+      {tab === "analytics" && <Analytics />}
       {tab === "ir" && <IrMarkets />}
       {tab === "trade" && <TradePoll />}
       {tab === "wd" && <Withdrawals />}
