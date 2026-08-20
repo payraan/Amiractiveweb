@@ -64,14 +64,21 @@ export async function GET(req: Request) {
   );
 
   const growth = await pool.query(
-    `SELECT (created_at AT TIME ZONE 'Asia/Tehran')::date AS day, count(*)::int AS n
+    // ⚠️ `to_char` عمدی است، نه `::date`. درایور pg ستون DATE را به یک
+    // شیء Date جاوااسکریپت تبدیل می‌کند و `String(...)` روی آن، فرم خوانای
+    // انسانی می‌دهد نه ISO — «Fri Jul 31 2026 …» — که `slice(0,10)` آن
+    // می‌شود «Fri Jul 31» و در کامپوننت `Invalid Date` می‌شد.
+    // `toISOString()` هم چاره نبود: سرور روی وقت ترکیه است و روز را جابه‌جا
+    // می‌کند. رشته‌ی آماده از خود پستگرس، هر دو مشکل را ندارد.
+    `SELECT to_char((created_at AT TIME ZONE 'Asia/Tehran')::date, 'YYYY-MM-DD') AS day,
+            count(*)::int AS n
        FROM players GROUP BY day ORDER BY day ASC LIMIT 120`
   );
 
   return NextResponse.json({
     ok: true,
     totals: totals.rows[0],
-    growth: growth.rows.map((r) => ({ day: String(r.day).slice(0, 10), n: Number(r.n) })),
+    growth: growth.rows.map((r) => ({ day: String(r.day), n: Number(r.n) })),
     users: rows.map((r) => ({
       id: r.id,
       // حساب تلگرام‌زاد یوزرنیم ورود ندارد؛ هندل زنده‌اش را نشان می‌دهیم

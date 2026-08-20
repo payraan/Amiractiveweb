@@ -113,7 +113,9 @@ export async function GET(req: Request) {
       ),
       // سری زمانی روزانه برای نمودار
       pool.query(
-        `SELECT (r.created_at AT TIME ZONE 'Asia/Tehran')::date AS day,
+        // ⚠️ `to_char` و نه `::date` — همان دلیل روت کاربران: pg ستون DATE را
+        // Date می‌کند و `String(...)` فرم خوانا می‌دهد نه ISO.
+        `SELECT to_char((r.created_at AT TIME ZONE 'Asia/Tehran')::date, 'YYYY-MM-DD') AS day,
                 COALESCE(SUM(${amt}),0)::float AS total
            FROM platform_revenue r ${where}
           GROUP BY day ORDER BY day ASC LIMIT 90`
@@ -130,7 +132,7 @@ export async function GET(req: Request) {
     liabilities: liabilities.rows[0],
     split: split.rows[0],
     daily: daily.rows.map((r) => ({
-      day: String(r.day).slice(0, 10),
+      day: String(r.day),
       total: Number(r.total),
     })),
     config: { commission: COMMISSION, proposeFee: PROPOSE_FEE_USDT },
