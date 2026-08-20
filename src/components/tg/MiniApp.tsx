@@ -304,6 +304,7 @@ export default function MiniApp({
               {tab === "trade" && (
                 <TradeScreen
                   key={`trade-${homeNonce}`}
+                  botUsername={botUsername}
                   deepLink={
                     homeNonce === 0 && deepLink?.tab === "trade" ? deepLink : null
                   }

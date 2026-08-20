@@ -6,6 +6,7 @@ import { ErrorState, EmptyState, ScreenTitle, Skeleton, SearchBar } from "@/comp
 import { matchesQuery, displayTitle } from "@/lib/search";
 import { haptic } from "@/components/tg/telegram";
 import TradeDetail, { type PolyMarket } from "@/components/tg/screens/TradeDetail";
+import ResultCard from "@/components/tg/screens/ResultCard";
 import { remaining, closingSoon } from "@/lib/dates";
 
 // ترید — بازارهای رویداد پالی‌مارکت، از همان روت‌های سایت.
@@ -48,8 +49,10 @@ const SEARCH_MIN = 8;
 
 export default function TradeScreen({
   deepLink,
+  botUsername,
 }: {
   deepLink?: { marketId: string; side: "yes" | "no" | null } | null;
+  botUsername: string;
 }) {
   const [cat, setCat] = useState("all");
   // مثل بازار ایران: پیش‌فرض «نزدیک به پایان» است تا فهرست، ترتیبِ نوار
@@ -76,6 +79,38 @@ export default function TradeScreen({
   const totalPoints = settledPreds.reduce((sum, p) => sum + (p.points ?? 0), 0);
 
   const open = list?.find((m) => m.id === openId) ?? null;
+
+  // ⚠️ بازارِ تسویه‌شده در `list` نیست — آن روت فقط بازارهای باز را می‌دهد.
+  // پیش از این، لینک عمیقِ اعلانِ نتیجه اینجا به بن‌بست می‌خورد و کاربر
+  // بی‌صدا در فهرست کلی رها می‌شد، دقیقا در لحظه‌ای که بیشترین انگیزه را
+  // دارد. حالا رسید همان پیش‌بینی باز می‌شود.
+  //
+  // هر دو منبع باید بارگذاری شده باشند، وگرنه یک لحظه فهرست دیده می‌شود و
+  // بعد رسید می‌پرد بالا.
+  const settled =
+    !open && openId && list !== null && me.data !== null
+      ? (mine.find((p) => p.marketId === openId && p.points !== null) ?? null)
+      : null;
+
+  if (settled) {
+    return (
+      <ResultCard
+        botUsername={botUsername}
+        result={{
+          kind: "trade",
+          question: settled.questionFa || settled.question,
+          side: settled.choice === "yes" ? "yes" : "no",
+          // همان قاعده‌ی کارنامه‌ی همین صفحه: امتیاز نامنفی یعنی درست بوده.
+          won: (settled.points ?? 0) >= 0,
+          points: settled.points ?? 0,
+          probPct: settled.probPct,
+        }}
+        onBack={() => setOpenId(null)}
+        onNext={() => setOpenId(null)}
+      />
+    );
+  }
+
   if (open) {
     return (
       <TradeDetail

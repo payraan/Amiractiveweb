@@ -9,9 +9,21 @@ import { haptic } from "@/components/tg/telegram";
 import ProposeScreen from "@/components/tg/screens/ProposeScreen";
 import MyBetsScreen from "@/components/tg/screens/MyBetsScreen";
 import MarketDetail, { isBoosted, type Market } from "@/components/tg/screens/MarketDetail";
+import ResultCard from "@/components/tg/screens/ResultCard";
 import { remaining, closingSoon } from "@/lib/dates";
 
 // فهرست بازارهای ایران — از همان /api/ir/markets که سایت استفاده می‌کند.
+
+// فقط فیلدهایی که رسید لازم دارد؛ شکل کامل در MyBetsScreen است.
+type IrBet = {
+  marketId: number;
+  question: string;
+  side: string;
+  stake: number;
+  status: string;
+  payout: number | null;
+  voidReason: string | null;
+};
 
 type MarketsResponse = {
   markets: Market[];
@@ -121,6 +133,19 @@ export default function MarketsScreen({
   );
   const markets = data?.markets ?? null;
 
+  // ⚠️ این قلاب عمدا همین بالاست، پیش از returnهای زودهنگامِ پایین‌تر:
+  // قاعده‌ی هوک‌ها اجازه‌ی صدا زدن مشروط نمی‌دهد. مسیرِ `null` یعنی هیچ
+  // درخواستی فرستاده نمی‌شود، پس در حالت عادی هزینه‌ای ندارد.
+  //
+  // بازارِ تسویه‌شده در `/api/ir/markets` نیست، پس لینک عمیقِ اعلانِ نتیجه
+  // اینجا به بن‌بست می‌خورد و کاربر در فهرست کلی رها می‌شد. کارنامه فقط در
+  // همان حالت گرفته می‌شود تا رسید همان پیش‌بینی ساخته شود.
+  const receiptNeeded =
+    openId !== null && markets !== null && !markets.some((m) => m.id === openId);
+  const receipt = useResource<{ bets: IrBet[] }>(
+    receiptNeeded ? "/api/ir/my-bets?filter=all" : null
+  );
+
   // زیرصفحه، نه تب پنجم: ساخت بازار یک کار است نه یک مقصد، و دکمه‌ی بازگشتِ
   // خود تلگرام همان چیزی است که کاربر برای بستنش دنبالش می‌گردد.
   // زیرصفحه، نه تب پنجم — همان استدلال ساخت بازار: کارنامه یک نگاه است نه
@@ -170,6 +195,36 @@ export default function MarketsScreen({
     .sort((a, b) => b.volume - a.volume);
 
   const open = markets?.find((m) => m.id === openId) ?? null;
+
+  if (receiptNeeded && receipt.data) {
+    const b = receipt.data.bets.find(
+      (x) => x.marketId === openId && x.status !== "open"
+    );
+    if (b) {
+      return (
+        <ResultCard
+          botUsername={data?.config.botUsername ?? ""}
+          result={{
+            kind: "market",
+            question: b.question,
+            side: b.side === "yes" ? "yes" : "no",
+            outcome:
+              b.status === "won"
+                ? "won"
+                : b.status === "refunded"
+                  ? "refunded"
+                  : "lost",
+            stake: b.stake,
+            payout: b.payout,
+            voidReason: b.voidReason,
+          }}
+          onBack={() => setOpenId(null)}
+          onNext={() => setOpenId(null)}
+        />
+      );
+    }
+  }
+
   if (open && data) {
     return (
       <MarketDetail
