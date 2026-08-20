@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BackLink } from "@/components/tg/ui";
 import { shareText } from "@/components/tg/share";
 import { haptic } from "@/components/tg/telegram";
 import { useResource } from "@/components/tg/useResource";
+import { track } from "@/components/track";
 
 // رسید یک پیش‌بینیِ تسویه‌شده.
 //
@@ -76,6 +77,13 @@ export default function ResultCard({
 }) {
   const [sharing, setSharing] = useState(false);
 
+  // دیده‌شدن رسید = کاربر روی دکمه‌ی اعلانِ نتیجه کلیک کرده. نسبت این عدد
+  // به تعداد اعلان‌های فرستاده‌شده می‌گوید اعلان چقدر کار می‌کند.
+  const gameKind = result.kind === "trade" ? "trade" : "iran";
+  useEffect(() => {
+    track({ kind: "result_view", surface: "app", game: gameKind });
+  }, [gameKind]);
+
   // کد رفرال فقط برای ساختن لینک اشتراک لازم است. اگر نیامد، دکمه بی‌اثر
   // نمی‌شود — به لینک ساده‌ی مینی‌اپ عقب‌نشینی می‌کند. لینکِ نداشتنِ کد
   // بهتر از دکمه‌ی مرده است.
@@ -129,6 +137,10 @@ export default function ResultCard({
   async function onShare() {
     if (!link) return;
     haptic.press();
+    // ⚠️ پیش از باز شدن انتخابگر مخاطب ثبت می‌شود، نه بعدش: تلگرام هیچ
+    // بازخوردی نمی‌دهد که کاربر واقعا فرستاد یا لغو کرد. پس این عدد یعنی
+    // «قصدِ فرستادن»، و در تحلیل هم باید همین‌طور خوانده شود.
+    track({ kind: "share", surface: "app", game: gameKind });
     setSharing(true);
     try {
       await shareText(shareBody, link);

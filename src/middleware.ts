@@ -87,6 +87,13 @@ const RULES: Rule[] = [
   { id: "trade-poll-me", pattern: /^\/api\/trade\/poll-me/, max: 120, by: "identity" },
   { id: "tg-link", pattern: /^\/api\/predict\/tg-link/, max: 20, by: "identity" },
   { id: "showcase", pattern: /^\/api\/profile\/showcase/, max: 20, by: "identity" },
+
+  // ── تله‌متری ──
+  // ⚠️ سقفش عمدا بالاست: این روت ذاتا پرتکرار است (باز شدن فهرست و هر
+  // بازاری که کاربر باز می‌کند). سقف تنگ یعنی داده‌ی رفتاریِ کاربرِ فعال
+  // — یعنی دقیقا ارزشمندترین کاربر — بی‌صدا بریده شود. دسته‌ای هم
+  // فرستاده می‌شود، پس تعداد درخواست‌ها خیلی کمتر از تعداد رویدادهاست.
+  { id: "events", pattern: /^\/api\/events/, max: 300, by: "identity" },
 ];
 
 const hits = new Map<string, { n: number; ts: number }>();

@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useResource } from "@/components/tg/useResource";
 import { ErrorState, EmptyState, ScreenTitle, Skeleton, SearchBar } from "@/components/tg/ui";
 import { matchesQuery, displayTitle } from "@/lib/search";
 import { haptic } from "@/components/tg/telegram";
 import TradeDetail, { type PolyMarket } from "@/components/tg/screens/TradeDetail";
 import ResultCard from "@/components/tg/screens/ResultCard";
+import { track } from "@/components/track";
 import { remaining, closingSoon } from "@/lib/dates";
 
 // ترید — بازارهای رویداد پالی‌مارکت، از همان روت‌های سایت.
@@ -77,6 +78,27 @@ export default function TradeScreen({
   const openPreds = mine.filter((p) => p.points === null);
   const settledPreds = mine.filter((p) => p.points !== null);
   const totalPoints = settledPreds.reduce((sum, p) => sum + (p.points ?? 0), 0);
+
+  // ── ابزارگذاری رفتاری ──
+  // یک نقطه برای باز کردن بازار، نه چند تا. `setOpenId` پراکنده یعنی روزی
+  // یکی‌شان ثبت نشود و آمار بی‌صدا کم بشمارد.
+  const openMarket = (m: { id: string; category: string }) => {
+    track({
+      kind: "market_open",
+      surface: "app",
+      game: "trade",
+      marketId: m.id,
+      category: m.category,
+    });
+    setOpenId(m.id);
+  };
+
+  // باز شدن فهرست — یک بار به‌ازای هر دسته‌ای که کاربر انتخاب می‌کند، نه
+  // به‌ازای هر کارت. بدون این، بالای قیف نامرئی است و نرخ تبدیل همیشه
+  // ۱۰۰٪ به نظر می‌رسد.
+  useEffect(() => {
+    track({ kind: "list_view", surface: "app", game: "trade", category: cat });
+  }, [cat]);
 
   const open = list?.find((m) => m.id === openId) ?? null;
 
@@ -282,7 +304,7 @@ export default function TradeScreen({
                 tabIndex={0}
                 onClick={() => {
                   haptic.press();
-                  setOpenId(m.id);
+                  openMarket(m);
                 }}
                 className="w-[168px] shrink-0 cursor-pointer rounded-xl border border-gold/25 bg-gradient-to-bl from-gold/[0.07] to-surface/50 p-2.5 transition active:border-gold/60"
               >
@@ -341,7 +363,7 @@ export default function TradeScreen({
                 tabIndex={0}
                 onClick={() => {
                   haptic.press();
-                  setOpenId(m.id);
+                  openMarket(m);
                 }}
                 className="cursor-pointer rounded-xl border border-line bg-surface/40 p-3 transition active:border-gold/50"
               >

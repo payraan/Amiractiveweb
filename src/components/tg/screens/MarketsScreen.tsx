@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useResource } from "@/components/tg/useResource";
 import { IR_CATEGORIES } from "@/lib/ir-categories";
 import { ErrorState, EmptyState, ScreenTitle, Skeleton, SearchBar } from "@/components/tg/ui";
@@ -10,6 +10,7 @@ import ProposeScreen from "@/components/tg/screens/ProposeScreen";
 import MyBetsScreen from "@/components/tg/screens/MyBetsScreen";
 import MarketDetail, { isBoosted, type Market } from "@/components/tg/screens/MarketDetail";
 import ResultCard from "@/components/tg/screens/ResultCard";
+import { track } from "@/components/track";
 import { remaining, closingSoon } from "@/lib/dates";
 
 // فهرست بازارهای ایران — از همان /api/ir/markets که سایت استفاده می‌کند.
@@ -146,6 +147,17 @@ export default function MarketsScreen({
     receiptNeeded ? "/api/ir/my-bets?filter=all" : null
   );
 
+  // ⚠️ این هم مثل قلاب بالا باید پیش از returnهای زودهنگام باشد. بار اول
+  // پایین‌تر گذاشته بودمش و لینت گرفتش: قلاب پس از return شرطی، ترتیب
+  // قلاب‌ها را بین رندرها به هم می‌زند.
+  //
+  // باز شدن فهرست — یک بار به‌ازای هر دسته‌ای که کاربر انتخاب می‌کند، نه
+  // به‌ازای هر کارت. بدون این، بالای قیف نامرئی است و نرخ تبدیل همیشه
+  // ۱۰۰٪ به نظر می‌رسد.
+  useEffect(() => {
+    track({ kind: "list_view", surface: "app", game: "iran", category: cat });
+  }, [cat]);
+
   // زیرصفحه، نه تب پنجم: ساخت بازار یک کار است نه یک مقصد، و دکمه‌ی بازگشتِ
   // خود تلگرام همان چیزی است که کاربر برای بستنش دنبالش می‌گردد.
   // زیرصفحه، نه تب پنجم — همان استدلال ساخت بازار: کارنامه یک نگاه است نه
@@ -193,6 +205,20 @@ export default function MarketsScreen({
   const boosted = (filtered ?? [])
     .filter((m) => isBoosted(m) && m.status === "open")
     .sort((a, b) => b.volume - a.volume);
+
+  // ── ابزارگذاری رفتاری ──
+  // یک نقطه برای باز کردن بازار، نه چند تا. `setOpenId` پراکنده یعنی روزی
+  // یکی‌شان ثبت نشود و آمار بی‌صدا کم بشمارد.
+  const openMarket = (m: { id: number; category: string }) => {
+    track({
+      kind: "market_open",
+      surface: "app",
+      game: "iran",
+      marketId: m.id,
+      category: m.category,
+    });
+    setOpenId(m.id);
+  };
 
   const open = markets?.find((m) => m.id === openId) ?? null;
 
@@ -387,7 +413,7 @@ export default function MarketsScreen({
                 tabIndex={0}
                 onClick={() => {
                   haptic.press();
-                  setOpenId(m.id);
+                  openMarket(m);
                 }}
                 className="w-[86%] shrink-0 snap-start cursor-pointer rounded-xl border border-gold/25 bg-surface/50 p-3 transition active:border-gold/60"
               >
@@ -432,7 +458,7 @@ export default function MarketsScreen({
                 tabIndex={0}
                 onClick={() => {
                   haptic.press();
-                  setOpenId(m.id);
+                  openMarket(m);
                 }}
                 className="w-[168px] shrink-0 cursor-pointer rounded-xl border border-gold/25 bg-gradient-to-bl from-gold/[0.07] to-surface/50 p-2.5 transition active:border-gold/60"
               >
@@ -492,7 +518,7 @@ export default function MarketsScreen({
                 tabIndex={0}
                 onClick={() => {
                   haptic.press();
-                  setOpenId(m.id);
+                  openMarket(m);
                 }}
                 className="cursor-pointer rounded-xl border border-line bg-surface/40 p-3 transition active:border-gold/50"
               >

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logEvent } from "@/lib/events";
 import { log } from "@/lib/log";
 import { db, touchActivity } from "@/lib/db";
 import { currentPlayerId } from "@/lib/current-player";
@@ -53,7 +54,7 @@ export async function POST(req: Request) {
     // Postgres بن‌بست را می‌گیرد و یکی را می‌کشد، ولی آن یکی می‌تواند تسویه
     // باشد؛ یعنی پول برنده‌ها معلق می‌ماند.
     const m = await client.query(
-      "SELECT status, closes_at, creator_id FROM ir_markets WHERE id=$1 FOR UPDATE",
+      "SELECT status, closes_at, creator_id, category FROM ir_markets WHERE id=$1 FOR UPDATE",
       [marketId]
     );
     if (!m.rowCount) {
@@ -160,6 +161,18 @@ export async function POST(req: Request) {
       firstOnMarket: !prev.rowCount,
       creatorCut: cut,
       referredByCreator,
+    });
+    // ⚠️ **بعد از** COMMIT و بیرون از ترنزاکشن. آمار هرگز نباید بتواند یک
+    // شرطِ پول واقعی را برگرداند — و `try/catch` داخل ترنزاکشن Postgres
+    // هیچ کاری نمی‌کند، چون پس از هر خطا کل ترنزاکشن باطل است.
+    logEvent({
+      playerId,
+      kind: "predict",
+      surface: "app",
+      game: "iran",
+      marketId,
+      category: m.rows[0].category ?? null,
+      meta: { stake, side },
     });
     return NextResponse.json({ ok: true });
   } catch (err) {
