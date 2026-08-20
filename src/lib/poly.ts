@@ -297,8 +297,21 @@ export async function settlePolyDue(): Promise<{ settled: number }> {
   await ensurePolyTables();
   const pool = await db();
 
+  // ⚠️ **`ORDER BY random()` و نه ترتیب طبیعی.**
+  //
+  // نسخه‌ی قبلی `LIMIT 15` بدون هیچ ترتیبی بود. با ده‌ها بازارِ باز،
+  // Postgres هر بار تقریبا **همان ۱۵ ردیف اول** را برمی‌گرداند — و
+  // بازارهای بلندمدت («تا پایان ۲۰۲۶») که هرگز بسته نمی‌شوند، آن جاها را
+  // برای همیشه اشغال می‌کردند. نتیجه: بازارهایی که واقعا تسویه شده بودند
+  // هرگز نوبتشان نمی‌رسید و کاربر نتیجه‌اش را نمی‌گرفت.
+  //
+  // با ترتیب تصادفی، هر بازار دیر یا زود بررسی می‌شود و هیچ‌کدام گرسنه
+  // نمی‌ماند. سقف هم بالا رفت: هر بررسی یک درخواست به پالی‌مارکت است و
+  // ۲۵ تا در هر ربع‌ساعت هزینه‌ی ناچیزی دارد.
   const due = await pool.query<{ market_id: string }>(
-    `SELECT DISTINCT market_id FROM poly_predictions WHERE status='open' LIMIT 15`
+    `SELECT DISTINCT market_id FROM poly_predictions
+      WHERE status='open'
+      ORDER BY random() LIMIT 25`
   );
 
   // ⚠️ پیش از هر ترنزاکشن: DDL داخل ترنزاکشنِ قفل‌دار خطرناک است.

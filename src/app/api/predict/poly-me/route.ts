@@ -20,7 +20,10 @@ export async function GET() {
          FROM poly_predictions
         WHERE player_id=$1
         ORDER BY created_at DESC
-        LIMIT 20`,
+        -- ⚠️ ۲۰ کم بود: کاربری که چند روز فعال باشد کارنامه‌اش بریده
+        -- می‌شد و فکر می‌کرد پیش‌بینی‌هایش ثبت نشده. همان سقف کارنامه‌ی
+        -- نبض بازار.
+        LIMIT 100`,
       [playerId]
     ),
     pool.query(
