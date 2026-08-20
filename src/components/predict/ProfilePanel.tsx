@@ -31,6 +31,16 @@ type Profile = {
     lockedInMarkets: number;
     openBets: number;
   };
+  iran30: {
+    settledBets: number;
+    won: number;
+    lost: number;
+    refunded: number;
+    staked: number;
+    returned: number;
+    net: number;
+    winRate: number | null;
+  };
   iran: {
     settledBets: number;
     won: number;
@@ -74,6 +84,7 @@ const fa = (iso: string) =>
 
 export default function ProfilePanel() {
   const [d, setD] = useState<Profile | null>(null);
+  const [pnlRange, setPnlRange] = useState<"all" | "30">("all");
   const [state, setState] = useState<"loading" | "guest" | "ready" | "error">(
     "loading"
   );
@@ -144,7 +155,10 @@ export default function ProfilePanel() {
     }
   }
 
-  const { player, wallet, iran, skill, rank, ledger } = d;
+  const { player, wallet, skill, rank, ledger } = d;
+  // ⚠️ بازه از state می‌آید و هر دو تکه از یک API — پس نمی‌توانند واگرا
+  // شوند. کارت مینی‌اپ همین دو فیلد را می‌خواند.
+  const iran = pnlRange === "all" ? d.iran : d.iran30;
 
   // نمودار رشد موجودی از دفترکل — از قدیم به جدید
   const curve = [...ledger].reverse().map((l) => l.balanceAfter);
@@ -266,9 +280,29 @@ export default function ProfilePanel() {
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {/* تتری */}
           <div className="rounded-xl border border-line bg-ink/30 p-4">
-            <h3 className="text-[12px] font-bold text-cream">
-              بازار ایران <span className="text-muted">(تتر)</span>
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-[12px] font-bold text-cream">
+                بازار ایران <span className="text-muted">(تتر)</span>
+              </h3>
+              <div className="flex gap-1">
+                {([["all", "از ابتدا"], ["30", "۳۰ روز"]] as const).map(
+                  ([id, label]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setPnlRange(id)}
+                      className={`rounded-lg border px-2.5 py-1 text-[10px] transition ${
+                        pnlRange === id
+                          ? "border-gold bg-gold/10 text-gold"
+                          : "border-line text-muted hover:text-cream"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  )
+                )}
+              </div>
+            </div>
             <div
               className={`mt-3 font-mono text-3xl font-black ${
                 iran.net > 0 ? "text-gain" : iran.net < 0 ? "text-loss" : "text-cream"

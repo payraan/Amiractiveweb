@@ -20,7 +20,7 @@ export async function loadProfile(playerId: number) {
   await Promise.all([ensureIrTables(), ensureTelegramTables()]);
   const pool = await db();
 
-  const [me, wallet, ledger, irPnl, irOpen, pulse, poly, rank, streakDays, mkts, chPassed] =
+  const [me, wallet, ledger, irPnl, ir30, irOpen, pulse, poly, rank, streakDays, mkts, chPassed] =
     await Promise.all([
       pool.query(
         `SELECT id, tg_username, display_name,
@@ -55,6 +55,27 @@ export async function loadProfile(playerId: number) {
            COALESCE(SUM(stake),0)::float                              AS staked,
            COALESCE(SUM(COALESCE(payout,0)),0)::float                 AS returned
          FROM ir_bets WHERE player_id=$1 AND status <> 'open'`,
+        [playerId]
+      ),
+      // همان کارنامه، ولی فقط ۳۰ روز اخیر.
+      //
+      // ⚠️ مبنا `ir_markets.settled_at` است نه `ir_bets.created_at`: سود و
+      // زیان وقتی **محقق** می‌شود که بازار تسویه شود، نه وقتی شرط ثبت
+      // می‌شود. شرطی که ماه پیش بسته شده و دیروز تسویه شده، سودِ دیروز
+      // است — و کاربری که کارت را باز می‌کند دنبال همین است.
+      pool.query(
+        `SELECT
+           COUNT(*)::int                                  AS settled_bets,
+           COUNT(*) FILTER (WHERE b.status='won')::int     AS won,
+           COUNT(*) FILTER (WHERE b.status='lost')::int    AS lost,
+           COUNT(*) FILTER (WHERE b.status='refunded')::int AS refunded,
+           COALESCE(SUM(b.stake),0)::float                 AS staked,
+           COALESCE(SUM(COALESCE(b.payout,0)),0)::float    AS returned
+         FROM ir_bets b
+         JOIN ir_markets m ON m.id = b.market_id
+        WHERE b.player_id=$1 AND b.status <> 'open'
+          AND m.settled_at IS NOT NULL
+          AND m.settled_at >= now() - interval '30 days'`,
         [playerId]
       ),
       pool.query(
@@ -209,6 +230,25 @@ export async function loadProfile(playerId: number) {
       lockedInMarkets: Number(irOpen.rows[0].locked),
       openBets: Number(irOpen.rows[0].n),
     },
+    // ⚠️ دو بازه کنار هم و نه یکی: «از ابتدا» عدد حقیقی حساب است، ولی برای
+    // کسی که تازه شروع کرده و یک ماه بد داشته، تنها عددِ قابلِ دیدن است و
+    // دلسردکننده. «۳۰ روز» می‌گوید همین حالا کجاست.
+    iran30: (() => {
+      const r = ir30.rows[0];
+      const net = Number(r.returned) - Number(r.staked);
+      const w = Number(r.won);
+      const l = Number(r.lost);
+      return {
+        settledBets: Number(r.settled_bets),
+        won: w,
+        lost: l,
+        refunded: Number(r.refunded),
+        staked: Number(r.staked),
+        returned: Number(r.returned),
+        net: Math.round(net * 1e6) / 1e6,
+        winRate: w + l > 0 ? Math.round((w / (w + l)) * 1000) / 10 : null,
+      };
+    })(),
     iran: {
       settledBets: Number(ir.settled_bets),
       won: Number(ir.won),

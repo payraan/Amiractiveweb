@@ -1,6 +1,7 @@
 "use client";
 
 import { LINKS } from "@/config/site";
+import PnlCard, { type PnlSlice } from "@/components/PnlCard";
 import { useCallback, useState } from "react";
 import { useResource } from "@/components/tg/useResource";
 import { api } from "@/components/tg/api";
@@ -33,15 +34,16 @@ type Profile = {
     createdAt: string;
     telegramLinked: boolean;
   };
-  wallet: { deposited: number; withdrawn: number };
-  iran: {
-    settledBets: number;
-    won: number;
-    lost: number;
-    net: number;
-    staked: number;
-    winRate: number | null;
+  wallet: {
+    deposited: number;
+    withdrawn: number;
+    lockedInMarkets: number;
+    openBets: number;
   };
+  // ⚠️ هر دو از یک نوع‌اند تا کارت نتواند یکی را درست و دیگری را ناقص
+  // بگیرد. نسخه‌ی قبلیِ این نوع دو فیلد کمتر داشت و کامپایلر همان را گرفت.
+  iran30: PnlSlice;
+  iran: PnlSlice;
   rank: {
     ranked: boolean;
     above: number;
@@ -280,26 +282,19 @@ export default function ProfileScreen({
         )}
       </p>
 
-      {/* بازار ایران: پول واقعی، پس جدا از امتیاز نشان داده می‌شود */}
+      {/* بازار ایران: پول واقعی، پس جدا از امتیاز و در کارت اختصاصی خودش.
+          پیش از این سه Metric کنار بقیه‌ی آمار بود و مثل امتیاز خوانده
+          می‌شد — تنها جای پلتفرم که پول واقعی گزارش می‌کند نباید شبیه
+          بقیه‌ی اعداد باشد. */}
       <h3 className="mb-2 mt-5 text-xs font-bold text-cream">بازار ایران</h3>
-      <div className="grid grid-cols-3 gap-2.5">
-        <Metric label="پیش‌بینی‌های تسویه‌شده" value={num(p.iran.settledBets)} />
-        <Metric
-          label="درصد موفقیت"
-          value={p.iran.winRate === null ? "—" : `${p.iran.winRate}%`}
-          tone={p.iran.winRate !== null && p.iran.winRate >= 50 ? "gain" : "muted"}
-        />
-        <Metric
-          label="سود خالص"
-          value={`${p.iran.net >= 0 ? "+" : ""}$${money(p.iran.net)}`}
-          tone={p.iran.net >= 0 ? "gain" : "loss"}
-        />
-      </div>
-
-      <div className="mt-2.5 grid grid-cols-2 gap-2.5">
-        <Metric label="کل واریز" value={`$${money(p.wallet.deposited)}`} />
-        <Metric label="کل برداشت" value={`$${money(p.wallet.withdrawn)}`} />
-      </div>
+      <PnlCard
+        allTime={p.iran}
+        last30={p.iran30}
+        deposited={p.wallet.deposited}
+        withdrawn={p.wallet.withdrawn}
+        locked={p.wallet.lockedInMarkets}
+        openBets={p.wallet.openBets}
+      />
 
       <div className="mb-2 mt-5 flex items-center justify-between">
         <h3 className="text-xs font-bold text-cream">
