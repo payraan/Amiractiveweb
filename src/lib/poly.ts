@@ -309,8 +309,12 @@ export async function settlePolyDue(): Promise<{ settled: number }> {
   // نمی‌ماند. سقف هم بالا رفت: هر بررسی یک درخواست به پالی‌مارکت است و
   // ۲۵ تا در هر ربع‌ساعت هزینه‌ی ناچیزی دارد.
   const due = await pool.query<{ market_id: string }>(
-    `SELECT DISTINCT market_id FROM poly_predictions
+    // ⚠️ `GROUP BY` است نه `SELECT DISTINCT`: پستگرس با DISTINCT اجازه نمی‌دهد
+    // عبارتی در ORDER BY بیاید که در فهرست انتخاب نیست، و `random()` نیست.
+    // نسخه‌ی DISTINCT هر تیک کرون خطا می‌داد و تسویه‌ی آرنا اصلا اجرا نمی‌شد.
+    `SELECT market_id FROM poly_predictions
       WHERE status='open'
+      GROUP BY market_id
       ORDER BY random() LIMIT 25`
   );
 

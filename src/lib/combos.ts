@@ -94,11 +94,16 @@ export async function settleCombosDue(): Promise<{ settled: number }> {
 
   // ۱) نتیجه‌ی پاهای باز را از بازارهای بسته‌شده بگیر
   const due = await pool.query<{ market_id: string }>(
-    `SELECT DISTINCT l.market_id
+    // ⚠️ `ORDER BY random()` عمدی است (درس ۱۸): بدون آن، ۱۵ پای اول هر بار
+    // همان‌ها بودند و پاهای بعدی هرگز نوبتشان نمی‌رسید. و `GROUP BY` است نه
+    // `SELECT DISTINCT`، چون پستگرس با DISTINCT عبارتِ بیرون از فهرست انتخاب
+    // را در ORDER BY نمی‌پذیرد — همان خطایی که تسویه‌ی آرنا را خوابانده بود.
+    `SELECT l.market_id
        FROM combo_legs l
        JOIN combo_tickets t ON t.id = l.ticket_id
       WHERE t.status = 'open' AND l.result IS NULL
-      LIMIT 15`
+      GROUP BY l.market_id
+      ORDER BY random() LIMIT 15`
   );
 
   for (const { market_id } of due.rows) {
@@ -148,7 +153,9 @@ export async function settleCombosDue(): Promise<{ settled: number }> {
        JOIN combo_legs l ON l.ticket_id = t.id
       WHERE t.status = 'open'
       GROUP BY t.id
-      LIMIT 50`
+      -- بلیت‌هایی که هنوز پای باز دارند در حلقه رد می‌شوند ولی جای خود را در
+      -- این ۵۰ تا اشغال می‌کنند. بدون ترتیب تصادفی، بلیت‌های بعدی گرسنه می‌مانند.
+      ORDER BY random() LIMIT 50`
   );
 
   let settled = 0;
