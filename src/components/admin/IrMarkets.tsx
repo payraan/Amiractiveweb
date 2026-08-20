@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { IR_CATEGORIES } from "@/lib/ir-categories";
+import { tehranAt } from "@/lib/dates";
 
 type M = {
   id: number;
@@ -164,6 +166,8 @@ export default function IrMarkets() {
 
   return (
     <div>
+      <QuickCreate onCreated={load} />
+
       <div className="mb-4 flex flex-wrap gap-2">
         {TABS.map((t) => (
           <button
@@ -439,5 +443,207 @@ function Btn({
     >
       {busy ? "…" : children}
     </button>
+  );
+}
+
+
+/* ────────────────────────── بازار سریع ───────────────────────── */
+
+// ساخت و انتشار در یک قدم.
+//
+// ── چرا وجود دارد ──
+// مسیر عادی دو قدم است: پیشنهاد، بعد تأیید در پنل. برای یک آیین **روزانه**
+// آن دو قدم زیادی است. کاری که هر شب باید تکرار شود، اگر سه دقیقه طول
+// بکشد تکرار نمی‌شود — و بازار روزانه دقیقا همان چیزی است که حلقه‌ی
+// بازخورد را می‌بندد: کاربر امشب پیش‌بینی می‌کند و فردا نتیجه را می‌بیند.
+//
+// ⚠️ دکمه‌های زمانی به **ساعتِ دیوارِ تهران**‌اند، نه ساعت سرور. سرور در
+// استانبول است؛ «امشب ۲۳:۵۹» با ساعت سرور یعنی یک ساعت زودتر از آنچه
+// کاربر ایرانی می‌فهمد.
+
+const PRESETS = [
+  { label: "امشب ۲۳:۵۹", make: () => tehranAt(0, 23, 59) },
+  { label: "فردا ۱۲:۰۰", make: () => tehranAt(1, 12, 0) },
+  { label: "فردا ۲۳:۵۹", make: () => tehranAt(1, 23, 59) },
+  { label: "پس‌فردا ۲۳:۵۹", make: () => tehranAt(2, 23, 59) },
+];
+
+/** «۲۰ ساعت دیگر» — تا ادمین ببیند واقعا چقدر فرصت می‌دهد. */
+function untilText(d: Date | null): string {
+  if (!d) return "";
+  const h = Math.round((d.getTime() - Date.now()) / 3600_000);
+  if (h < 1) return "کمتر از یک ساعت دیگر";
+  if (h < 48) return `${h.toLocaleString("fa-IR")} ساعت دیگر`;
+  return `${Math.round(h / 24).toLocaleString("fa-IR")} روز دیگر`;
+}
+
+function QuickCreate({ onCreated }: { onCreated: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [question, setQuestion] = useState("");
+  const [category, setCategory] = useState("economy");
+  const [sourceNote, setSourceNote] = useState("");
+  const [closesAt, setClosesAt] = useState<Date | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const ready =
+    question.trim().length >= 10 && sourceNote.trim().length >= 3 && !!closesAt;
+
+  async function submit() {
+    if (!ready || !closesAt) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      const r = await fetch("/api/admin/ir", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "create",
+          question: question.trim(),
+          category,
+          sourceNote: sourceNote.trim(),
+          closesAt: closesAt.toISOString(),
+        }),
+      });
+      const j = await r.json();
+      if (j.ok) {
+        setMsg(`بازار ساخته و منتشر شد (شناسه ${j.id}).`);
+        setQuestion("");
+        setSourceNote("");
+        setClosesAt(null);
+        onCreated();
+      } else {
+        const why: Record<string, string> = {
+          bad_question: "سؤال باید بین ۱۰ تا ۳۰۰ کاراکتر باشد.",
+          bad_category: "دسته معتبر نیست.",
+          source_required: "منبع تسویه اجباری است.",
+          bad_date: "زمان بسته‌شدن باید در آینده باشد.",
+        };
+        setMsg(why[j.error] ?? `خطا: ${j.error}`);
+      }
+    } catch {
+      setMsg("ارتباط با سرور برقرار نشد.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="mb-4 w-full rounded-xl border border-gold/40 bg-gold/5 py-3 text-sm font-bold text-gold transition hover:bg-gold/10"
+      >
+        ⚡ ساخت بازار سریع — منتشر می‌شود بدون صف تأیید
+      </button>
+    );
+  }
+
+  return (
+    <div className="mb-5 rounded-xl border border-gold/40 bg-gold/5 p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <h3 className="text-sm font-bold text-gold">⚡ بازار سریع</h3>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="text-[11px] text-muted hover:text-cream"
+        >
+          بستن
+        </button>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <div>
+          <label className="mb-1 block text-[10.5px] text-muted">
+            سؤال — باید با «بله» یا «خیر» جواب داشته باشد
+          </label>
+          <input
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder="آیا دلار آزاد امشب بالای ۱۸۷٬۰۰۰ تومان بسته می‌شود؟"
+            className="w-full rounded-lg border border-line bg-raised/50 px-3 py-2 text-xs text-cream focus:border-gold focus:outline-none"
+          />
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-[10.5px] text-muted">دسته</label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full rounded-lg border border-line bg-raised/50 px-3 py-2 text-xs text-cream focus:border-gold focus:outline-none"
+            >
+              {IR_CATEGORIES.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-[10.5px] text-muted">
+              منبع تسویه — اجباری
+            </label>
+            <input
+              value={sourceNote}
+              onChange={(e) => setSourceNote(e.target.value)}
+              placeholder="نرخ بسته‌شدن tgju.org"
+              className="w-full rounded-lg border border-line bg-raised/50 px-3 py-2 text-xs text-cream focus:border-gold focus:outline-none"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-1 block text-[10.5px] text-muted">
+            بسته‌شدن — به وقت تهران
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {PRESETS.map((p) => {
+              const d = p.make();
+              const active = closesAt?.getTime() === d.getTime();
+              return (
+                <button
+                  key={p.label}
+                  type="button"
+                  onClick={() => setClosesAt(d)}
+                  className={`rounded-lg border px-3 py-1.5 text-[11px] transition ${
+                    active
+                      ? "border-gold bg-gold/15 text-gold"
+                      : "border-line text-muted hover:text-cream"
+                  }`}
+                >
+                  {p.label}
+                </button>
+              );
+            })}
+          </div>
+          {closesAt && (
+            <p className="mt-1.5 text-[10.5px] text-gain">
+              {untilText(closesAt)} — کاربر نتیجه را همین بازه می‌بیند.
+            </p>
+          )}
+        </div>
+
+        {msg && (
+          <p
+            className={`text-[11px] ${
+              msg.includes("منتشر شد") ? "text-gain" : "text-loss"
+            }`}
+          >
+            {msg}
+          </p>
+        )}
+
+        <button
+          type="button"
+          onClick={submit}
+          disabled={!ready || busy}
+          className="rounded-lg bg-gold py-2.5 text-xs font-bold text-ink transition disabled:opacity-40"
+        >
+          {busy ? "در حال ساخت…" : "ساخت و انتشار"}
+        </button>
+      </div>
+    </div>
   );
 }

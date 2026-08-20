@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import { verifyAdmin, ADMIN_COOKIE } from "@/lib/admin";
 import { approveMarket, rejectMarket, lockMarket } from "@/lib/ir-moderation";
+import { isIrCategory } from "@/lib/ir-categories";
 import {
   ensureIrTables,
   oddsFor,
@@ -102,6 +103,10 @@ export async function POST(req: Request) {
   let body: {
     id?: number;
     action?: string;
+    question?: string;
+    category?: string;
+    sourceNote?: string;
+    closesAt?: string;
     outcome?: string;
     reason?: string;
     disputeId?: number;
@@ -113,8 +118,59 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "bad_json" }, { status: 400 });
   }
 
-  const id = Number(body.id);
   const action = String(body.action ?? "");
+
+  // ── بازار سریع ──
+  //
+  // ⚠️ **پیش از گاردِ `id` می‌آید**، چون بازاری که هنوز ساخته نشده شناسه
+  // ندارد و آن گارد همه‌چیز را با bad_id رد می‌کرد.
+  //
+  // چرا این کنش لازم شد: مسیر عادی ساخت بازار دو قدم است — پیشنهاد، بعد
+  // تأیید در پنل. برای یک آیین **روزانه** آن دو قدم زیادی است؛ کاری که هر
+  // شب باید تکرار شود، اگر سه دقیقه طول بکشد تکرار نمی‌شود.
+  //
+  // این مسیر مستقیم `open` می‌سازد و نه صف تأیید دارد نه کارمزد: خودِ
+  // ادمین است که در قدم دوم تأیید می‌کرد، پس تأییدِ خودش از خودش معنایی
+  // ندارد. `creator_id` هم NULL می‌ماند — بازار پلتفرم سازنده‌ی شخصی
+  // ندارد، وگرنه سهم سازنده به حساب ادمین می‌رفت.
+  if (action === "create") {
+    const question = String(body.question ?? "").trim();
+    const category = String(body.category ?? "").trim();
+    const sourceNote = String(body.sourceNote ?? "").trim();
+    const closesAt = new Date(String(body.closesAt ?? ""));
+
+    if (question.length < 10 || question.length > 300) {
+      return NextResponse.json({ ok: false, error: "bad_question" }, { status: 400 });
+    }
+    if (!isIrCategory(category)) {
+      return NextResponse.json({ ok: false, error: "bad_category" }, { status: 400 });
+    }
+    // منبع تسویه اجباری است — همان قاعده‌ی مسیر عادی. بازار مبهم، بازارِ
+    // بی‌اعتراضِ قابل تسویه نیست.
+    if (sourceNote.length < 3 || sourceNote.length > 500) {
+      return NextResponse.json({ ok: false, error: "source_required" }, { status: 400 });
+    }
+    if (Number.isNaN(closesAt.getTime()) || closesAt.getTime() <= Date.now()) {
+      return NextResponse.json({ ok: false, error: "bad_date" }, { status: 400 });
+    }
+
+    await ensureIrTables();
+    const p = await db();
+    const r = await p.query<{ id: number }>(
+      `INSERT INTO ir_markets (creator_id, question, category, source_note, closes_at, status, fee_usdt)
+       VALUES (NULL,$1,$2,$3,$4,'open',0) RETURNING id`,
+      [question, category, sourceNote, closesAt.toISOString()]
+    );
+    const newId = r.rows[0].id;
+    log.warn("ir.market_created", {
+      marketId: newId,
+      by: "admin",
+      closesInHours: Math.round((closesAt.getTime() - Date.now()) / 3600_000),
+    });
+    return NextResponse.json({ ok: true, id: newId });
+  }
+
+  const id = Number(body.id);
   if (!Number.isInteger(id)) {
     return NextResponse.json({ ok: false, error: "bad_id" }, { status: 400 });
   }

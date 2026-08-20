@@ -106,3 +106,67 @@ export function closingSoon(iso: string | undefined): boolean {
   const left = d.getTime() - Date.now();
   return left > 0 && left <= 24 * 3600_000;
 }
+
+/* ─────────── ساختِ زمانِ بسته‌شدن بر پایه‌ی ساعتِ دیوارِ تهران ─────────── */
+
+/** ساعت دیوارِ تهرانِ یک لحظه، به‌صورت میلی‌ثانیه‌ی UTC تفسیرشده. */
+function tehranWallAsUtc(d: Date): number {
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: TZ,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    })
+      .formatToParts(d)
+      .map((x) => [x.type, x.value])
+  );
+  // ⚠️ `% 24` لازم است: بعضی محیط‌ها نیمه‌شب را «24» می‌دهند نه «00».
+  return Date.UTC(
+    Number(p.year),
+    Number(p.month) - 1,
+    Number(p.day),
+    Number(p.hour) % 24,
+    Number(p.minute),
+    Number(p.second)
+  );
+}
+
+/**
+ * لحظه‌ای که ساعتِ دیوارِ تهران در آن `hour:minute` روزِ «امروز + offsetDays»
+ * است.
+ *
+ * ⚠️ چرا این‌قدر پیچیده و چرا +۳:۳۰ سخت‌کد نشده: سرور در استانبول اجرا
+ * می‌شود، پس «امشب ساعت ۲۳:۵۹» با ساعت سرور یعنی یک ساعت زودتر از آنچه
+ * کاربر ایرانی می‌فهمد. و آفست ثابت هم جواب نیست — امروز درست است، ولی
+ * اولین باری که قانون ساعت عوض شود، هر بازار روزانه یک ساعت جابه‌جا
+ * می‌شود و هیچ‌کس تا بعدِ تسویه نمی‌فهمد. این نسخه آفست را از خود Intl
+ * می‌گیرد، پس هر تغییری را خودکار دنبال می‌کند.
+ */
+export function tehranAt(offsetDays: number, hour: number, minute = 0): Date {
+  const now = new Date();
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: TZ,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    })
+      .formatToParts(now)
+      .map((x) => [x.type, x.value])
+  );
+  const targetWall = Date.UTC(
+    Number(p.year),
+    Number(p.month) - 1,
+    Number(p.day) + offsetDays,
+    hour,
+    minute,
+    0
+  );
+  const offset = tehranWallAsUtc(now) - now.getTime();
+  return new Date(targetWall - offset);
+}
