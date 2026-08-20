@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { track } from "@/components/track";
 import Link from "next/link";
 import { usePlayer } from "@/components/predict/usePlayer";
 import AuthPanel from "@/components/predict/AuthPanel";
@@ -138,6 +139,25 @@ export default function IranTerminal() {
   const [betTick, setBetTick] = useState(0);
   const [boosting, setBoosting] = useState(false);
   const [coverBusy, setCoverBusy] = useState(false);
+
+  // ── ابزارگذاری رفتاری (سایت) ──
+  // یک نقطه برای باز کردن بازار. `setSel` تابعیِ داخلی عمدا دست‌نخورده
+  // می‌ماند: آن انتخابِ پیش‌فرضِ سیستم است، نه کلیکِ کاربر — و شمردنش
+  // یعنی هر بار رفرش، یک «بازدید» جعلی.
+  const openMarket = (id: number, category?: string) => {
+    track({
+      kind: "market_open",
+      surface: "site",
+      game: "iran",
+      marketId: id,
+      category,
+    });
+    setSel(id);
+  };
+
+  useEffect(() => {
+    track({ kind: "list_view", surface: "site", game: "iran", category: cat });
+  }, [cat]);
 
   const fetchMarkets = useCallback(async () => {
     try {
@@ -508,7 +528,7 @@ export default function IranTerminal() {
                 <button
                   key={x.id}
                   type="button"
-                  onClick={() => setSel(x.id)}
+                  onClick={() => openMarket(x.id, x.category)}
                   className={`no-zoom relative block w-full px-3 py-2.5 text-start transition ${
                     active ? "bg-gold/10" : "hover:bg-raised/40"
                   }`}
@@ -767,7 +787,7 @@ export default function IranTerminal() {
               <button
                 key={x.id}
                 type="button"
-                onClick={() => setSel(x.id)}
+                onClick={() => openMarket(x.id, x.category)}
                 className={`w-[86%] shrink-0 snap-start p-3 text-right transition hover:bg-gold/[0.10] sm:w-[320px] ${
                   x.id === sel ? "bg-gold/15" : "bg-ink"
                 }`}
@@ -847,7 +867,7 @@ export default function IranTerminal() {
                   key={x.id}
                   type="button"
                   onClick={() => {
-                    setSel(x.id);
+                    openMarket(x.id, x.category);
                     window.scrollTo({ top: 0, behavior: "smooth" });
                   }}
                   className={`no-zoom min-w-0 border-b border-line p-4 text-start transition md:border-e ${

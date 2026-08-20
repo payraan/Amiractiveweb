@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { track } from "@/components/track";
 import Link from "next/link";
 import { dualDate } from "@/lib/dates";
 
@@ -73,6 +74,18 @@ export default function MarketView({ id }: { id: string }) {
         if (!alive) return;
         const m = (mj.markets ?? []).find((x: Market) => x.id === id) ?? null;
         setMarket(m);
+        // صفحه‌ی فرودِ لینک اشتراکیِ آرنا. برخلاف بازار ایران اینجا داده
+        // سمت کلاینت می‌آید، پس ثبت هم همان‌جاست — و فقط وقتی بازار واقعا
+        // پیدا شد، وگرنه یک لینک خراب هم «بازدید» می‌شد.
+        if (m) {
+          track({
+            kind: "market_open",
+            surface: "site",
+            game: "trade",
+            marketId: m.id,
+            category: m.category,
+          });
+        }
         setPoints(hj.points ?? []);
         setLoading(false);
       })

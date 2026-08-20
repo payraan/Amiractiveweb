@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { logEvent } from "@/lib/events";
 import { log } from "@/lib/log";
 import { db, touchActivity } from "@/lib/db";
-import { currentPlayerId } from "@/lib/current-player";
+import { currentPlayerId, currentSurface } from "@/lib/current-player";
 import {
   ensureIrTables,
   moveFunds,
@@ -15,6 +15,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   const playerId = await currentPlayerId();
+  const surface = await currentSurface();
   if (!playerId) {
     return NextResponse.json({ ok: false, error: "not_authed" }, { status: 401 });
   }
@@ -168,7 +169,7 @@ export async function POST(req: Request) {
     logEvent({
       playerId,
       kind: "predict",
-      surface: "app",
+      surface,
       game: "iran",
       marketId,
       category: m.rows[0].category ?? null,

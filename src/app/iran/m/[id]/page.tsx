@@ -4,6 +4,8 @@ import CandleField from "@/components/CandleField";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import { db } from "@/lib/db";
+import { logEvent } from "@/lib/events";
+import { currentPlayerId } from "@/lib/current-player";
 import { ensureIrTables, impliedPct, oddsFor, COMMISSION } from "@/lib/iran";
 import { IR_CATEGORIES } from "@/lib/ir-categories";
 import { dualDateTime } from "@/lib/dates";
@@ -73,6 +75,22 @@ const STATUS_FA: Record<string, string> = {
 export default async function IranMarketPage({ params }: Props) {
   const { id } = await params;
   const m = await getMarket(id);
+
+  // ⚠️ سمت سرور ثبت می‌شود، نه با track کلاینت: این صفحه همان جایی است که
+  // **لینک‌های اشتراکی فرود می‌آیند**، و ثبتِ سمت سرور نه مسدود می‌شود نه
+  // به جاوااسکریپت کاربر وابسته است. برای سنجش اینکه اشتراک‌گذاری واقعا
+  // کار می‌کند، این تنها عددِ قابل اتکاست.
+  if (m) {
+    logEvent({
+      playerId: await currentPlayerId(),
+      kind: "market_open",
+      surface: "site",
+      game: "iran",
+      marketId: m.id,
+      category: m.category,
+      meta: { entry: "detail_page" },
+    });
+  }
 
   return (
     <>

@@ -1,6 +1,7 @@
 "use client";
 
 import { LINKS } from "@/config/site";
+import { track } from "@/components/track";
 import { matchesQuery, displayTitle } from "@/lib/search";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -220,6 +221,26 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
   const [freeLeft, setFreeLeft] = useState(0);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("all");
+
+  // ── ابزارگذاری رفتاری (سایت) ──
+  // یک نقطه برای باز کردن بازار. `setSel` تابعیِ داخلی عمدا دست‌نخورده
+  // می‌ماند: آن انتخابِ پیش‌فرضِ سیستم است، نه کلیکِ کاربر — و شمردنش
+  // یعنی هر بار رفرش، یک «بازدید» جعلی.
+  const openMarket = (id: string, category?: string) => {
+    track({
+      kind: "market_open",
+      surface: "site",
+      game: "trade",
+      marketId: id,
+      category,
+    });
+    setSel(id);
+  };
+
+  useEffect(() => {
+    track({ kind: "list_view", surface: "site", game: "trade", category: cat });
+  }, [cat]);
+
   // کمبو تب چهارمِ همین ترمینال است، نه یک بازی جدا. زیرساختش یکی است
   // (همان بازارهای ترید پیش‌بینی)، فقط نوع سفارش فرق می‌کند.
   const [tab, setTab] = useState<
@@ -480,7 +501,7 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
                 <button
                   key={m.id}
                   type="button"
-                  onClick={() => setSel(m.id)}
+                  onClick={() => openMarket(m.id, m.category)}
                   className={`no-zoom relative flex w-full items-center justify-between gap-2 px-3 py-2 text-start transition ${
                     active ? "bg-gold/10" : "hover:bg-raised/40"
                   }`}
@@ -721,7 +742,7 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
                 <button
                   key={m.id}
                   type="button"
-                  onClick={() => setSel(m.id)}
+                  onClick={() => openMarket(m.id, m.category)}
                   className={`no-zoom flex w-full items-center gap-3 px-4 py-2.5 text-start transition ${
                     m.id === sel
                       ? "bg-gold/10"
@@ -767,7 +788,7 @@ export default function TradeTerminal({ initialId }: { initialId?: string }) {
                 <button
                   key={p.marketId}
                   type="button"
-                  onClick={() => setSel(p.marketId)}
+                  onClick={() => openMarket(p.marketId)}
                   className={`no-zoom flex w-full items-center gap-3 px-4 py-2.5 text-start transition ${
                     i % 2 ? "bg-surface/25 hover:bg-raised/40" : "hover:bg-raised/40"
                   }`}
