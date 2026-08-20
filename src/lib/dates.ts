@@ -88,16 +88,51 @@ export function dualDateTime(iso: string): string {
  * اینجاست و نه داخل صفحه‌ها، چون هم بازار ایران و هم ترید همین را
  * می‌خواهند — و دو نسخه یعنی روزی یکی «۱ روز» بگوید و دیگری «۲۴ ساعت».
  */
-export function remaining(iso: string | undefined): string {
+export function remaining(
+  iso: string | undefined,
+  /**
+   * `exact` واحد دوم را هم می‌گوید («۲ ساعت و ۵۹ دقیقه»).
+   *
+   * ⚠️ یک تابع با پارامتر، نه دو تابع: دو پیاده‌سازی یعنی روزی یکی «۱ روز»
+   * بگوید و دیگری «۲۴ ساعت» — همان چیزی که کامنت بالای این تابع از اول
+   * هشدارش را داده بود.
+   *
+   * فرم فشرده برای کارت‌های فهرست است که جای افقی کم دارند؛ فرم دقیق برای
+   * کارنامه‌ی کاربر، جایی که سؤالش «چقدر باید منتظر بمانم» است.
+   */
+  mode: "compact" | "exact" = "compact"
+): string {
   const d = parse(iso ?? "");
   if (!d) return "";
   const ms = d.getTime() - Date.now();
   if (ms <= 0) return "پایان‌یافته";
-  const h = Math.floor(ms / 3600_000);
-  if (h < 1) return "کمتر از یک ساعت";
-  if (h < 24) return `${h} ساعت مانده`;
-  return `${Math.floor(h / 24)} روز مانده`;
+
+  const min = Math.floor(ms / 60_000);
+
+  // ⚠️ زیر یک ساعت، **دقیقه** گفته می‌شود نه «کمتر از یک ساعت».
+  // در بازار ۲۴ ساعته، آخرین ساعت مهم‌ترین ساعت است؛ کاربری که ۵۵ دقیقه
+  // وقت دارد با کسی که ۳ دقیقه وقت دارد یک پیام نمی‌گیرد.
+  if (min < 60) return `${fa(min)} دقیقه مانده`;
+
+  const h = Math.floor(min / 60);
+  if (h < 24) {
+    const restMin = min % 60;
+    // ساعت و دقیقه با هم تا مهلت واقعی معلوم باشد: `floor` تنها،
+    // «۲ ساعت و ۵۹ دقیقه» را «۲ ساعت» می‌گفت — یک ساعت کم‌شماری.
+    return mode === "exact" && restMin > 0
+      ? `${fa(h)} ساعت و ${fa(restMin)} دقیقه مانده`
+      : `${fa(h)} ساعت مانده`;
+  }
+
+  const days = Math.floor(h / 24);
+  const restH = h % 24;
+  return mode === "exact" && restH > 0
+    ? `${fa(days)} روز و ${fa(restH)} ساعت مانده`
+    : `${fa(days)} روز مانده`;
 }
+
+/** رقم فارسی — بقیه‌ی رابط فارسی است و رقم لاتین وسط جمله می‌زند توی ذوق. */
+const fa = (n: number) => n.toLocaleString("fa-IR");
 
 /** آیا تا ۲۴ ساعت آینده تعیین تکلیف می‌شود؟ */
 export function closingSoon(iso: string | undefined): boolean {

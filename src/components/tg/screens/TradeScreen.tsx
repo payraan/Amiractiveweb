@@ -75,6 +75,9 @@ export default function TradeScreen({
   const list = markets.data?.markets ?? null;
   const mine = me.data?.predictions ?? [];
   const doneIds = new Set(mine.map((p) => p.marketId));
+  // مهلت هر بازار از فهرست زنده. `poly_predictions` تاریخ پایان را ذخیره
+  // نمی‌کند، و نبودِ بازار در فهرست یعنی بسته شده.
+  const endOf = (id: string) => list?.find((m) => m.id === id)?.endDate ?? undefined;
   const openPreds = mine.filter((p) => p.points === null);
   const settledPreds = mine.filter((p) => p.points !== null);
   const totalPoints = settledPreds.reduce((sum, p) => sum + (p.points ?? 0), 0);
@@ -479,7 +482,12 @@ export default function TradeScreen({
                   <h3 className="mb-2 text-[11px] font-bold text-cream">در جریان</h3>
                   <div className="mb-5 flex flex-col gap-1.5">
                     {openPreds.map((p, i) => (
-                      <PredRow key={`o${i}`} p={p} />
+                      <PredRow
+                        key={`o${i}`}
+                        p={p}
+                        endDate={endOf(p.marketId)}
+                        onOpen={() => setOpenId(p.marketId)}
+                      />
                     ))}
                   </div>
                 </>
@@ -490,7 +498,11 @@ export default function TradeScreen({
                   <h3 className="mb-2 text-[11px] font-bold text-cream">تسویه‌شده</h3>
                   <div className="flex flex-col gap-1.5">
                     {settledPreds.map((p, i) => (
-                      <PredRow key={`s${i}`} p={p} />
+                      <PredRow
+                        key={`s${i}`}
+                        p={p}
+                        onOpen={() => setOpenId(p.marketId)}
+                      />
                     ))}
                   </div>
                 </>
@@ -505,9 +517,35 @@ export default function TradeScreen({
 }
 
 /** یک ردیف کارنامه — در جریان یا تسویه‌شده. */
-function PredRow({ p }: { p: MyPrediction }) {
+/**
+ * یک سطر از کارنامه.
+ *
+ * ⚠️ «در جریان» به‌تنهایی کافی نیست: کاربر نمی‌داند یک ساعت دیگر باید سر
+ * بزند یا سه هفته. مهلت از فهرست بازارهای **باز** پیدا می‌شود چون
+ * `poly_predictions` خودش تاریخ پایان را ذخیره نمی‌کند — و اگر بازار دیگر
+ * در آن فهرست نباشد یعنی بسته شده و منتظر نتیجه است، که آن هم پیامِ
+ * خودش را دارد.
+ *
+ * ⚠️ کل سطر کلیک‌پذیر است. پیش از این کارنامه فقط فهرستی برای خواندن بود؛
+ * حالا هر سطر به همان بازار می‌رود — و برای بازارِ تسویه‌شده، `TradeScreen`
+ * خودش رسید پیش‌بینی را باز می‌کند.
+ */
+function PredRow({
+  p,
+  endDate,
+  onOpen,
+}: {
+  p: MyPrediction;
+  endDate?: string;
+  onOpen: () => void;
+}) {
+  const left = p.points === null && endDate ? remaining(endDate, "exact") : null;
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-line bg-surface/30 px-3 py-2.5">
+    <button
+      type="button"
+      onClick={onOpen}
+      className="flex w-full items-center gap-3 rounded-xl border border-line bg-surface/30 px-3 py-2.5 text-start transition active:bg-surface/60"
+    >
       <div className="min-w-0 flex-1">
         <div dir="auto" className="truncate text-start text-[11.5px] text-cream">
           {displayTitle(p.question, p.questionFa)}
@@ -520,7 +558,13 @@ function PredRow({ p }: { p: MyPrediction }) {
         </div>
       </div>
       {p.points === null ? (
-        <span className="shrink-0 text-[10px] text-muted">در جریان</span>
+        <span
+          className={`shrink-0 text-end text-[10px] ${
+            left && closingSoon(endDate) ? "font-bold text-gold" : "text-muted"
+          }`}
+        >
+          {left ?? "بسته — منتظر نتیجه"}
+        </span>
       ) : (
         <span
           dir="ltr"
@@ -532,6 +576,6 @@ function PredRow({ p }: { p: MyPrediction }) {
           {p.points}
         </span>
       )}
-    </div>
+    </button>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useResource } from "@/components/tg/useResource";
+import { remaining, closingSoon } from "@/lib/dates";
 import {
   BackLink, EmptyState, ErrorState, ScreenTitle, Skeleton, Stat } from "@/components/tg/ui";
 import { haptic, showBackButton } from "@/components/tg/telegram";
@@ -16,6 +17,7 @@ type Bet = {
   marketId: number;
   question: string;
   marketStatus: string;
+  closesAt: string;
   voidReason: string | null;
   side: string;
   stake: number;
@@ -56,8 +58,16 @@ function statusOf(b: Bet): { label: string; cls: string } {
   if (b.status === "won") return { label: "برنده", cls: "text-gain" };
   if (b.status === "lost") return { label: "نتیجه‌ی دیگر", cls: "text-loss" };
   if (b.status === "refunded") return { label: "برگشت خورد", cls: "text-muted" };
+  if (b.marketStatus === "settling")
+    return { label: "نتیجه ثبت شد، در پنجره‌ی اعتراض", cls: "text-gold" };
   if (b.marketStatus === "locked") return { label: "بسته، منتظر نتیجه", cls: "text-gold" };
-  return { label: "در جریان", cls: "text-cream" };
+  // ⚠️ «در جریان» به‌تنهایی کافی نیست: کاربر نمی‌داند یک ساعت دیگر باید سر
+  // بزند یا سه هفته. `closesAt` از قبل در همین روت برمی‌گشت و فقط نمایش
+  // داده نمی‌شد.
+  return {
+    label: remaining(b.closesAt, "exact"),
+    cls: closingSoon(b.closesAt) ? "font-bold text-gold" : "text-cream",
+  };
 }
 
 function voidReasonText(reason: string | null): string {

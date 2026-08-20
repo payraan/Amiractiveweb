@@ -16,6 +16,7 @@ import { haptic } from "@/components/tg/telegram";
 import PulseDetail, { type PulseMarket } from "@/components/tg/screens/PulseDetail";
 import { CATEGORIES } from "@/lib/assets";
 import { TIMEFRAMES } from "@/lib/game";
+import { remaining } from "@/lib/dates";
 
 // نبض بازار در مینی‌اپ — همان بازی سایت، روی همان روت‌ها.
 //
@@ -39,6 +40,7 @@ export type Me = {
     errorPct: number | null;
     points: number | null;
     createdAt: string;
+    settleAt: string;
   }[];
   pulse: { points: number; settled: number; open: number };
 };
@@ -138,7 +140,15 @@ export default function PulseScreen({
         </button>
       </div>
 
-      {view === "mine" && <MyPulse me={me.data} />}
+      {view === "mine" && (
+        <MyPulse
+          me={me.data}
+          onOpen={(asset, tf) => {
+            setTimeframe(tf);
+            setOpenId(asset);
+          }}
+        />
+      )}
 
       {view === "markets" && (
       <>
@@ -375,7 +385,14 @@ export function AssetBadge({ id }: { id: string }) {
 // `total_points` پروفایل. آن یکی جمع هر سه بازی است (نبض بازار + ترید +
 // کمبو) و نشان‌دادنش اینجا یعنی کاربر عددی می‌بیند که با فهرست زیرش
 // نمی‌خواند — همان سردرگمی‌ای که مالک گزارش کرد.
-function MyPulse({ me }: { me: Me | null }) {
+function MyPulse({
+  me,
+  onOpen,
+}: {
+  me: Me | null;
+  /** باز کردن همان دارایی و تایم‌فریمِ همان پیش‌بینی. */
+  onOpen: (asset: string, timeframe: string) => void;
+}) {
   if (!me) {
     return (
       <div className="flex flex-col gap-2">
@@ -439,7 +456,15 @@ function MyPulse({ me }: { me: Me | null }) {
           {mine.map((p) => {
             const done = p.points !== null;
             return (
-              <Card key={p.id} className="flex items-center justify-between gap-3">
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => {
+                  haptic.tap();
+                  onOpen(p.asset, p.timeframe);
+                }}
+                className="flex w-full items-center justify-between gap-3 rounded-2xl border border-line bg-surface/40 p-4 text-start transition active:bg-surface/70"
+              >
                 <div className="min-w-0">
                   <p className="text-[12px] font-bold text-cream">
                     {assetLabel(p.asset)}
@@ -467,11 +492,14 @@ function MyPulse({ me }: { me: Me | null }) {
                     {fa(p.points ?? 0)}
                   </span>
                 ) : (
+                  // ⚠️ «در جریان» به‌تنهایی کافی نیست: کاربر نمی‌داند یک
+                  // ساعت دیگر باید سر بزند یا فردا. `settleAt` از همان
+                  // روتی می‌آید که کارنامه را می‌دهد.
                   <span className="shrink-0 rounded-full border border-gold/30 bg-gold/10 px-2 py-0.5 text-[10px] text-gold">
-                    در جریان
+                    {remaining(p.settleAt, "exact")}
                   </span>
                 )}
-              </Card>
+              </button>
             );
           })}
         </div>
