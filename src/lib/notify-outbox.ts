@@ -22,7 +22,11 @@ import { tgCall, markTelegramBlocked, type InlineButton } from "@/lib/telegram";
 // می‌شد، بازاری که بعدا اصلاح شود پیامی می‌فرستاد که با چیزی که واقعا
 // پرداخت شده نمی‌خواند.
 
-export type NotifyKind = "ir_settled" | "trade_settled" | "pulse_settled";
+export type NotifyKind =
+  | "ir_settled"
+  | "trade_settled"
+  | "pulse_settled"
+  | "combo_settled";
 
 let ready: Promise<void> | null = null;
 

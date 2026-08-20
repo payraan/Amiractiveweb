@@ -3,6 +3,9 @@
 // برد = ۱۰۰×n×(۱−P) ، باخت = −۱۰۰×n×P
 
 import { db } from "@/lib/db";
+import { queueNotify, ensureOutboxTable } from "@/lib/notify-outbox";
+import { comboSettledMessage } from "@/lib/settle-messages";
+import { log } from "@/lib/log";
 
 export const COMBO_FREE_PER_DAY = 1;
 export const COMBO_COST = 2; // MOON برای کمبوهای مازاد
@@ -90,6 +93,8 @@ export async function ensureComboTables(): Promise<void> {
 // ── settlement ─────────────────────────────────────────────────
 export async function settleCombosDue(): Promise<{ settled: number }> {
   await ensureComboTables();
+  // ⚠️ پیش از هر ترنزاکشن: DDL داخل ترنزاکشنِ قفل‌دار خطرناک است.
+  await ensureOutboxTable();
   const pool = await db();
 
   // ۱) نتیجه‌ی پاهای باز را از بازارهای بسته‌شده بگیر
@@ -188,10 +193,41 @@ export async function settleCombosDue(): Promise<{ settled: number }> {
         `UPDATE players SET total_points = total_points + $1 WHERE id=$2`,
         [points, t.player_id]
       );
+
+      // ⚠️ داخل همان ترنزاکشن. `queueNotify` خودش SAVEPOINT دارد، پس
+      // شکستش امتیازِ ثبت‌شده را باطل نمی‌کند.
+      //
+      // تا امروز کمبو تنها بازی‌ای بود که اعلان نداشت: بلیت تسویه می‌شد،
+      // امتیاز اضافه می‌شد، و کاربر هیچ‌وقت خبردار نمی‌شد.
+      {
+        const { text, buttons } = comboSettledMessage({
+          ticketId: t.id,
+          legs: t.legs_count,
+          prob,
+          leverage: lev,
+          points,
+          won: !t.any_lost,
+        });
+        await queueNotify(client, {
+          playerId: t.player_id,
+          kind: "combo_settled",
+          ref: String(t.id),
+          text,
+          buttons,
+        });
+      }
+
       await client.query("COMMIT");
       settled++;
-    } catch {
+    } catch (err) {
       await client.query("ROLLBACK").catch(() => {});
+      // ⚠️ خطا دیگر بلعیده نمی‌شود. پیش از این، شکستِ تسویه‌ی یک بلیت هیچ
+      // ردی نمی‌گذاشت — شمارنده‌ی بی‌علت از خودِ مشکل بدتر است (درس ۶).
+      log.error("combo.settle_failed", {
+        ticketId: t.id,
+        playerId: t.player_id,
+        err: err instanceof Error ? err.message : String(err),
+      });
     } finally {
       client.release();
     }
