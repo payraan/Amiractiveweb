@@ -24,7 +24,7 @@ export async function GET(req: Request) {
   const { rows } = await pool.query(
     `SELECT m.id, m.question, m.category, m.source_note, m.closes_at,
             m.status, m.outcome, m.yes_total, m.no_total, m.bettors,
-            m.boosted_until, m.cover_file_id, m.creator_id, m.creator_cut,
+            m.boosted_until, m.cover_file_id, m.creator_id, m.creator_cut, m.early_cut,
             p.display_name AS creator
        FROM ir_markets m
        LEFT JOIN players p ON p.id = m.creator_id
@@ -42,6 +42,8 @@ export async function GET(req: Request) {
     const no = Number(r.no_total);
     // سازنده‌ی حذف‌شده سهمی ندارد؛ همان قاعده‌ی تسویه.
     const cut = r.creator_id === null ? 0 : Number(r.creator_cut);
+    // سهم نفرات اول برخلاف سهم سازنده به وجودِ سازنده وابسته نیست.
+    const early = Number(r.early_cut ?? 0);
     return {
       id: r.id,
       question: r.question,
@@ -66,8 +68,8 @@ export async function GET(req: Request) {
       yesPct: impliedPct(yes, no),
       // ⚠️ سهم سازنده حتما پاس داده می‌شود، وگرنه ضریبِ نمایش‌داده‌شده از
       // چیزی که تسویه می‌پردازد بالاتر است.
-      yesOdds: Math.round(oddsFor(yes, no, "yes", cut) * 100) / 100,
-      noOdds: Math.round(oddsFor(yes, no, "no", cut) * 100) / 100,
+      yesOdds: Math.round(oddsFor(yes, no, "yes", cut, early) * 100) / 100,
+      noOdds: Math.round(oddsFor(yes, no, "no", cut, early) * 100) / 100,
     };
   });
 

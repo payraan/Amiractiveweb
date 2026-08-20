@@ -1,13 +1,12 @@
-import { NextResponse } from "next/server";
-import { logEvent } from "@/lib/events";
-import { log } from "@/lib/log";
-import { db, touchActivity } from "@/lib/db";
-import { currentPlayerId, currentSurface } from "@/lib/current-player";
 import {
-  ensureIrTables,
+  NextResponse } from "next/server"; import { logEvent } from "@/lib/events"; import { log } from "@/lib/log"; import { db,
+  touchActivity } from "@/lib/db"; import { currentPlayerId,
+  currentSurface } from "@/lib/current-player"; import {   ensureIrTables,
   moveFunds,
   creatorRate,
   MIN_STAKE_USDT,
+  EARLY_SLOTS,
+  EARLY_RATE,
 } from "@/lib/iran";
 import { requireLinkedTelegram } from "@/lib/money-guard";
 
@@ -55,7 +54,7 @@ export async function POST(req: Request) {
     // Postgres بن‌بست را می‌گیرد و یکی را می‌کشد، ولی آن یکی می‌تواند تسویه
     // باشد؛ یعنی پول برنده‌ها معلق می‌ماند.
     const m = await client.query(
-      "SELECT status, closes_at, creator_id, category FROM ir_markets WHERE id=$1 FOR UPDATE",
+      "SELECT status, closes_at, creator_id, category, bettors FROM ir_markets WHERE id=$1 FOR UPDATE",
       [marketId]
     );
     if (!m.rowCount) {
@@ -115,17 +114,40 @@ export async function POST(req: Request) {
     // هدیه آمده به پول واقعیِ قابل‌برداشت تبدیل می‌شد.
     const cutDemo = Math.round(spent.demoPart * rate * 1e6) / 1e6;
 
-    // آیا این کاربر برای اولین بار روی این بازار شرط می‌بندد؟
-    const prev = await client.query(
-      "SELECT 1 FROM ir_bets WHERE market_id=$1 AND player_id=$2 LIMIT 1",
+    // آیا این کاربر برای اولین بار روی این بازار شرط می‌بندد؟ و اگر نه،
+    // آیا شرط‌های قبلی‌اش جزو نفرات اول بوده‌اند؟
+    const prev = await client.query<{ n: number; was_early: boolean | null }>(
+      `SELECT count(*)::int AS n, bool_or(early_cut > 0) AS was_early
+         FROM ir_bets WHERE market_id=$1 AND player_id=$2`,
       [marketId, playerId]
     );
+    const already = prev.rows[0].n > 0;
+
+    // ── سهم نفرات اول ──────────────────────────────────────
+    //
+    // واجد شرایط بودن به **رتبه‌ی خودِ شرط‌بند** گره خورده، نه به تک‌تک
+    // شرط‌ها: اگر جزو ده نفر اول این بازار باشی، همه‌ی شرط‌هایت روی همان
+    // بازار سهم می‌گیرند. غیر از این، کسی که زود آمده برای شرط دومش تنبیه
+    // می‌شد — دقیقا برعکسِ چیزی که می‌خواهیم.
+    //
+    // ⚠️ `bettors` شمارِ **پیش از** این شرط است، چون UPDATE پایین‌تر
+    // اجرا می‌شود. پس «کمتر از EARLY_SLOTS» یعنی این نفر هنوز داخل سهمیه
+    // جا می‌شود.
+    const isEarly = already
+      ? Boolean(prev.rows[0].was_early)
+      : Number(m.rows[0].bettors) < EARLY_SLOTS;
+    const earlyCut = isEarly ? Math.round(stake * EARLY_RATE * 1e6) / 1e6 : 0;
+    // سهم دمو به همان نسبت — همان قاعده‌ی سهم سازنده. بدون این، پاداشی که
+    // از پول هدیه آمده به پول واقعیِ قابل‌برداشت تبدیل می‌شد.
+    const earlyCutDemo = isEarly
+      ? Math.round(spent.demoPart * EARLY_RATE * 1e6) / 1e6
+      : 0;
 
     await client.query(
       `INSERT INTO ir_bets (market_id, player_id, side, stake, demo_stake,
-                            creator_cut, creator_cut_demo)
-       VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-      [marketId, playerId, side, stake, spent.demoPart, cut, cutDemo]
+                            creator_cut, creator_cut_demo, early_cut, early_cut_demo)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [marketId, playerId, side, stake, spent.demoPart, cut, cutDemo, earlyCut, earlyCutDemo]
     );
     await client.query(
       `UPDATE ir_markets
@@ -133,15 +155,19 @@ export async function POST(req: Request) {
               no_total  = no_total  + $2,
               bettors   = bettors   + $3,
               creator_cut = creator_cut + $5,
-              creator_cut_demo = creator_cut_demo + $6
+              creator_cut_demo = creator_cut_demo + $6,
+              early_cut = early_cut + $7,
+              early_cut_demo = early_cut_demo + $8
         WHERE id = $4`,
       [
         side === "yes" ? stake : 0,
         side === "no" ? stake : 0,
-        prev.rowCount ? 0 : 1,
+        already ? 0 : 1,
         marketId,
         cut,
         cutDemo,
+        earlyCut,
+        earlyCutDemo,
       ]
     );
 
@@ -159,8 +185,12 @@ export async function POST(req: Request) {
       side,
       stake,
       demo: spent.demoPart,
-      firstOnMarket: !prev.rowCount,
+      // ⚠️ `already` و نه `prev.rowCount`: کوئری حالا تجمیعی است و همیشه
+      // یک ردیف برمی‌گرداند، پس rowCount همیشه ۱ بود و این فیلد همیشه false.
+      firstOnMarket: !already,
       creatorCut: cut,
+      earlyCut,
+      isEarly,
       referredByCreator,
     });
     // ⚠️ **بعد از** COMMIT و بیرون از ترنزاکشن. آمار هرگز نباید بتواند یک

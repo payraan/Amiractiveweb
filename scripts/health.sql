@@ -71,7 +71,7 @@ SELECT 10, 'نوع تراکنش ناشناخته در دفترکل',
   (SELECT count(*) FROM wallet_ledger WHERE kind NOT IN (
     'deposit','withdraw_hold','withdraw_refund','ir_bet','ir_payout','ir_refund',
     'ir_propose_fee','ir_propose_refund','ir_boost','ir_creator_share',
-    'bonus_code','credit_purchase','admin_adjust'))
+    'ir_early_share','bonus_code','credit_purchase','admin_adjust'))
 UNION ALL
 SELECT 11, 'پول دموی منفی در یک سطر بستانکار',
   (SELECT count(*) FROM wallet_ledger WHERE demo > amount AND amount > 0)
@@ -190,5 +190,25 @@ UNION ALL
 SELECT 39, 'دریافت دوباره‌ی یک کد بونوس توسط یک نفر',
   (SELECT count(*) FROM (SELECT code, player_id FROM bonus_redemptions
    GROUP BY code, player_id HAVING count(*)>1) x)
+
+-- ─── سهم نفرات اول ──────────────────────────────────────────────────────
+
+UNION ALL
+SELECT 40, 'سهم نفرات اول = جمع سهم تک‌تک شرط‌ها', (SELECT count(*) FROM (
+  SELECT m.id FROM ir_markets m LEFT JOIN ir_bets b ON b.market_id=m.id
+  GROUP BY m.id, m.early_cut
+  HAVING round(m.early_cut,6) <> round(COALESCE(SUM(b.early_cut),0),6)) x)
+UNION ALL
+SELECT 41, 'سهم دموی نفرات اول از اصلش بیشتر نباشد', (SELECT count(*) FROM (
+  SELECT id FROM ir_markets WHERE early_cut_demo > early_cut
+  UNION ALL SELECT id FROM ir_bets WHERE early_cut_demo > early_cut) x)
+UNION ALL
+-- ⚠️ مهم‌ترین نگهبان اقتصادی این قابلیت: سهم نفرات اول کسری از کمیسیون
+-- است (۳۰٪ × ۳٪)، پس هرگز نباید از خودِ کمیسیون بیشتر شود. اگر بشود،
+-- پلتفرم روی آن بازار ضرر کرده — چیزی که طبق طراحی ناممکن است، و
+-- ناممکن‌ها همان‌هایی‌اند که باید سنجیده شوند.
+SELECT 42, 'سهم نفرات اول از کمیسیون بیشتر نشود  ← ضرر پلتفرم',
+  (SELECT count(*) FROM ir_markets
+    WHERE early_cut > (yes_total + no_total) * 0.03 + 0.000001)
 
 ) checks ORDER BY n;

@@ -73,6 +73,34 @@ export function creatorRate(referredByCreator: boolean): number {
 // واریز و برداشت اثر دارد — حداقل برداشت جداست و در wallet-rules.ts تعریف
 // می‌شود (آنجا چون فرم‌های کلاینت هم به آن نیاز دارند و این فایل به pg وصل است).
 export const MIN_STAKE_USDT = 1;
+// ── سهم نفرات اول ────────────────────────────────────────────
+//
+// مشکلی که حل می‌کند: بازار خالی یک دور باطل است. کسی اول نمی‌رود چون
+// استخر خالی است، و استخر خالی می‌ماند چون کسی اول نمی‌رود.
+//
+// ⚠️ **نرخ عمدا کسری از کمیسیون است، نه عددی از استخر.** اگر «۱٪ استخر»
+// بود، روزی کسی عدد را بالاتر از کمیسیون می‌گذاشت و پلتفرم ضرر می‌داد.
+// این‌طور ضرردادن از نظر ساختاری ممکن نیست: سهم هرگز نمی‌تواند از چیزی که
+// گرفته می‌شود بیشتر شود.
+//
+// ⚠️ **از استخر برداشته می‌شود، نه از کمیسیون** — دقیقا مثل سهم سازنده و
+// طبق همان قید سند («سهم سازنده همیشه از استخر برداشته شود، هرگز ساخته
+// نشود»). یعنی درآمد پلتفرم دست‌نخورده ۳٪ می‌ماند و این پاداش، انتقالی از
+// شرط‌بندهای دیرآمده به زودآمده‌هاست — همان انگیزه‌ای که می‌خواهیم.
+//
+// ⚠️ **متناسب با مبلغ است، نه مساوی بین نفرات.** تقسیم مساوی یعنی ده حساب
+// یک‌دلاری همان‌قدر بگیرند که یک نفر با صد دلار — یعنی همان سوراخ
+// چندحسابی. با تناسب، تکه‌کردن حساب هیچ سودی ندارد.
+//
+// ضدفارم: اگر کسی با حساب‌های خودش هر دو طرف بازار خودش را بگیرد،
+//   خالص = S×(۱ − p − c − e) + S×c + S×e − S = −p×S
+// هم `c` و هم `e` حذف می‌شوند — پرداخت می‌شوند و همان لحظه برمی‌گردند.
+// پس هر عددی باشد، خالصِ فارم برابر کمیسیون پلتفرم و منفی است.
+export const EARLY_SLOTS = 10;
+export const EARLY_SHARE_OF_COMMISSION = 0.3;
+/** نرخ روی مبلغ هر شرطِ واجد شرایط — ۰.۳ × ۰.۰۳ = ۰.۰۰۹ */
+export const EARLY_RATE = round6(EARLY_SHARE_OF_COMMISSION * COMMISSION);
+
 export const MIN_ODDS = 1.05; // زیر این، بازار باطل می‌شود
 export const DISPUTE_HOURS = 24; // پنجره‌ی اعتراض پس از تسویه
 /** کارمزد ایجاد بازار — از کیف پول تتر. اگر بازار رد شود کامل برمی‌گردد. */
@@ -218,6 +246,12 @@ export async function ensureIrTables(): Promise<void> {
         "ALTER TABLE ir_markets ADD COLUMN IF NOT EXISTS creator_cut_demo NUMERIC(18,6) NOT NULL DEFAULT 0"
       );
       await pool.query(
+        "ALTER TABLE ir_markets ADD COLUMN IF NOT EXISTS early_cut NUMERIC(18,6) NOT NULL DEFAULT 0"
+      );
+      await pool.query(
+        "ALTER TABLE ir_markets ADD COLUMN IF NOT EXISTS early_cut_demo NUMERIC(18,6) NOT NULL DEFAULT 0"
+      );
+      await pool.query(
         `CREATE INDEX IF NOT EXISTS ir_markets_boosted
            ON ir_markets (boosted_until DESC) WHERE boosted_until IS NOT NULL`
       );
@@ -260,6 +294,12 @@ export async function ensureIrTables(): Promise<void> {
       );
       await pool.query(
         "ALTER TABLE ir_bets ADD COLUMN IF NOT EXISTS creator_cut_demo NUMERIC(18,6) NOT NULL DEFAULT 0"
+      );
+      await pool.query(
+        "ALTER TABLE ir_bets ADD COLUMN IF NOT EXISTS early_cut NUMERIC(18,6) NOT NULL DEFAULT 0"
+      );
+      await pool.query(
+        "ALTER TABLE ir_bets ADD COLUMN IF NOT EXISTS early_cut_demo NUMERIC(18,6) NOT NULL DEFAULT 0"
       );
 
       // ── مهاجرت یک‌باره ────────────────────────────────────
@@ -426,13 +466,14 @@ export function oddsFor(
   yesTotal: number,
   noTotal: number,
   side: "yes" | "no",
-  creatorCut = 0
+  creatorCut: number,
+  earlyCut: number
 ): number {
   const winners = side === "yes" ? yesTotal : noTotal;
   if (winners <= 0) return 0;
   const pool = yesTotal + noTotal;
-  // منفی‌نشدن: سهم سازنده هرگز نباید از استخر بیشتر شود، ولی محافظ ارزان است.
-  const payable = Math.max(0, pool * (1 - COMMISSION) - creatorCut);
+  // منفی‌نشدن: سهم‌ها هرگز نباید از استخر بیشتر شوند، ولی محافظ ارزان است.
+  const payable = Math.max(0, pool * (1 - COMMISSION) - creatorCut - earlyCut);
   return payable / winners;
 }
 
@@ -448,9 +489,10 @@ export function wouldBeVoid(
   yesTotal: number,
   noTotal: number,
   outcome: "yes" | "no",
-  creatorCut = 0
+  creatorCut: number,
+  earlyCut: number
 ): boolean {
-  const o = oddsFor(yesTotal, noTotal, outcome, creatorCut);
+  const o = oddsFor(yesTotal, noTotal, outcome, creatorCut, earlyCut);
   return o > 0 && o < MIN_ODDS;
 }
 
@@ -635,7 +677,8 @@ export async function settleIrMarket(
 
     const m = await client.query(
       `SELECT id, status, outcome, yes_total, no_total, settled_at, question,
-              creator_id, creator_cut, creator_cut_demo
+              creator_id, creator_cut, creator_cut_demo,
+              early_cut
          FROM ir_markets WHERE id = $1 FOR UPDATE`,
       [marketId]
     );
@@ -680,9 +723,16 @@ export async function settleIrMarket(
     const creatorCut = creatorId === null ? 0 : round6(Number(row.creator_cut));
     const creatorCutDemo =
       creatorId === null ? 0 : round6(Number(row.creator_cut_demo));
+    // ⚠️ برخلاف سهم سازنده، این یکی به وجودِ سازنده وابسته نیست: نفرات
+    // اول سهمشان را گرفته‌اند حتی اگر سازنده‌ی بازار حذف شده باشد.
+    const earlyCut = round6(Number(row.early_cut ?? 0));
+    // ⚠️ `early_cut_demo` عمدا اینجا خوانده نمی‌شود: سهم دموی هر شرط از
+    // خودِ همان شرط کسر می‌شود و در `demoOut` جمع می‌آید — دقیق‌تر از یک
+    // جمعِ سطح‌بازار. ستونِ سطح بازار فقط برای چک سلامت نگه داشته می‌شود.
 
     const bets = await client.query(
-      `SELECT id, player_id, side, stake, demo_stake, creator_cut, creator_cut_demo
+      `SELECT id, player_id, side, stake, demo_stake, creator_cut, creator_cut_demo,
+              early_cut, early_cut_demo
          FROM ir_bets
         WHERE market_id = $1 AND status = 'open'`,
       [marketId]
@@ -724,7 +774,7 @@ export async function settleIrMarket(
     // مسیر باطل: برگشت کامل بدون کمیسیون — و **بدون سهم سازنده**.
     // بازاری که باطل شده هیچ ارزشی نساخته؛ گرفتن سهم از آن یعنی پول کاربر
     // بابت هیچ برداشته شود.
-    if (!outcome || outcome === "void" || wouldBeVoid(yes, no, outcome, creatorCut)) {
+    if (!outcome || outcome === "void" || wouldBeVoid(yes, no, outcome, creatorCut, earlyCut)) {
       for (const b of bets.rows) {
         // برگشت کامل یعنی دقیقا همان چیزی که رفت برمی‌گردد: سهم دمو دمو
         // می‌ماند و سهم واقعی واقعی. اینجا سودی در کار نیست.
@@ -813,7 +863,7 @@ export async function settleIrMarket(
     }
 
     // مسیر عادی
-    const odds = oddsFor(yes, no, outcome, creatorCut);
+    const odds = oddsFor(yes, no, outcome, creatorCut, earlyCut);
     let paid = 0;
     // دموی واردشده به استخر، و دمویی که با پرداختی‌ها بیرون رفت. تفاضلشان
     // همان بخشی از کمیسیون است که از پول دمو آمده — یعنی درآمدِ کاغذی، نه
@@ -844,6 +894,27 @@ export async function settleIrMarket(
         );
         paid += amt;
       }
+      // ── سهم نفرات اول ──
+      // ⚠️ **مستقل از برد و باخت**. پاداشِ زود آمدن است، نه پاداشِ درست
+      // حدس زدن؛ اگر فقط به برنده می‌رسید، همان جایزه‌ی بردِ بزرگ‌تر بود و
+      // مشکلِ «کسی اول نمی‌رود» را حل نمی‌کرد.
+      //
+      // ⚠️ جدا از `amt` پرداخت می‌شود و در `payout` جمع نمی‌شود: `payout`
+      // یعنی نتیجه‌ی پیش‌بینی، و قاطی‌کردنش با پاداشِ زودآمدن، هم کارنامه‌ی
+      // کاربر را دروغ می‌کند و هم چک سلامتِ «جمع پرداختی ≤ استخر» را.
+      const ownEarly = round6(Number(b.early_cut ?? 0));
+      if (ownEarly > 0) {
+        const ownEarlyDemo = Math.min(round6(Number(b.early_cut_demo ?? 0)), ownEarly);
+        demoOut += ownEarlyDemo;
+        await moveFunds(
+          client,
+          b.player_id,
+          ownEarly,
+          "ir_early_share",
+          `m${marketId}`,
+          { creditDemo: ownEarlyDemo }
+        );
+      }
       await client.query(
         "UPDATE ir_bets SET status=$1, payout=$2 WHERE id=$3",
         [won ? "won" : "lost", amt, b.id]
@@ -860,11 +931,19 @@ export async function settleIrMarket(
     //
     // ⚠️ بدون کسر سهم سازنده، پولی که به یک کاربر رفته بود در دفترکل
     // «درآمد پلتفرم» ثبت می‌شد و گزارش درآمد برای همیشه باد می‌کرد.
-    await recordRevenue(client, "ir_commission", round6(yes + no - paid - creatorCut), {
+    // ⚠️ سهم نفرات اول هم مثل سهم سازنده کسر می‌شود: پولی که به کاربر
+    // رفته، درآمد پلتفرم نیست. بدون این خط، گزارش درآمد به اندازه‌ی همان
+    // سهم باد می‌کرد — همان اشتباهی که یک بار برای سهم سازنده افتاد.
+    await recordRevenue(
+      client,
+      "ir_commission",
+      round6(yes + no - paid - creatorCut - earlyCut),
+      {
       marketId,
       demoAmount: round6(demoIn - demoOut - creatorCutDemo),
       note: `استخر ${(yes + no).toFixed(2)}؛ پرداختی ${paid.toFixed(2)}`,
-    });
+      }
+    );
     await client.query("UPDATE ir_markets SET status='settled' WHERE id=$1", [
       marketId,
     ]);

@@ -55,6 +55,7 @@ export async function GET(req: Request) {
       const yes = Number(r.yes_total);
       const no = Number(r.no_total);
       const cut = r.creator_id === null ? 0 : Number(r.creator_cut ?? 0);
+      const early = Number(r.early_cut ?? 0);
       const settledAt = r.settled_at ? new Date(r.settled_at).getTime() : 0;
       return {
         id: r.id,
@@ -71,14 +72,14 @@ export async function GET(req: Request) {
         volume: yes + no,
         bettors: r.bettors,
         yesPct: impliedPct(yes, no),
-        yesOdds: Math.round(oddsFor(yes, no, "yes", cut) * 100) / 100,
-        noOdds: Math.round(oddsFor(yes, no, "no", cut) * 100) / 100,
+        yesOdds: Math.round(oddsFor(yes, no, "yes", cut, early) * 100) / 100,
+        noOdds: Math.round(oddsFor(yes, no, "no", cut, early) * 100) / 100,
         creatorCut: cut,
         // هشدار پیش از تأیید نتیجه: آیا این نتیجه بازار را باطل می‌کند؟
         // ⚠️ سهم سازنده باید اینجا هم باشد، وگرنه پنل «باطل نمی‌شود»
         // می‌گوید و تسویه باطلش می‌کند.
-        wouldVoidYes: wouldBeVoid(yes, no, "yes", cut),
-        wouldVoidNo: wouldBeVoid(yes, no, "no", cut),
+        wouldVoidYes: wouldBeVoid(yes, no, "yes", cut, early),
+        wouldVoidNo: wouldBeVoid(yes, no, "no", cut, early),
         disputeEndsAt: settledAt
           ? new Date(settledAt + DISPUTE_HOURS * 3600_000).toISOString()
           : null,

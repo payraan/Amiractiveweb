@@ -11,7 +11,7 @@
 // شود. فهرست فعلی از خود کد درآمده است:
 //   deposit · withdraw_hold · withdraw_refund · ir_bet · ir_payout ·
 //   ir_refund · ir_propose_fee · ir_propose_refund · ir_boost ·
-//   ir_creator_share · bonus_code · credit_purchase ·
+//   ir_creator_share · ir_early_share · bonus_code · credit_purchase ·
 //   admin_adjust
 
 export const LEDGER_LABEL: Record<string, string> = {
@@ -24,6 +24,7 @@ export const LEDGER_LABEL: Record<string, string> = {
   ir_propose_fee: "کارمزد ایجاد بازار",
   ir_boost: "بوست بازار",
   ir_creator_share: "سهم سازنده‌ی بازار",
+  ir_early_share: "پاداش پیش‌بین زودهنگام",
   bonus_code: "کد هدیه",
   ir_propose_refund: "برگشت هزینه‌ی ساخت بازار",
   credit_purchase: "خرید MOON",
