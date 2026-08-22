@@ -46,6 +46,12 @@ export async function ensureTranslationTable(): Promise<void> {
            updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
          )`
       );
+      // زمینه‌ی عنوان (معمولا عنوان رویداد پالی‌مارکت). بدون آن، پرسشی
+      // مثل «Game 3: Ends in a day?» حتی به انگلیسی هم مبهم است و مدل
+      // ناچار تحت‌اللفظی ترجمه می‌کند.
+      await pool.query(
+        "ALTER TABLE translations ADD COLUMN IF NOT EXISTS context TEXT"
+      );
       await pool.query(
         `CREATE INDEX IF NOT EXISTS translations_pending
            ON translations (created_at) WHERE fa IS NULL`
@@ -62,7 +68,16 @@ export async function ensureTranslationTable(): Promise<void> {
  * پر شود؛ هیچ‌جا لازم نیست کسی یادش باشد بازار تازه را برای ترجمه معرفی کند.
  */
 export async function translationsFor(
-  texts: string[]
+  texts: string[],
+  /**
+   * زمینه‌ی هر عنوان — معمولا عنوان رویداد پالی‌مارکت.
+   *
+   * ⚠️ فقط به **مدل** داده می‌شود تا موضوع را بفهمد، و عمدا وارد کلید کش
+   * نمی‌شود. اگر وارد کلید می‌شد، هر بار که همان پرسش در رویداد دیگری
+   * تکرار شود دوباره ترجمه می‌شد — و مهم‌تر، پرامپت صریحا می‌گوید نام
+   * رویداد را در خروجی نیاورد، پس ترجمه بین رویدادها قابل استفاده است.
+   */
+  hints?: Map<string, string>
 ): Promise<Map<string, string>> {
   const uniq = Array.from(new Set(texts.map((t) => t.trim()).filter(Boolean)));
   if (!uniq.length) return new Map();
@@ -87,10 +102,14 @@ export async function translationsFor(
     // ثبت در صف — بدون ترجمه. خودِ ترجمه کار کرون است، تا این درخواست
     // منتظر شبکه نماند.
     await pool.query(
-      `INSERT INTO translations (hash, en)
-       SELECT * FROM UNNEST($1::text[], $2::text[])
+      `INSERT INTO translations (hash, en, context)
+       SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[])
        ON CONFLICT (hash) DO NOTHING`,
-      [missing.map(textKey), missing]
+      [
+        missing.map(textKey),
+        missing,
+        missing.map((t) => hints?.get(t) ?? null),
+      ]
     );
   }
   return out;
@@ -107,10 +126,18 @@ const PROMPT = `تو یک مترجم حرفه‌ای فارسی هستی. عنو
 
 قواعد:
 - ساختار پرسشی را حفظ کن؛ خروجی باید یک پرسش باشد، نه جمله‌ی خبری.
-- اسم افراد، تیم‌ها، شرکت‌ها، ارزها و رویدادهای شناخته‌شده را به لاتین دست‌نخورده بگذار (مثل George Russell، Bitcoin، F1، NBA).
-- عدد، تاریخ و واحد را دقیق نگه دار.
+- **تحت‌اللفظی ترجمه نکن.** معنا را برسان، نه کلمه را. خروجی باید برای کسی که اصل انگلیسی را ندیده کاملا روشن باشد.
+  ✗ "Ends in a day?" → «آیا در روز به پایان می‌رسد؟»  (بی‌معنا)
+  ✓ "Ends in a day?" → «آیا ظرف یک روز تمام می‌شود؟»
+  ✗ "Any player Quadra Kill?" → «آیا هیچ بازیکنی رمپیج کسب می‌کند؟» (اصطلاح عوض شده)
+  ✓ "Any player Quadra Kill?" → «آیا بازیکنی Quadra Kill می‌زند؟»
+- اگر پرسش کوتاه و مبهم است (مثل "Game 3: Ends in a day?")، آن را به یک جمله‌ی **خودبسنده‌ی فارسی** تبدیل کن که بدون دانستن بستر هم فهمیده شود — ولی **نام تیم یا رویداد اضافه نکن**.
+- اسم افراد، تیم‌ها، شرکت‌ها، ارزها، رویدادها و اصطلاح‌های تخصصی بازی را به لاتین دست‌نخورده بگذار (مثل George Russell، Bitcoin، F1، NBA، Quadra Kill).
+- عدد، تاریخ و واحد را دقیق نگه دار. شماره‌ی بازی/راند را با حرف فارسی بنویس («بازی سوم» نه «بازی ۳»).
 - کوتاه و بدون توضیح اضافه. لحن رسمی.
 - هرگز کلمه‌های «شرط»، «شرط‌بندی» و «برد و باخت» را به کار نبر؛ به‌جایش «پیش‌بینی».
+
+اگر برای یک عنوان، زمینه‌ای داخل [] داده شد، فقط برای **فهمیدن** موضوع از آن استفاده کن و **هرگز** آن را در خروجی نیاور.
 
 ورودی یک آرایه‌ی JSON از رشته‌هاست. خروجی **فقط** یک آرایه‌ی JSON از رشته‌های فارسی، دقیقا به همان تعداد و ترتیب. هیچ متن دیگری ننویس.`;
 
@@ -314,8 +341,12 @@ export async function translatePending(maxBatches = 12): Promise<TranslateResult
   for (let i = 0; i < maxBatches; i++) {
     // failures < 3 یعنی عنوانی که مدل مدام رویش می‌شکند، صف را برای همیشه
     // اشغال نمی‌کند و بقیه پشتش نمی‌مانند.
-    const batch = await pool.query<{ hash: string; en: string }>(
-      `SELECT hash, en FROM translations
+    const batch = await pool.query<{
+      hash: string;
+      en: string;
+      context: string | null;
+    }>(
+      `SELECT hash, en, context FROM translations
         WHERE fa IS NULL AND failures < 3
         ORDER BY created_at LIMIT $1`,
       [BATCH]
@@ -323,7 +354,12 @@ export async function translatePending(maxBatches = 12): Promise<TranslateResult
     if (!batch.rowCount) break;
 
     const rows = batch.rows;
-    const out = await callGemini(rows.map((r) => r.en));
+    // ⚠️ زمینه داخل [] می‌رود و پرامپت صریحا می‌گوید فقط برای فهمیدن از آن
+    // استفاده کن و در خروجی نیاور — وگرنه ترجمه‌ی «بازی سوم» به نام یک
+    // رویداد مشخص چسبیده می‌شد و در رویداد بعدی غلط از آب درمی‌آمد.
+    const out = await callGemini(
+      rows.map((r) => (r.context ? `${r.en} [${r.context}]` : r.en))
+    );
 
     if (!out) {
       failed += rows.length;

@@ -77,7 +77,16 @@ export async function tradePollInputs(
 ): Promise<Map<string, MarketPollInput>> {
   let fa = new Map<string, string>();
   try {
-    fa = await translationsFor(markets.map((m) => m.question));
+    const hints = new Map<string, string>();
+    for (const m of markets) {
+      if (m.eventTitle && m.eventTitle !== m.question) {
+        hints.set(m.question, m.eventTitle);
+      }
+    }
+    fa = await translationsFor(
+      markets.map((m) => m.question),
+      hints
+    );
   } catch {
     /* بدون ترجمه ادامه می‌دهیم — همان تصمیمی که poly-markets می‌گیرد */
   }

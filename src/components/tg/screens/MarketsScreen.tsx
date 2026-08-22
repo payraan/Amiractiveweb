@@ -8,6 +8,7 @@ import { matchesQuery } from "@/lib/search";
 import { haptic } from "@/components/tg/telegram";
 import ProposeScreen from "@/components/tg/screens/ProposeScreen";
 import MyBetsScreen from "@/components/tg/screens/MyBetsScreen";
+import MyMarketsScreen from "@/components/tg/screens/MyMarketsScreen";
 import MarketDetail, { isBoosted, type Market } from "@/components/tg/screens/MarketDetail";
 import ResultCard from "@/components/tg/screens/ResultCard";
 import { track } from "@/components/track";
@@ -125,6 +126,8 @@ export default function MarketsScreen({
   const [q, setQ] = useState("");
   const [proposing, setProposing] = useState(false);
   const [showingMine, setShowingMine] = useState(false);
+  // درآمد بازارساز — زیرصفحه، مثل کارنامه.
+  const [showingMyMarkets, setShowingMyMarkets] = useState(false);
   // مقصد deep link به‌عنوان مقدار اولیه‌ی state می‌نشیند، نه در یک افکت:
   // این‌طور یک‌بار اعمال می‌شود، بازگشت کاربر آن را دوباره باز نمی‌کند، و
   // setState داخل افکت هم لازم نمی‌شود.
@@ -162,6 +165,18 @@ export default function MarketsScreen({
   // خود تلگرام همان چیزی است که کاربر برای بستنش دنبالش می‌گردد.
   // زیرصفحه، نه تب پنجم — همان استدلال ساخت بازار: کارنامه یک نگاه است نه
   // یک مقصد، و دکمه‌ی بازگشت خود تلگرام همان چیزی است که کاربر می‌زند.
+  if (showingMyMarkets) {
+    return (
+      <MyMarketsScreen
+        onBack={() => setShowingMyMarkets(false)}
+        onOpenMarket={(id) => {
+          setShowingMyMarkets(false);
+          setOpenId(id);
+        }}
+      />
+    );
+  }
+
   if (showingMine) {
     return (
       <MyBetsScreen
@@ -287,6 +302,19 @@ export default function MarketsScreen({
             className="rounded-xl border border-line bg-surface/40 px-3 py-2 text-[11px] font-bold text-cream"
           >
             پیش‌بینی‌های من
+          </button>
+          {/* درآمد بازارساز. تا امروز سهم سازنده پرداخت می‌شد ولی هیچ‌جا
+              دیده نمی‌شد — و سازنده‌ای که نمی‌داند چقدر درآورده، بازار
+              بعدی را نمی‌سازد. */}
+          <button
+            type="button"
+            onClick={() => {
+              haptic.press();
+              setShowingMyMarkets(true);
+            }}
+            className="rounded-xl border border-gold/40 bg-gold/5 px-3 py-2 text-[11px] font-bold text-gold"
+          >
+            بازارهای من
           </button>
           <button
             type="button"

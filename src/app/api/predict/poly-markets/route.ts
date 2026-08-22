@@ -15,10 +15,21 @@ export async function GET() {
   // بازارِ انگلیسی بدتر است، و اینجا تنها جایی است که این تصمیم گرفته می‌شود.
   let fa = new Map<string, string>();
   try {
-    fa = await translationsFor([
-      ...publicMarkets.map((m) => m.question),
-      ...publicMarkets.map((m) => m.eventTitle).filter(Boolean),
-    ]);
+    // زمینه‌ی هر پرسش، عنوان رویدادش است. بدون آن، پرسشی مثل
+    // «Game 3: Ends in a day?» حتی به انگلیسی هم مبهم است.
+    const hints = new Map<string, string>();
+    for (const m of publicMarkets) {
+      if (m.eventTitle && m.eventTitle !== m.question) {
+        hints.set(m.question, m.eventTitle);
+      }
+    }
+    fa = await translationsFor(
+      [
+        ...publicMarkets.map((m) => m.question),
+        ...publicMarkets.map((m) => m.eventTitle).filter(Boolean),
+      ],
+      hints
+    );
   } catch {
     /* بدون ترجمه ادامه می‌دهیم */
   }

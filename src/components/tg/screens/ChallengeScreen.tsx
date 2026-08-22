@@ -4,7 +4,7 @@ import { LINKS } from "@/config/site";
 import { useCallback, useState } from "react";
 import { api, ApiError } from "@/components/tg/api";
 import { useResource } from "@/components/tg/useResource";
-import { Card, ErrorState, ScreenTitle, Skeleton } from "@/components/tg/ui";
+import { Card, ErrorState, ScreenTitle, Skeleton, BackLink } from "@/components/tg/ui";
 import { haptic, openTelegramChat } from "@/components/tg/telegram";
 
 // چالش پراپ در مینی‌اپ — همان /api/predict/challenge سایت.
@@ -257,6 +257,13 @@ export default function ChallengeScreen() {
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [track, setTrack] = useState<"predict" | "forex">("predict");
+  // ⚠️ راه خروج از کارنامه‌ی چالشِ تمام‌شده.
+  //
+  // پیش از این، شرط `if (s)` هر کاربری را که یک بار چالش خریده بود برای
+  // همیشه در صفحه‌ی کارنامه نگه می‌داشت — حتی وقتی چالشش **ناموفق** شده
+  // بود. یعنی کسی که شکست خورده بود، هیچ راهی برای خریدن چالش بعدی
+  // نداشت: قابلیتی که دکمه ندارد، وجود ندارد.
+  const [buyingNew, setBuyingNew] = useState(false);
 
   const start = useCallback(
     async (tierId: string) => {
@@ -291,7 +298,7 @@ export default function ChallengeScreen() {
 
   const s = res.data.state;
 
-  if (s) {
+  if (s && !buyingNew) {
     const passed = s.status === "passed";
     const failed = s.status === "failed";
     const unknown = s.tierKnown === false;
@@ -508,15 +515,35 @@ export default function ChallengeScreen() {
             </div>
           </Card>
         )}
+
+        {/* چالشِ تمام‌شده (چه قبول چه ناموفق) باید راه ادامه داشته باشد.
+            بدون این دکمه، کارنامه یک بن‌بست بود. */}
+        {(passed || failed) && (
+          <button
+            type="button"
+            onClick={() => {
+              haptic.tap();
+              setBuyingNew(true);
+            }}
+            className="w-full rounded-xl bg-gold py-3.5 font-display text-sm font-extrabold text-ink transition active:scale-[0.98]"
+          >
+            {passed ? "🎯 چالش تازه" : "🔁 چالش تازه بخر"}
+          </button>
+        )}
       </div>
     );
   }
 
-  // ── هنوز چالشی ندارد ──
+  // ── هنوز چالشی ندارد، یا کارنامه‌اش را دیده و چالش تازه می‌خواهد ──
   const tiers = res.data.tiers.filter((t) => t.track === track);
 
   return (
     <div>
+      {/* اگر از کارنامه آمده، راه برگشت لازم دارد — وگرنه دکمه‌ی «چالش
+          تازه» خودش یک بن‌بست تازه می‌ساخت. */}
+      {res.data.state && (
+        <BackLink label="کارنامه‌ی چالش" onClick={() => setBuyingNew(false)} />
+      )}
       <ScreenTitle
         title="چالش پراپ"
         subtitle="ورودی با MOON، جایزه حساب واقعی؛ امتیاز خریدنی نیست"

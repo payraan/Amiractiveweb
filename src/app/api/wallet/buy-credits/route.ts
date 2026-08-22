@@ -47,22 +47,34 @@ export async function POST(req: Request) {
   try {
     await client.query("BEGIN");
 
+    // ⚠️ **مجموع واقعی و دمو**، نه فقط `usdt_balance`.
+    //
+    // پرداخت پایین‌تر از `moveFunds` **بدون `realOnly`** می‌گذرد، یعنی اول
+    // از دمو برداشته می‌شود. وقتی این پیش‌بررسی فقط `usdt_balance` را
+    // می‌سنجید، کاربری که تنها پول مجازی داشت «موجودی تتر کافی نیست»
+    // می‌گرفت — در حالی که خودِ سیستم بلد بود پرداختش کند. یعنی پیش‌بررسی
+    // جلوی چیزی را می‌گرفت که مسیر اصلی مشکلی با آن نداشت.
+    //
+    // ⚠️ این **دقیقا همان باگی است که یک بار در `ir/propose` رخ داد** و
+    // آنجا رفع شد؛ اینجا جا مانده بود. در نسخه‌ی دمو که هیچ‌کس پول واقعی
+    // ندارد، این یعنی خرید MOON برای همه غیرممکن بود.
     const pl = await client.query(
-      "SELECT usdt_balance, credits FROM players WHERE id=$1 FOR UPDATE",
+      `SELECT usdt_balance + demo_balance AS spendable, credits
+         FROM players WHERE id=$1 FOR UPDATE`,
       [playerId]
     );
     if (!pl.rowCount) {
       await client.query("ROLLBACK");
       return NextResponse.json({ ok: false, error: "not_authed" }, { status: 401 });
     }
-    if (Number(pl.rows[0].usdt_balance) < pack.priceUsdt) {
+    if (Number(pl.rows[0].spendable) < pack.priceUsdt) {
       await client.query("ROLLBACK");
       return NextResponse.json(
         {
           ok: false,
           error: "insufficient_funds",
           need: pack.priceUsdt,
-          have: Number(pl.rows[0].usdt_balance),
+          have: Number(pl.rows[0].spendable),
         },
         { status: 402 }
       );

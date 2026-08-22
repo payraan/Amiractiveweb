@@ -1,7 +1,6 @@
 "use client";
 
 import { LINKS } from "@/config/site";
-import DemoBanner, { type DemoNotice } from "@/components/DemoBanner";
 import { useCallback, useState } from "react";
 import { ledgerLabel } from "@/lib/ledger-labels";
 import { floorUsdt } from "@/lib/wallet-rules";
@@ -44,7 +43,6 @@ type Wallet = {
   network?: string;
   gatewayReady?: boolean;
   mode?: "demo" | "live";
-  demoNotice?: DemoNotice | null;
   telegramLinked?: boolean;
 };
 
@@ -154,12 +152,10 @@ export default function WalletScreen() {
     <div>
       <ScreenTitle title="کیف پول" />
 
-      {/* ⚠️ بنر **پیش از** کارت موجودی. کاربری که اول عدد بزرگ طلایی را
-          ببیند و بعد بفهمد مجازی است، همان لحظه اعتمادش را از دست می‌دهد. */}
-      <div className="mb-3">
-        <DemoBanner notice={w.demoNotice ?? null} compact />
-      </div>
-
+      {/* ⚠️ اینجا بنر دمو **نیست** و عمدا نیست: `MiniApp` آن را بالای
+          **همه‌ی** تب‌ها می‌گذارد، پس یکی اینجا یعنی کاربر دو بنر یکسان
+          پشت سر هم ببیند — که هم زشت است و هم اعتبار خود پیام را کم
+          می‌کند. همان اصل سایت: یک بار در ریشه، نه در هر صفحه. */}
       {/* کارت موجودی: تنها جای صفحه که طلا پرکننده است، تا چشم اول اینجا برود.
           وسط‌چین است نه چپ‌چین — در صفحه‌ای که کاربر برای دیدن *یک عدد* باز
           می‌کند، آن عدد باید مرکز ثقل باشد، نه یک خط از یک کارت. */}
