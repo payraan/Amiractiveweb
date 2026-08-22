@@ -208,5 +208,24 @@ UNION ALL
 SELECT 42, 'سهم نفرات اول از کمیسیون بیشتر نشود  ← ضرر پلتفرم',
   (SELECT count(*) FROM ir_markets
     WHERE early_cut > (yes_total + no_total) * 0.03 + 0.000001)
+UNION ALL
+-- ⚠️ **مهم‌ترین نگهبان نسخه‌ی دمو.**
+--
+-- مجموع پول واقعیِ کاربران هرگز نباید از پول واقعیِ واردشده بیشتر باشد.
+-- اگر بیشتر شد یعنی جایی پول واقعی **از هیچ ساخته شده** — و پلتفرم چیزی
+-- بدهکار است که هرگز دریافت نکرده.
+--
+-- این چک از یک باگ واقعی آمد: در تسویه، قاعده‌ی «اصلِ بونوس بونوس
+-- می‌ماند، سودش واقعی می‌شود» در نسخه‌ی دمو اجرا می‌شد و از استخری
+-- تماما مجازی، تتر واقعی می‌ساخت. نگهبان‌های واریز و برداشت آن را
+-- نگرفتند چون پول **داخل** سیستم ساخته می‌شد، نه در مرزها.
+SELECT 43, 'پول واقعی از هیچ ساخته نشده باشد  ← بحرانی', (
+  SELECT CASE WHEN
+    (SELECT COALESCE(SUM(usdt_balance),0) FROM players)
+    + (SELECT COALESCE(SUM(stake - demo_stake),0) FROM ir_bets WHERE status='open')
+    > (SELECT COALESCE(SUM(amount),0) FROM wallet_ledger
+        WHERE kind IN ('deposit','admin_adjust') AND amount > demo)
+      + 0.000001
+  THEN 1 ELSE 0 END)
 
 ) checks ORDER BY n;
