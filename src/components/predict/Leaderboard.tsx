@@ -1,14 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { RANGE_LABEL, type LbRange } from "@/lib/leaderboard";
 
 type Entry = { rank: number; name: string; points: number; plays: number };
 
-const TABS: { id: string; label: string }[] = [
-  { id: "monthly", label: "ماهانه" },
-  { id: "weekly", label: "هفتگی" },
-  { id: "daily", label: "روزانه" },
-  { id: "all", label: "کل" },
+// ⚠️ بازه‌ها از منبع مشترک می‌آیند تا تبی نمایش داده نشود که سرور
+// نمی‌شناسد. «روزانه» حذف شد چون سقفش از سهمیه‌ی رایگان بیشتر بود —
+// دلیل کامل در `@/lib/leaderboard`.
+const TABS: { id: LbRange; label: string }[] = [
+  { id: "monthly", label: RANGE_LABEL.monthly },
+  { id: "weekly", label: RANGE_LABEL.weekly },
+  { id: "all", label: RANGE_LABEL.all },
 ];
 
 const MEDAL: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
@@ -17,7 +20,7 @@ export default function Leaderboard({
   defaultRange = "monthly",
   limit,
 }: {
-  defaultRange?: string;
+  defaultRange?: LbRange;
   limit?: number;
 }) {
   const [range, setRange] = useState(defaultRange);

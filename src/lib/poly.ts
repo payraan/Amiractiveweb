@@ -7,7 +7,10 @@ import { queueNotify, ensureOutboxTable } from "@/lib/notify-outbox";
 import { tradeSettledMessage } from "@/lib/settle-messages";
 import { winPoints, losePoints } from "@/lib/poly-scoring";
 
-export const POLY_FREE_PER_DAY = 5; // پیش‌بینی رایگان روزانه
+// تعریفش به poly-scoring.ts منتقل شد (فایل بدون وابستگی سرور) تا
+// leaderboard.ts هم بتواند بخواند. اینجا دوباره صادر می‌شود تا
+// مصرف‌کننده‌های موجود دست‌نخورده بمانند.
+export { POLY_FREE_PER_DAY } from "@/lib/poly-scoring";
 export const POLY_EXTRA_COST = 1; // هزینه‌ی هر پیش‌بینی اضافه (MOON)
 
 const UA = { "User-Agent": "Mozilla/5.0" };

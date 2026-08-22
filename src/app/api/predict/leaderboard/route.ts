@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { RANGES, capFor, windowFor, type LbRange } from "@/lib/leaderboard";
 
 export const dynamic = "force-dynamic";
 
@@ -17,47 +18,31 @@ export const dynamic = "force-dynamic";
 //    رایگان امتیاز جمع کند — یعنی عملا پول رتبه می‌خرید. این مستقیما با
 //    قاعده‌ی «MOON فقط قابلیت می‌خرد نه رتبه» در تضاد بود.
 //
-// حالا فقط MAX_COUNTED پیش‌بینیِ نخستِ هر بازیکن در بازه شمرده می‌شود، پس
+// حالا فقط CAPS[game][range] پیش‌بینیِ نخستِ هر بازیکن در بازه شمرده می‌شود، پس
 // همه در هر دوره تعداد فرصت برابر دارند و MOON فقط «بازی بیشتر» می‌خرد.
 // این پیش‌نیاز پاداش نقدی است: بدون آن، رتبه خریدنی است.
 
-const WINDOWS: Record<string, string> = {
-  daily: "1 day",
-  weekly: "7 days",
-  monthly: "30 days",
-  all: "",
-};
-
-/** سقف پیش‌بینیِ محاسبه‌شده در هر بازه. نخستین‌ها شمرده می‌شوند، نه بهترین‌ها. */
-const MAX_COUNTED: Record<string, number> = {
-  daily: 10,
-  weekly: 25,
-  monthly: 60,
-  all: 60,
-};
-
-/** سقف تیکت کمبو. کمتر است چون کمبو اهرم دارد و هر تیکت وزن بیشتری می‌گیرد. */
-const MAX_COMBO: Record<string, number> = {
-  daily: 5,
-  weekly: 10,
-  monthly: 20,
-  all: 20,
-};
+// ⚠️ بازه‌ها و سقف‌ها از `@/lib/leaderboard` می‌آیند، نه از اینجا.
+// تا امروز اینجا و در `profile.ts` جدا نوشته شده بودند و هر تغییری در
+// یکی، دیگری را بی‌صدا از آن جدا می‌کرد.
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const range = searchParams.get("range") ?? "monthly";
-  const win = WINDOWS[range] ?? WINDOWS.monthly;
+  // بازه نرمال می‌شود تا پاسخ همان چیزی را echo کند که واقعاً حساب شده.
+  // نسخه‌ی قبلی range را خام برمی‌گرداند، پس `range=daily` بعد از حذف آن
+  // بازه، داده‌ی ماهانه را با برچسب «روزانه» می‌داد.
+  const raw = searchParams.get("range") ?? "monthly";
+  const range: LbRange = (RANGES as string[]).includes(raw)
+    ? (raw as LbRange)
+    : "monthly";
+  const win = windowFor(range);
   // دو رتبه‌بندی جدا:
   //   main  = نبض بازار + ترید پیش‌بینی، بدون اهرم، سقف‌دار → پایه‌ی پاداش و اعتبار
   //   combo = فقط کمبو، با اهرم آزاد → حالت پرریسکِ سرگرمی
   // اگر کمبو در رتبه‌بندی اصلی می‌ماند، اهرمِ خریدنی دوباره پول را به رتبه
   // وصل می‌کرد؛ جداکردنش همان چیزی است که هر دو را سالم نگه می‌دارد.
   const game = searchParams.get("game") === "combo" ? "combo" : "main";
-  const cap =
-    game === "combo"
-      ? MAX_COMBO[range] ?? MAX_COMBO.monthly
-      : MAX_COUNTED[range] ?? MAX_COUNTED.monthly;
+  const cap = capFor(game, range);
   const limit = Math.min(
     100,
     Math.max(1, Number(searchParams.get("limit") ?? 50) || 50)
@@ -121,30 +106,28 @@ export async function GET(req: Request) {
     [cap, limit]
   );
 
-  // شمار کل شرکت‌کننده‌های واجد شرایط، برای محاسبه‌ی رتبه‌ی درصدی.
-  // پاداش بر پایه‌ی همین درصد بنا می‌شود، نه بر پایه‌ی رتبه‌ی خام.
-  const totalRes = await pool.query<{ n: string }>(
-    `WITH unified AS (
-        ${sources}
-     )
-     SELECT count(DISTINCT player_id) AS n FROM unified`
-  );
-  const total = Number(totalRes.rows[0]?.n ?? 0);
+  // ⚠️ نه شمار کل شرکت‌کننده‌ها بیرون می‌رود، نه `percentile`.
+  //
+  // فرستادن شمار کل از اول ممنوع بود (عدد تجاری ماست). ولی `percentile`
+  // در کنار `rank` **همان عدد را برمی‌گرداند**:
+  //     total = (rank − ۱) ÷ (۱ − percentile ÷ ۱۰۰)
+  // با جمعیت کوچک این جبر جواب دقیق می‌دهد، پس کامنت قبلی («درصد
+  // می‌ماند چون خودش تعداد را نمی‌گوید») غلط بود.
+  //
+  // با حذف `percentile`، کوئریِ شمارش هم حذف شد: هیچ‌کس مصرفش نمی‌کرد و
+  // **همان CTE سنگین را بار دوم اجرا می‌کرد**. یعنی این حذف، هزینه‌ی هر
+  // درخواست لیدربورد را نصف هم می‌کند.
 
   return NextResponse.json({
     ok: true,
     range,
     game,
     maxCounted: cap,
-    // ⚠️ تعداد بازیکنان عمدا فرستاده نمی‌شود — عدد تجاری ماست و هیچ
-    // کاربری برای استفاده از لیدربورد به آن نیاز ندارد.
     entries: rows.map((r, i) => ({
       rank: i + 1,
       name: r.display_name,
       points: r.points,
       plays: r.plays,
-      // درصد بالاتر یعنی جایگاه بهتر: نفر اول از همه بالاتر است.
-      percentile: total > 0 ? Math.round(((total - i) / total) * 100) : 0,
     })),
   });
 }

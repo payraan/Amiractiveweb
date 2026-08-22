@@ -26,3 +26,10 @@ export function winPoints(probPct: number): number {
 export function losePoints(probPct: number): number {
   return -probPct;
 }
+
+// سهمیه‌ی رایگان روزانه‌ی ترید.
+//
+// ⚠️ اینجا زندگی می‌کند نه در poly.ts، چون poly.ts به db وصل است و
+// هر فایل مشترکی که آن را import کند کد سرور را به کلاینت می‌کشد.
+// leaderboard.ts برای بستن سقف‌ها به این عدد نیاز دارد.
+export const POLY_FREE_PER_DAY = 5;

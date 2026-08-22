@@ -1,6 +1,12 @@
 import { db } from "@/lib/db";
 import { ensureIrTables } from "@/lib/iran";
 import { ensureTelegramTables } from "@/lib/telegram";
+import { CAPS, WINDOWS } from "@/lib/leaderboard";
+
+// رتبه‌ی پروفایل **همان تخته‌ی `main` ماهانه‌ی لیدربورد است**.
+// از منبع مشترک خوانده می‌شود تا دو عدد با یک نام از هم جدا نشوند.
+const RANK_CAP = CAPS.main.monthly;
+const RANK_WINDOW = WINDOWS.monthly;
 
 // ═══ داده‌ی پنل کاربری — یک منبع برای سه سطح ═══════════════════
 //
@@ -127,12 +133,12 @@ export async function loadProfile(playerId: number) {
              FROM predictions pr
              JOIN rounds r ON r.id = pr.round_id
             WHERE r.status='settled' AND pr.points IS NOT NULL
-              AND r.settle_at >= now() - interval '30 days'
+              AND r.settle_at >= now() - interval '${RANK_WINDOW}'
            UNION ALL
            SELECT pp.player_id, pp.points, pp.settled_at
              FROM poly_predictions pp
             WHERE pp.status='settled' AND pp.points IS NOT NULL
-              AND pp.settled_at >= now() - interval '30 days'
+              AND pp.settled_at >= now() - interval '${RANK_WINDOW}'
          ),
          ranked AS (
            -- ⚠️ ترتیب باید **عیناً** همان لیدربورد باشد
@@ -152,7 +158,7 @@ export async function loadProfile(playerId: number) {
          ),
          capped AS (
            SELECT player_id, COALESCE(SUM(points),0) AS pts
-             FROM ranked WHERE rn <= 60 GROUP BY player_id
+             FROM ranked WHERE rn <= ${RANK_CAP} GROUP BY player_id
          )
          SELECT
            (SELECT COUNT(*)::int FROM capped)                    AS total_players,
