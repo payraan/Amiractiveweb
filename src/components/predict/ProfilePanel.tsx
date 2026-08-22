@@ -216,7 +216,7 @@ export default function ProfilePanel() {
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <span className="text-[11px] text-muted">جایگاه شما میان همه‌ی کاربران</span>
             <span className="font-mono text-sm font-bold text-gold" dir="ltr">
-              {rank.percentile}%
+              {rank.percentile > 0 ? `≥${rank.percentile}%` : "—"}
             </span>
           </div>
           <div className="mt-2 h-2 overflow-hidden rounded-full bg-line/40">
@@ -225,10 +225,15 @@ export default function ProfilePanel() {
               style={{ width: `${Math.max(2, rank.percentile)}%` }}
             />
           </div>
+          {/* ⚠️ این جمله برعکس بود: با درصد ۸۷ می‌نوشت «از ۱۳٪ جلوتری»،
+              در حالی که ۸۷ یعنی از ۸۷٪ جلوتری. شرط ۱۰۰ هم دیگر هرگز
+              درست نمی‌شود چون بالاترین پله ۹۹ است. */}
           <p className="mt-2 text-[10px] text-muted">
-            {rank.percentile >= 100
-              ? "در صدر جدول ایستاده‌ای."
-              : `از ${100 - rank.percentile}٪ پیش‌بین‌ها جلوتری.`}
+            {rank.percentile >= 99
+              ? "در یک درصد برتر ایستاده‌ای."
+              : rank.percentile > 0
+                ? `بالاتر از ${rank.percentile}٪ پیش‌بین‌ها هستی.`
+                : "هنوز جایگاهی ثبت نشده."}
           </p>
         </div>
       </div>

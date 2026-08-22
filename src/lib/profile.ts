@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { ensureIrTables } from "@/lib/iran";
 import { ensureTelegramTables } from "@/lib/telegram";
-import { CAPS, WINDOWS } from "@/lib/leaderboard";
+import { CAPS, WINDOWS, bucketPercentile } from "@/lib/leaderboard";
 
 // رتبه‌ی پروفایل **همان تخته‌ی `main` ماهانه‌ی لیدربورد است**.
 // از منبع مشترک خوانده می‌شود تا دو عدد با یک نام از هم جدا نشوند.
@@ -210,10 +210,16 @@ export async function loadProfile(playerId: number) {
   // همان جمعیتی که لیدربورد می‌شمارد. کاربری که هنوز نتیجه‌ای ندارد،
   // درصدش صفر می‌ماند تا عددی ساختگی به او نشان داده نشود.
   const totalPlayers = Number(rk.total_players) || 0;
-  const percentile =
+  // ⚠️ پله‌ای، نه دقیق — دلیلش در `bucketPercentile`.
+  //
+  // اینجا پله‌ای می‌شود و نه در رابط‌ها، چون همین یک متغیر به **دو**
+  // خروجی می‌رود: `rank.percentile` و `badgeStats.percentile`. اگر فقط
+  // یکی پله‌ای می‌شد، نشتی از مسیر دیگر باز می‌ماند.
+  const exactPercentile =
     rk.is_ranked && totalPlayers > 0
-      ? Math.round(((totalPlayers - Number(rk.above)) / totalPlayers) * 100)
+      ? ((totalPlayers - Number(rk.above)) / totalPlayers) * 100
       : 0;
+  const percentile = bucketPercentile(exactPercentile);
 
   const pulseTotal = Number(pu.settled);
   const polyTotal = Number(po.settled);

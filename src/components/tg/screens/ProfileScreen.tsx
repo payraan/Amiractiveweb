@@ -264,9 +264,11 @@ export default function ProfileScreen({
           label="رتبه (۳۰ روز)"
           value={p.rank.ranked ? `${p.rank.above + 1}` : "—"}
         />
+        {/* ⚠️ «بالاتر از»، نه «درصد برتر»: عدد حالا پله‌ای است و کف را
+            می‌گوید نه جایگاه دقیق. برچسب باید با عدد بخواند. */}
         <Metric
-          label="درصد برتر"
-          value={p.rank.ranked ? `${p.rank.percentile}%` : "—"}
+          label="بالاتر از"
+          value={p.rank.ranked && p.rank.percentile > 0 ? `${p.rank.percentile}%` : "—"}
           tone="gold"
         />
       </div>
@@ -371,7 +373,9 @@ export default function ProfileScreen({
           shareText(
             `کارنامه‌ی من در نارمون:\n` +
               `امتیاز ${num(me.totalPoints)}` +
-              (p.rank.ranked ? ` · درصد برتر ${p.rank.percentile}%` : "") +
+              (p.rank.ranked && p.rank.percentile > 0
+                ? ` · بالاتر از ${p.rank.percentile}٪ پیش‌بین‌ها`
+                : "") +
               `\n` +
               `${earned.length} نشان از ${BADGES.length}`,
             `${siteUrl}/profile`
