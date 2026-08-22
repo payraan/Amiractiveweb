@@ -1,6 +1,7 @@
 "use client";
 
 import { LINKS } from "@/config/site";
+import type { DemoNotice } from "@/components/DemoBanner";
 import { DEMO_BLOCKED } from "@/lib/platform-mode";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -32,6 +33,8 @@ type Data = {
   address: string | null;
   addressError: string | null;
   gatewayReady: boolean;
+  mode?: "demo" | "live";
+  demoNotice?: DemoNotice | null;
   telegramLinked: boolean;
   ledger: Ledger[];
 };
@@ -152,6 +155,8 @@ export default function WalletPanel() {
     Number(amount) <= (d?.withdrawable ?? d?.balance ?? 0) &&
     addressOk;
 
+  const demo = d?.mode === "demo";
+
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[360px_1fr]">
       {/* ── ستون راست: موجودی و عملیات ── */}
@@ -161,11 +166,17 @@ export default function WalletPanel() {
           <div className="mt-2 font-mono text-4xl font-black text-gold" dir="ltr">
             ${(d?.balance ?? 0).toFixed(2)}
           </div>
-          <div className="mt-1 font-mono text-[10px] text-muted" dir="ltr">
-            USDT · {d?.network ?? "TRON"}
+          <div className="mt-1 text-[10px] text-muted">
+            {demo ? (
+              "تتر مجازی · سهمیه‌ی ماهانه"
+            ) : (
+              <span dir="ltr" className="font-mono">
+                USDT · {d?.network ?? "TRON"}
+              </span>
+            )}
           </div>
           {/* اگر بخشی هدیه است، همین‌جا گفته می‌شود نه در لحظه‌ی برداشت. */}
-          {(d?.demoBalance ?? 0) > 0 && (
+          {!demo && (d?.demoBalance ?? 0) > 0 && (
             <div className="mt-2 text-[10px] leading-5 text-muted">
               شامل{" "}
               <span dir="ltr" className="font-mono text-gold/80">
@@ -181,6 +192,16 @@ export default function WalletPanel() {
           )}
         </div>
 
+        {/* ⚠️ در دمو، تب‌های واریز و برداشت **جایشان را به توضیح می‌دهند**،
+            نه اینکه بمانند و خطا بدهند. تبی که همیشه خطا می‌دهد بدتر از
+            نبودنش است. */}
+        {demo ? (
+          <div className="mt-4 rounded-xl border border-line bg-raised/40 p-4 text-[11.5px] leading-6 text-muted">
+            در نسخه‌ی دمو واریز و برداشت فعال نیستند. سهمیه‌ی ماهانه‌ات خودکار
+            شارژ می‌شود و با همان در هر سه بازی شرکت می‌کنی. وقتی پول واقعی
+            فعال شود، همین صفحه واریز و برداشت را نشان می‌دهد.
+          </div>
+        ) : (
         <div className="mt-4 flex gap-2 rounded-xl border border-line bg-raised/40 p-1">
           {(
             [
@@ -203,9 +224,10 @@ export default function WalletPanel() {
             </button>
           ))}
         </div>
+        )}
 
-        {/* واریز */}
-        {tab === "deposit" && (
+        {/* واریز — در دمو اصلا رندر نمی‌شود */}
+        {!demo && tab === "deposit" && (
           <div className="mt-4 rounded-2xl border border-line bg-surface/40 p-5">
             {!d?.gatewayReady ? (
               <p className="py-6 text-center text-[12px] leading-7 text-muted">
@@ -282,7 +304,7 @@ export default function WalletPanel() {
         )}
 
         {/* برداشت */}
-        {tab === "withdraw" && (
+        {!demo && tab === "withdraw" && (
           <div className="mt-4 rounded-2xl border border-line bg-surface/40 p-5">
             <label className="block text-[11px] text-muted">مبلغ (تتر)</label>
             <input

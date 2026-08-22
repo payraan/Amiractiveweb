@@ -1,6 +1,7 @@
 "use client";
 
 import { LINKS } from "@/config/site";
+import DemoBanner, { type DemoNotice } from "@/components/DemoBanner";
 import { useCallback, useState } from "react";
 import { ledgerLabel } from "@/lib/ledger-labels";
 import { floorUsdt } from "@/lib/wallet-rules";
@@ -42,6 +43,8 @@ type Wallet = {
   address?: string | null;
   network?: string;
   gatewayReady?: boolean;
+  mode?: "demo" | "live";
+  demoNotice?: DemoNotice | null;
   telegramLinked?: boolean;
 };
 
@@ -91,6 +94,7 @@ const ACTIONS: {
 
 export default function WalletScreen() {
   const { data: w, error, reload } = useResource<Wallet>("/api/wallet");
+  const demo = w?.mode === "demo";
   const [view, setView] = useState<View>("main");
 
   const back = useCallback(() => setView("main"), []);
@@ -150,6 +154,12 @@ export default function WalletScreen() {
     <div>
       <ScreenTitle title="کیف پول" />
 
+      {/* ⚠️ بنر **پیش از** کارت موجودی. کاربری که اول عدد بزرگ طلایی را
+          ببیند و بعد بفهمد مجازی است، همان لحظه اعتمادش را از دست می‌دهد. */}
+      <div className="mb-3">
+        <DemoBanner notice={w.demoNotice ?? null} compact />
+      </div>
+
       {/* کارت موجودی: تنها جای صفحه که طلا پرکننده است، تا چشم اول اینجا برود.
           وسط‌چین است نه چپ‌چین — در صفحه‌ای که کاربر برای دیدن *یک عدد* باز
           می‌کند، آن عدد باید مرکز ثقل باشد، نه یک خط از یک کارت. */}
@@ -164,7 +174,9 @@ export default function WalletScreen() {
         {/* اگر بخشی از موجودی بونوس است، همین‌جا گفته می‌شود — نه در لحظه‌ی
             برداشت. کاربری که عدد بزرگ می‌بیند و بعد «موجودی کافی نیست»
             می‌گیرد، فکر می‌کند سیستم خراب است یا پولش را خورده‌ایم. */}
-        {(w.demoBalance ?? 0) > 0 && (
+        {/* در دمو کل موجودی مجازی است، پس «شامل X هدیه، قابل برداشت Y»
+            فقط گیج می‌کند — هیچ‌چیز قابل برداشت نیست و بنر بالاتر گفته. */}
+        {!demo && (w.demoBalance ?? 0) > 0 && (
           <div className="mt-2 text-[10px] leading-5 text-muted">
             شامل{" "}
             <span dir="ltr" className="font-mono text-gold/80">
@@ -178,7 +190,11 @@ export default function WalletScreen() {
             </span>
           </div>
         )}
-        <div className="mt-2.5 text-[10px] text-muted">شبکه‌ی {w.network ?? "TRON"}</div>
+        <div className="mt-2.5 text-[10px] text-muted">
+          {demo
+            ? "تتر مجازی — سهمیه‌ی ماهانه"
+            : `شبکه‌ی ${w.network ?? "TRON"}`}
+        </div>
         {/* درخشش ملایم گوشه — عمق می‌دهد بدون اینکه تصویر لازم باشد */}
         <div className="pointer-events-none absolute -left-10 -top-10 h-32 w-32 rounded-full bg-gold/10 blur-2xl" />
       </div>
@@ -187,8 +203,11 @@ export default function WalletScreen() {
           دایره‌ی آیکون از برچسبش جداست تا هدفِ لمس گرد بماند ولی متن زیرش
           جا داشته باشد؛ برچسب داخل دایره یعنی یا دایره بزرگ می‌شود یا متن
           کوچک و ناخوانا. */}
+      {/* ⚠️ در نسخه‌ی دمو، واریز و برداشت **حذف** می‌شوند نه اینکه بمانند و
+          خطا بدهند. دکمه‌ای که همیشه خطا می‌دهد بدتر از نبودنش است: کاربر
+          فکر می‌کند چیزی خراب است، نه اینکه عمدا نیست. */}
       <div className="mt-5 flex items-start justify-center gap-6">
-        {ACTIONS.map((a) => (
+        {ACTIONS.filter((a) => !demo || a.view === "buy").map((a) => (
           <button
             key={a.view}
             type="button"
