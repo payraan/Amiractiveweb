@@ -277,6 +277,27 @@ export async function ensureIrTables(): Promise<void> {
       await pool.query(
         "CREATE INDEX IF NOT EXISTS irb_market_idx ON ir_bets(market_id, player_id)"
       );
+      // ⚠️ ایندکس جدا برای `player_id`، چون ایندکس بالا `market_id` را جلو
+      // دارد و کوئری‌ای که **فقط** با `player_id` فیلتر کند نمی‌تواند از آن
+      // استفاده کند.
+      //
+      // شش مسیر داغ همین کار را می‌کنند: کارنامه‌ی شرط‌ها، سود و زیان
+      // پروفایل، مبلغ قفل‌شده در کیف پول (سایت و ربات)، و پنل درآمد. در
+      // تست بار با ۵۰ هزار کاربر، همین یک کوئری ۲۴ برابر بقیه طول می‌کشید
+      // و ۱۳۶ بافر می‌خواند تا یک ردیف پیدا کند.
+      //
+      // `id DESC` هم داخلش است تا `ORDER BY b.id DESC` کارنامه، مرتب‌سازی
+      // جدا نخواهد.
+      await pool.query(
+        "CREATE INDEX IF NOT EXISTS irb_player_idx ON ir_bets(player_id, id DESC)"
+      );
+      // پنل درآمد بازارساز روی این فیلتر می‌کند. جزئی چون فقط بازارهای
+      // دارای سازنده معنا دارند — بازار پلتفرم `creator_id` ندارد.
+      await pool.query(
+        `CREATE INDEX IF NOT EXISTS irm_creator_idx
+           ON ir_markets(creator_id, created_at DESC)
+         WHERE creator_id IS NOT NULL`
+      );
 
       // سهم دمو از اصلِ همین شرط. تسویه از روی همین تصمیم می‌گیرد چقدر از
       // پرداختی به دمو برگردد و چقدرش سودِ واقعی است.

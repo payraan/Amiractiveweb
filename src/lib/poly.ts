@@ -279,6 +279,15 @@ export async function ensurePolyTables(): Promise<void> {
             "ALTER TABLE poly_predictions ADD COLUMN IF NOT EXISTS settled_at TIMESTAMPTZ"
           )
         )
+        // ⚠️ همان مشکل `ir_bets`: تنها ایندکس یکتا `(market_id, player_id)`
+        // است و `market_id` را جلو دارد، پس کارنامه‌ی آرنا و آمار پروفایل
+        // که **فقط** با `player_id` فیلتر می‌کنند از آن سودی نمی‌برند.
+        .then(() =>
+          pool.query(
+            `CREATE INDEX IF NOT EXISTS poly_player_idx
+               ON poly_predictions(player_id, created_at DESC)`
+          )
+        )
         // امتیاز اعشاری — دلیلش در بلوک اسکیمای db.ts نوشته شده.
         .then(() =>
           pool.query(

@@ -71,7 +71,11 @@ const faDay = (s: string) =>
   });
 
 export default function Analytics() {
-  const [days, setDays] = useState<number>(30);
+  // ⚠️ پیش‌فرض ۷ روز است نه ۳۰، و این از تست بار آمد: کوئری‌های تحلیل
+  // پنجره را کامل می‌پیمایند و زمانشان **خطی با اندازه‌ی پنجره** است. با
+  // یک میلیون رویداد، ۳۰ روز حدود ۲.۵ ثانیه طول می‌کشید و ۷ روز کمتر از
+  // یک ثانیه. عدد ۳۰ همیشه یک کلیک فاصله دارد.
+  const [days, setDays] = useState<number>(7);
   const { data, error, reload } = useAdminResource<Res>(
     `/api/admin/analytics?days=${days}`
   );

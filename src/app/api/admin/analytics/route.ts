@@ -114,14 +114,25 @@ export async function GET(req: Request) {
       // بعد برگشتند. ستون جدا نمی‌خواهد — هر رویدادِ دارای player_id یعنی
       // آن کاربر آن روز فعال بوده.
       pool.query(
+        // ⚠️ هر دو CTE پنجره می‌گیرند. نسخه‌ی اول **کل تاریخچه** را
+        // می‌خواند و در تست بار با یک میلیون رویداد نزدیک یک ثانیه طول
+        // می‌کشید — و برخلاف بقیه، با گذشت زمان بدتر می‌شد نه ثابت.
+        //
+        // اثر جانبی‌اش پذیرفتنی است: «روز اول» یعنی اولین فعالیت **در
+        // این بازه**، نه در کل عمر حساب. برای سنجش ماندگاریِ همین بازه
+        // دقیقا همان چیزی است که می‌خواهیم.
         `WITH firsts AS (
            SELECT player_id,
                   min((created_at AT TIME ZONE '${TZ}')::date) AS d0
-             FROM app_events WHERE player_id IS NOT NULL
+             FROM app_events
+            WHERE player_id IS NOT NULL
+              AND created_at > now() - $1::interval
             GROUP BY player_id
          ), acts AS (
            SELECT DISTINCT player_id, (created_at AT TIME ZONE '${TZ}')::date AS d
-             FROM app_events WHERE player_id IS NOT NULL
+             FROM app_events
+            WHERE player_id IS NOT NULL
+              AND created_at > now() - $1::interval
          )
          SELECT to_char(f.d0, 'YYYY-MM-DD') AS day,
                 count(DISTINCT f.player_id)::int AS cohort,
