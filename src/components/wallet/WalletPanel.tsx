@@ -1,6 +1,7 @@
 "use client";
 
 import { LINKS } from "@/config/site";
+import { DEMO_BLOCKED } from "@/lib/platform-mode";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePlayer } from "@/components/predict/usePlayer";
@@ -44,6 +45,9 @@ const ERR: Record<string, string> = {
   bad_address: "آدرس مقصد معتبر نیست.",
   insufficient_funds: "موجودی کافی نیست.",
   not_authed: "ابتدا وارد شوید.",
+  // یک متن مشترک برای هر سه سطح — سه جمله‌ی متفاوت برای یک ممنوعیت،
+  // به کاربر می‌گوید سیستم نمی‌داند دارد چه کار می‌کند.
+  demo_mode: DEMO_BLOCKED.withdraw,
 };
 
 const fa = (iso: string) =>

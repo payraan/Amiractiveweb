@@ -1,4 +1,5 @@
 import { LINKS } from "@/config/site";
+import { DEMO_BLOCKED } from "@/lib/platform-mode";
 import { db } from "@/lib/db";
 import { escapeHtml, type InlineButton, type Screen } from "@/lib/telegram";
 import { ensureIrTables } from "@/lib/iran";
@@ -257,6 +258,8 @@ export const WITHDRAW_ERROR: Record<string, string> = {
   amount_too_low: `کمتر از ${MIN_WITHDRAW} تتر ممکن نیست (کارمزد شبکه ${WITHDRAW_FEE_USDT} تتر است).`,
   bad_address: "آدرس مقصد با شبکه نمی‌خواند.",
   insufficient_funds: "موجودی کافی نیست.",
+  // متن از platform-mode می‌آید تا سایت و ربات و مینی‌اپ یک جمله بگویند.
+  demo_mode: DEMO_BLOCKED.withdraw,
   rate_limited: "درخواست‌های برداشت پیاپی زیاد بود. کمی صبر کنید.",
   server_error: "خطای سرور. کمی بعد دوباره تلاش کنید.",
   telegram_required: "برای عملیات مالی باید حساب تلگرامتان وصل باشد.",

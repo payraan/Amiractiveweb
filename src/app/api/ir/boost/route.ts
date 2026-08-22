@@ -1,4 +1,5 @@
 import { log } from "@/lib/log";
+import { isDemo } from "@/lib/platform-mode";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentPlayerId } from "@/lib/current-player";
@@ -106,7 +107,13 @@ export async function POST(req: Request) {
       // realOnly: بونوس اینجا لمس نمی‌شود.
       try {
         await moveFunds(client, playerId, -price, "ir_boost", `m${marketId}`, {
-          realOnly: true,
+          // ⚠️ در نسخه‌ی دمو `realOnly` برداشته می‌شود، وگرنه بوست بی‌صدا
+          // از کار می‌افتاد: هیچ‌کس پول واقعی ندارد، پس هر تلاش با
+          // «موجودی کافی نیست» رد می‌شد بدون اینکه معلوم باشد چرا.
+          //
+          // در حالت واقعی همان قاعده برمی‌گردد: درآمدی که از پول هدیه‌ی
+          // خودمان بیاید درآمد نیست.
+          realOnly: !isDemo(),
         });
       } catch (err) {
         await client.query("ROLLBACK");

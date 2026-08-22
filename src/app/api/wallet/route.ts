@@ -5,6 +5,12 @@ import { hasLinkedTelegram } from "@/lib/telegram";
 import { ensureIrTables } from "@/lib/iran";
 import { gatewayReady, USDT_NETWORK } from "@/lib/zovix";
 import { depositAddressFor } from "@/lib/deposit-address";
+import { grantMonthlyDemo } from "@/lib/demo-allowance";
+import {
+  platformMode,
+  modeBanner,
+  logModeOnce,
+} from "@/lib/platform-mode";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +22,13 @@ export async function GET() {
   }
 
   await ensureIrTables();
+  logModeOnce();
+
+  // ⚠️ سهمیه **پیش از** خواندن موجودی، وگرنه کاربر یک بار موجودی قدیمی را
+  // می‌بیند و باید صفحه را رفرش کند تا سهمیه‌اش را ببیند. در حالت واقعی
+  // این تابع بلافاصله برمی‌گردد و هزینه‌ای ندارد.
+  await grantMonthlyDemo(playerId);
+
   const pool = await db();
 
   const [bal, ledger] = await Promise.all([
@@ -58,6 +71,9 @@ export async function GET() {
     address,
     addressError,
     gatewayReady: gatewayReady(),
+    // حالت پلتفرم — هر سه سطح از همین می‌خوانند و بنر یکسان نشان می‌دهند.
+    mode: platformMode(),
+    demoNotice: modeBanner(),
     telegramLinked: linked,
     ledger: ledger.rows.map((r) => ({
       amount: Number(r.amount),

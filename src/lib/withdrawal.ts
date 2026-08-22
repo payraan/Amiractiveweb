@@ -1,4 +1,5 @@
 import { log } from "@/lib/log";
+import { isDemo } from "@/lib/platform-mode";
 import { randomUUID } from "crypto";
 import { db } from "@/lib/db";
 import { ensureIrTables, moveFunds } from "@/lib/iran";
@@ -92,6 +93,17 @@ export async function requestWithdrawal(
   rawAmount: number,
   rawAddress: string
 ): Promise<WithdrawResult> {
+  // ⚠️ **نگهبان حالت، پیش از هر چیز دیگری.** در نسخه‌ی دمو پولی وارد
+  // نشده که بیرون برود؛ اجازه‌ی برداشت یعنی تبدیل پول مجازی به پول واقعی
+  // — یعنی همان تنها اشتباهی که در این پروژه غیرقابل‌جبران است.
+  //
+  // این نگهبان **علاوه بر** `realOnly` پایین‌تر است، نه به‌جایش. دو لایه،
+  // چون یکی‌شان روزی ممکن است در بازنویسی جا بیفتد.
+  if (isDemo()) {
+    log.warn("withdraw.blocked_demo", { playerId });
+    return { ok: false, error: "demo_mode" };
+  }
+
   const amount = Number(rawAmount);
   const toAddress = String(rawAddress ?? "").trim();
 

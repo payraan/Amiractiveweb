@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { getDepositAddress, USDT_NETWORK } from "@/lib/zovix";
+import { isDemo } from "@/lib/platform-mode";
 
 // ═══ آدرس واریز، ذخیره‌شده ═══════════════════════════════════
 //
@@ -49,6 +50,15 @@ export async function depositAddressFor(
   playerId: number,
   network = USDT_NETWORK
 ): Promise<AddressResult> {
+  // ⚠️ در نسخه‌ی دمو **هیچ آدرسی ساخته نمی‌شود** — و این فقط منع نمایشی
+  // نیست: درگاه بابت **هر آدرسی که ساخته شود** پول می‌گیرد، چه کاربر
+  // واریز کند چه نکند. ساختن آدرس برای کسی که اصلا نمی‌تواند واریز کند،
+  // یعنی خرج‌کردن پول بابت هیچ.
+  //
+  // پیش از این نگهبان، همین تابع با **هر بار باز شدن تب کیف پول** صدا
+  // زده می‌شد.
+  if (isDemo()) return { ok: false, error: "demo_mode" };
+
   await ensureTable();
   const pool = await db();
 

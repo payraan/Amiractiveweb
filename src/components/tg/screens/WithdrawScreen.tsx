@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { DEMO_BLOCKED } from "@/lib/platform-mode";
 import { BackLink } from "@/components/tg/ui";
 import { api, ApiError } from "@/components/tg/api";
 import { haptic, hasMainButton, showBackButton } from "@/components/tg/telegram";
@@ -24,6 +25,7 @@ const ERR: Record<string, string> = {
   not_authed: "ابتدا وارد شوید.",
   gateway_off: "درگاه پرداخت فعال نیست.",
   amount_too_low: `کمتر از ${MIN_WITHDRAW} تتر ممکن نیست (کارمزد شبکه ${WITHDRAW_FEE_USDT} تتر است).`,
+  demo_mode: DEMO_BLOCKED.withdraw,
   bad_address: "آدرس مقصد معتبر نیست.",
   insufficient_funds: "موجودی کافی نیست.",
   server_error: "خطای سرور. کمی بعد دوباره امتحان کنید.",

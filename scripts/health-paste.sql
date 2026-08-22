@@ -69,7 +69,7 @@ SELECT 10, 'نوع تراکنش ناشناخته در دفترکل',
   (SELECT count(*) FROM wallet_ledger WHERE kind NOT IN (
     'deposit','withdraw_hold','withdraw_refund','ir_bet','ir_payout','ir_refund',
     'ir_propose_fee','ir_propose_refund','ir_boost','ir_creator_share',
-    'ir_early_share','bonus_code','credit_purchase','admin_adjust'))
+    'ir_early_share','demo_allowance','bonus_code','credit_purchase','admin_adjust'))
 UNION ALL
 SELECT 11, 'پول دموی منفی در یک سطر بستانکار',
   (SELECT count(*) FROM wallet_ledger WHERE demo > amount AND amount > 0)
