@@ -1,5 +1,6 @@
 import { LINKS } from "@/config/site";
-import { DEMO_BLOCKED } from "@/lib/platform-mode";
+import { DEMO_BLOCKED, isDemo, DEMO_ALLOWANCE } from "@/lib/platform-mode";
+import { grantMonthlyDemo } from "@/lib/demo-allowance";
 import { db } from "@/lib/db";
 import { escapeHtml, type InlineButton, type Screen } from "@/lib/telegram";
 import { ensureIrTables } from "@/lib/iran";
@@ -99,14 +100,23 @@ function ledgerLines(rows: Row[]): string {
 // ── کارت اصلی کیف پول ────────────────────────────────────────
 
 export async function walletHomeScreen(playerId: number): Promise<Screen> {
+  await grantMonthlyDemo(playerId);
   const d = await walletData(playerId, 5);
 
+  const demo = isDemo();
   const buttons: InlineButton[][] = [
-    // همان قرارداد رنگی کل محصول: سبز پول به داخل، قرمز پول به بیرون.
-    [
-      { text: "⬇️ واریز", callback_data: WALLET.deposit, style: "success" },
-      { text: "⬆️ برداشت", callback_data: WALLET.withdrawStart, style: "danger" },
-    ],
+    // ⚠️ در نسخه‌ی دمو، دکمه‌های واریز و برداشت **حذف** می‌شوند، نه اینکه
+    // بمانند و خطا بدهند. دکمه‌ای که همیشه خطا می‌دهد بدتر از نبودنش
+    // است: کاربر فکر می‌کند چیزی خراب است، نه اینکه عمدا نیست.
+    ...(demo
+      ? []
+      : [
+          // همان قرارداد رنگی کل محصول: سبز پول به داخل، قرمز پول به بیرون.
+          [
+            { text: "⬇️ واریز", callback_data: WALLET.deposit, style: "success" as const },
+            { text: "⬆️ برداشت", callback_data: WALLET.withdrawStart, style: "danger" as const },
+          ],
+        ]),
     [{ text: "🧾 تاریخچه", callback_data: WALLET.history }],
     // پشتیبانی روی خودِ کارت کیف پول، نه چند منو آن‌طرف‌تر: هر جا پول
     // هست، سؤال هم هست — و کاربری که نمی‌داند پولش کجاست، نباید دنبال
@@ -119,15 +129,24 @@ export async function walletHomeScreen(playerId: number): Promise<Screen> {
     media: media("wallet.jpg"),
     text:
       `👛 <b>کیف پول</b>\n\n` +
+      // ⚠️ پیش از هر عددی. کاربری که اول عدد را ببیند و بعد بفهمد مجازی
+      // است، همان لحظه اعتمادش را از دست می‌دهد.
+      (demo
+        ? `🎭 <b>نسخه‌ی دمو</b> — این موجودی <b>تتر مجازی</b> است و ماهانه ` +
+          `${money(DEMO_ALLOWANCE)} تتر مجازی می‌گیری. واریز و برداشت هنوز ` +
+          `فعال نیستند. رقابت و جایزه واقعی‌اند.\n\n`
+        : "") +
       `موجودی قابل استفاده\n<b>${money(d.balance)} تتر</b>  <i>(USDT)</i>\n` +
       // اگر بخشی هدیه است، همین‌جا گفته می‌شود نه در لحظه‌ی برداشت. کاربری
       // که عدد بزرگ می‌بیند و بعد «موجودی کافی نیست» می‌گیرد، فکر می‌کند
       // پولش را خورده‌ایم.
-      (d.demoBalance > 0
+      // در دمو کل موجودی مجازی است، پس «شامل X هدیه، قابل برداشت Y» فقط
+      // گیج‌کننده است — هیچ‌چیز قابل برداشت نیست و کاربر بالاتر خوانده.
+      (!demo && d.demoBalance > 0
         ? `شامل <b>${money(d.demoBalance)}</b> هدیه — قابل برداشت: ` +
           `<b>${money(floorUsdt(d.withdrawable))}</b>\n`
         : "") +
-      `شبکه: <b>${USDT_NETWORK}</b>\n` +
+      (demo ? "" : `شبکه: <b>${USDT_NETWORK}</b>\n`) +
       (d.openBets > 0
         ? `\n🔒 درگیر در ${d.openBets} پیش‌بینی باز: $${money(d.locked)}\n`
         : "") +
@@ -151,6 +170,18 @@ export async function historyScreen(playerId: number): Promise<Screen> {
 
 export async function depositScreen(playerId: number): Promise<Screen> {
   const back: InlineButton[][] = [[{ text: "‹ کیف پول", callback_data: WALLET.home }]];
+
+  // ⚠️ **پیش از `gatewayReady`.** در نسخه‌ی دمو درگاه ممکن است کاملا سالم
+  // باشد؛ ما عمدا آدرس نمی‌سازیم. اگر این شرط پایین‌تر بود، کاربر پیام
+  // «دریافت آدرس ممکن نشد، کمی بعد دوباره تلاش کنید» می‌گرفت — که دروغ
+  // است و او را وامی‌دارد ده بار تلاش کند برای چیزی که قرار نیست بیاید.
+  if (isDemo()) {
+    return {
+      media: media("wallet.jpg"),
+      text: `⬇️ <b>واریز</b>\n\n🎭 ${DEMO_BLOCKED.deposit}`,
+      buttons: back,
+    };
+  }
 
   if (!gatewayReady()) {
     return {

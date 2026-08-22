@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import DemoBanner, { type DemoNotice } from "@/components/DemoBanner";
 import Script from "next/script";
 import { applyTheme, webApp } from "@/components/tg/telegram";
 import { authenticate, type AuthedPlayer } from "@/components/tg/api";
@@ -126,6 +127,7 @@ export default function MiniApp({
   };
   const [player, setPlayer] = useState<AuthedPlayer | null>(null);
   const [deepLink, setDeepLink] = useState<DeepLink | null>(null);
+  const [demoNotice, setDemoNotice] = useState<DemoNotice | null>(null);
   const [created, setCreated] = useState(false);
   // دو دروازه‌ی اولین ورود. ترتیبشان مهم است: قوانین اول، آموزش بعد — پذیرش
   // شرط استفاده است، آموزش فقط کمک.
@@ -151,6 +153,7 @@ export default function MiniApp({
         return;
       }
       setPlayer(r.player);
+      setDemoNotice(r.demoNotice);
       setCreated(r.created);
       setNeedsTerms(r.needsTerms);
       setNeedsTour(r.needsTour);
@@ -279,6 +282,14 @@ export default function MiniApp({
 
           {player && (
             <>
+              {/* ⚠️ **بالای همه‌چیز و در همه‌ی تب‌ها**، نه فقط صفحه‌ی اول.
+                  کاربری که مستقیم با لینک عمیق داخل یک بازار بیفتد،
+                  صفحه‌ی اول را اصلا نمی‌بیند — و او دقیقا همان کسی است
+                  که باید بداند این پول واقعی نیست. */}
+              <div className="mb-3">
+                <DemoBanner notice={demoNotice} compact />
+              </div>
+
               {created && tab === "markets" && (
                 <div className="mb-4 rounded-2xl border border-gold/40 bg-gold/5 p-4">
                   <p className="text-[12px] font-bold text-gold">

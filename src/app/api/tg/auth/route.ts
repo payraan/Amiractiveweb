@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { grantMonthlyDemo } from "@/lib/demo-allowance";
+import { platformMode, modeBanner, logModeOnce } from "@/lib/platform-mode";
 import { log } from "@/lib/log";
 import { db } from "@/lib/db";
 import { findOrCreateTgPlayer } from "@/lib/telegram";
@@ -22,6 +24,7 @@ export const dynamic = "force-dynamic";
 // کوکی. دلیلش در بالای src/lib/tg-auth.ts نوشته شده.
 
 export async function POST(req: Request) {
+  logModeOnce();
   let body: { initData?: string };
   try {
     body = await req.json();
@@ -69,6 +72,12 @@ export async function POST(req: Request) {
 
   // دعوت فقط برای حساب تازه‌ساخته معنا دارد؛ وگرنه هر کاربر قدیمی می‌توانست
   // با باز کردن یک لینک دعوت، خودش را به دعوت‌کننده‌ی تازه بچسباند.
+  // ⚠️ سهمیه اینجا هم صدا زده می‌شود و نه فقط در روت کیف پول: کاربری که
+  // مستقیم سراغ بازار برود و هرگز کیف پول را باز نکند، وگرنه با موجودی
+  // صفر می‌ماند و فکر می‌کند پلتفرم خراب است. مسیر سریعِ خودِ تابع یعنی
+  // در حالت عادی فقط یک خواندن است.
+  await grantMonthlyDemo(player.id);
+
   if (player.created && check.startParam?.startsWith("ref_")) {
     try {
       await attachReferral(player.id, check.startParam.slice(4));
@@ -91,6 +100,10 @@ export async function POST(req: Request) {
 
   return NextResponse.json({
     ok: true,
+    // حالت پلتفرم در همان پاسخ بوت — مینی‌اپ بنر را از اولین لحظه دارد
+    // و لازم نیست یک درخواست جدا بزند.
+    mode: platformMode(),
+    demoNotice: modeBanner(),
     token: signTgSession(player.id),
     expiresIn: TG_SESSION_MAX_AGE_S,
     created: player.created,

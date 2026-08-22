@@ -1,6 +1,7 @@
 "use client";
 
 import { webApp } from "@/components/tg/telegram";
+import type { DemoNotice } from "@/components/DemoBanner";
 
 // کلاینت API مینی‌اپ.
 //
@@ -33,6 +34,8 @@ export type AuthResult =
       startParam: string | null;
       needsTerms: boolean;
       needsTour: boolean;
+      /** `null` یعنی حالت واقعی. متن از سرور می‌آید، نه از کلاینت. */
+      demoNotice: DemoNotice | null;
     }
   | { ok: false; error: string };
 
@@ -57,6 +60,7 @@ export async function authenticate(): Promise<AuthResult> {
     player: j.player,
     created: Boolean(j.created),
     startParam: j.startParam ?? null,
+    demoNotice: j.demoNotice ?? null,
     // fail-closed نیست و نباید باشد: اگر سرور این فیلدها را نفرستد،
     // دروازه بسته می‌ماند و کاربر پشت مودالی گیر می‌کند که راه بازش نیست.
     needsTerms: Boolean(j.needsTerms),

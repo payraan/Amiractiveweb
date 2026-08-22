@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import SiteDemoBanner from "@/components/SiteDemoBanner";
+import { modeBanner } from "@/lib/platform-mode";
 import localFont from "next/font/local";
 import { Vazirmatn, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
@@ -44,6 +46,12 @@ export default function RootLayout({
       <body
         className={`${estedad.variable} ${vazirmatn.variable} ${jbMono.variable} antialiased`}
       >
+        {/* ⚠️ در لایوت ریشه و نه کنار هر `<Nav />`: Nav در پانزده صفحه
+            جداگانه صدا زده می‌شود و صفحه‌ای که بنر نداشته باشد، دقیقا
+            همان صفحه‌ای است که کاربر فکر می‌کند پولش واقعی است.
+            `modeBanner()` سمت سرور خوانده می‌شود — همان تک‌منبع حقیقت،
+            نه یک NEXT_PUBLIC موازی که روزی با آن نخوانَد. */}
+        <SiteDemoBanner notice={modeBanner()} />
         {children}
       </body>
     </html>

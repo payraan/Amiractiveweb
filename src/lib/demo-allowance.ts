@@ -51,6 +51,21 @@ export async function grantMonthlyDemo(
 
   const month = tehranMonth();
   const pool = await db();
+
+  // ── مسیر سریع ──
+  // این تابع از مسیرهای پرترافیک صدا زده می‌شود (هر بار باز شدن مینی‌اپ).
+  // در حالت عادی سهمیه‌ی این ماه از قبل داده شده، پس نباید بابتش ترنزاکشن
+  // باز شود. یک خواندنِ ایندکس‌خور کافی است.
+  //
+  // ⚠️ این جای قفل را نمی‌گیرد: اگر اینجا چیزی پیدا نشد، تصمیم واقعی
+  // همچنان داخل ترنزاکشن و پشت `FOR UPDATE` گرفته می‌شود. مسابقه‌ی دو
+  // درخواست هم‌زمان آنجا حل می‌شود، نه اینجا.
+  const quick = await pool.query(
+    "SELECT 1 FROM wallet_ledger WHERE player_id=$1 AND kind='demo_allowance' AND ref=$2 LIMIT 1",
+    [playerId, month]
+  );
+  if (quick.rowCount) return { granted: false, reason: "already_this_month" };
+
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
