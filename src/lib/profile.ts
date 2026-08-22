@@ -123,20 +123,31 @@ export async function loadProfile(playerId: number) {
       // نکرده‌اند» — عددی که هیچ چیزی درباره‌ی مهارت نمی‌گوید.
       pool.query(
         `WITH unified AS (
-           SELECT pr.player_id, pr.points
+           SELECT pr.player_id, pr.points, r.settle_at AS settled_at
              FROM predictions pr
              JOIN rounds r ON r.id = pr.round_id
             WHERE r.status='settled' AND pr.points IS NOT NULL
               AND r.settle_at >= now() - interval '30 days'
            UNION ALL
-           SELECT pp.player_id, pp.points
+           SELECT pp.player_id, pp.points, pp.settled_at
              FROM poly_predictions pp
             WHERE pp.status='settled' AND pp.points IS NOT NULL
               AND pp.settled_at >= now() - interval '30 days'
          ),
          ranked AS (
+           -- ⚠️ ترتیب باید **عیناً** همان لیدربورد باشد
+           -- (api/predict/leaderboard/route.ts): نخستین‌ها بر اساس زمان
+           -- تسویه شمرده می‌شوند — نه بهترین‌ها و نه بدترین‌ها.
+           --
+           -- تا امروز اینجا فقط ORDER BY points ASC بود، یعنی ۶۰
+           -- پیش‌بینیِ **کم‌امتیازتر** شمرده می‌شد. برای کسی که در
+           -- ۳۰ روز بیش از ۶۰ پیش‌بینیِ تسویه‌شده دارد، پروفایل
+           -- رتبه‌ای بدتر از لیدربورد نشان می‌داد — دقیقاً همان
+           -- «دو رتبه‌ی متفاوت با یک نام» که کامنت بالا از آن پرهیز می‌دهد.
            SELECT player_id, points,
-                  ROW_NUMBER() OVER (PARTITION BY player_id ORDER BY points ASC) AS rn
+                  ROW_NUMBER() OVER (
+                    PARTITION BY player_id ORDER BY settled_at ASC, points ASC
+                  ) AS rn
              FROM unified
          ),
          capped AS (
@@ -289,7 +300,6 @@ export async function loadProfile(playerId: number) {
       // امتیازِ رتبه‌ساز — همان عددی که لیدربورد می‌شمارد، جدا از
       // `totalPoints` که جمع همیشگیِ همه‌ی بازی‌هاست.
       points: Number(rk.ranked_points ?? 0),
-      counted: totalPlayers,
     },
     badgeStats: {
       totalPreds: Number(pu.total) + Number(po.total),

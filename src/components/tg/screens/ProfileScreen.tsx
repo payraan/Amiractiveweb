@@ -49,7 +49,6 @@ type Profile = {
     above: number;
     percentile: number;
     points: number;
-    counted: number;
   };
   badgeStats: BadgeStats;
   showcase: string[];
